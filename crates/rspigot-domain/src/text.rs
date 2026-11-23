@@ -79,6 +79,7 @@ const RGB_MAX: u32 = 0xFF_FFFF;
 const SPIGOT_RESET: Style = Style {
     click: None,
     hover: None,
+    extras: None,
     color: None,
     bold: Some(false),
     italic: Some(false),
@@ -117,14 +118,41 @@ pub enum ClickEvent {
     RunCommand(String),
     SuggestCommand(String),
     OpenUrl(String),
+    OpenFile(String),
+    ChangePage(i32),
     CopyToClipboard(String),
+    ShowDialog(String),
     Custom(String),
+    CustomPayload { id: String, payload: String },
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum HoverTarget {
+    Item {
+        id: String,
+        count: i32,
+        components: String,
+    },
+    Entity {
+        id: String,
+        uuid: [i32; 4],
+        name: Option<Box<Component>>,
+    },
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
+pub struct StyleExtras {
+    pub hover_target: Option<HoverTarget>,
+    pub insertion: Option<Box<str>>,
+    pub font: Option<Box<str>>,
+    pub shadow_color: Option<u32>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct Style {
     pub click: Option<Box<ClickEvent>>,
     pub hover: Option<Box<Component>>,
+    pub extras: Option<Box<StyleExtras>>,
     pub color: Option<Color>,
     pub bold: Option<bool>,
     pub italic: Option<bool>,
@@ -134,6 +162,28 @@ pub struct Style {
 }
 
 impl Style {
+    pub fn insertion(&self) -> Option<&str> {
+        self.extras.as_deref()?.insertion.as_deref()
+    }
+
+    pub fn font(&self) -> Option<&str> {
+        self.extras.as_deref()?.font.as_deref()
+    }
+
+    pub fn shadow_color(&self) -> Option<u32> {
+        self.extras.as_deref()?.shadow_color
+    }
+
+    pub fn hover_target(&self) -> Option<&HoverTarget> {
+        self.extras.as_deref()?.hover_target.as_ref()
+    }
+
+    pub fn with_extras(&mut self, change: impl FnOnce(&mut StyleExtras)) {
+        let mut extras = self.extras.take().map(|boxed| *boxed).unwrap_or_default();
+        change(&mut extras);
+        self.extras = (extras != StyleExtras::default()).then(|| Box::new(extras));
+    }
+
     pub(crate) const fn flags(&self) -> [Option<bool>; 5] {
         [
             self.bold,
@@ -151,6 +201,7 @@ impl Style {
         Self {
             click: None,
             hover: None,
+            extras: None,
             color,
             bold,
             italic,
@@ -168,6 +219,22 @@ impl Style {
         Self {
             click: self.click.clone().or_else(|| parent.click.clone()),
             hover: self.hover.clone().or_else(|| parent.hover.clone()),
+            extras: match (&self.extras, &parent.extras) {
+                (Some(own), Some(inherited)) => Some(Box::new(StyleExtras {
+                    hover_target: own
+                        .hover_target
+                        .clone()
+                        .or_else(|| inherited.hover_target.clone()),
+                    insertion: own
+                        .insertion
+                        .clone()
+                        .or_else(|| inherited.insertion.clone()),
+                    font: own.font.clone().or_else(|| inherited.font.clone()),
+                    shadow_color: own.shadow_color.or(inherited.shadow_color),
+                })),
+                (Some(own), None) => Some(own.clone()),
+                (None, inherited) => inherited.clone(),
+            },
             ..Self::from_parts(self.color.or(parent.color), flags)
         }
     }
@@ -207,7 +274,62 @@ impl Style {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Content {
     Text(String),
-    Translatable { key: String, args: Vec<Component> },
+    Translatable {
+        key: String,
+        fallback: Option<Box<String>>,
+        args: Vec<Component>,
+    },
+    Score {
+        name: String,
+        objective: String,
+    },
+    Selector {
+        pattern: String,
+        separator: Option<Box<Component>>,
+    },
+    Keybind(String),
+    Nbt(Box<NbtContents>),
+    Object(Box<ObjectNode>),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct NbtContents {
+    pub path: String,
+    pub interpret: bool,
+    pub plain: bool,
+    pub separator: Option<Box<Component>>,
+    pub source: NbtSource,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ObjectNode {
+    pub object: ObjectContents,
+    pub fallback: Option<Box<Component>>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum NbtSource {
+    Block(String),
+    Entity(String),
+    Storage(String),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum ObjectContents {
+    Atlas { atlas: String, sprite: String },
+    Player { profile: String, hat: bool },
+}
+
+impl Content {
+    pub fn static_text(&self) -> &str {
+        match self {
+            Self::Text(text) => text,
+            Self::Translatable { key, .. } => key,
+            Self::Selector { pattern, .. } => pattern,
+            Self::Keybind(key) => key,
+            Self::Score { .. } | Self::Nbt(_) | Self::Object(_) => "",
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -230,6 +352,7 @@ impl Component {
         Self {
             content: Content::Translatable {
                 key: key.into(),
+                fallback: None,
                 args,
             },
             style: Style::default(),
@@ -279,10 +402,7 @@ impl Component {
 
     fn write_legacy(&self, parent: &Style, last: &mut Style, out: &mut String) {
         let style = self.style.inherit(parent);
-        let content = match &self.content {
-            Content::Text(text) => text,
-            Content::Translatable { key, .. } => key,
-        };
+        let content = self.content.static_text();
         if !content.is_empty() {
             if style != *last {
                 last.write_change(&style, out);
@@ -303,9 +423,17 @@ impl Component {
 
     fn write_rendered(&self, out: &mut String, translate: &impl Fn(&str) -> Option<&'static str>) {
         match &self.content {
-            Content::Text(t) => out.push_str(t),
-            Content::Translatable { key, args } => match translate(key) {
+            Content::Translatable {
+                key,
+                fallback,
+                args,
+            } => match translate(key) {
                 Some(template) => out.push_str(&fill_template(template, args, translate)),
+                None if fallback.is_some() => out.push_str(&fill_template(
+                    fallback.as_deref().map_or("", String::as_str),
+                    args,
+                    translate,
+                )),
                 None => {
                     out.push_str(key);
                     for arg in args {
@@ -314,6 +442,7 @@ impl Component {
                     }
                 }
             },
+            other => out.push_str(other.static_text()),
         }
         for child in &self.extra {
             child.write_rendered(out, translate);
@@ -328,14 +457,14 @@ impl Component {
 
     fn write_plain(&self, out: &mut String) {
         match &self.content {
-            Content::Text(t) => out.push_str(t),
-            Content::Translatable { key, args } => {
+            Content::Translatable { key, args, .. } => {
                 out.push_str(key);
                 for arg in args {
                     out.push(' ');
                     arg.write_plain(out);
                 }
             }
+            other => out.push_str(other.static_text()),
         }
         for child in &self.extra {
             child.write_plain(out);
@@ -502,6 +631,7 @@ mod tests {
         let spigot_reset = Style {
             click: None,
             hover: None,
+            extras: None,
             color: None,
             bold: Some(false),
             italic: Some(false),

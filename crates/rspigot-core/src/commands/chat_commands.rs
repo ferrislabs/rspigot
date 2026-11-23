@@ -13,9 +13,75 @@ fn speaker<C: CommandContext>(ctx: &C, sender: CommandSender) -> Component {
     }
 }
 
+fn selector_end(text: &str) -> usize {
+    let mut depth = 0;
+    for (index, c) in text.char_indices() {
+        match c {
+            '[' => depth += 1,
+            ']' if depth > 0 => {
+                depth -= 1;
+                if depth == 0 {
+                    return index + 1;
+                }
+            }
+            c if c.is_whitespace() && depth == 0 => return index,
+            _ => {}
+        }
+    }
+    text.len()
+}
+
+pub(super) fn with_selectors<C: CommandContext>(
+    ctx: &C,
+    sender: CommandSender,
+    message: &str,
+) -> Component {
+    if ctx.permission_level(sender) < super::permission::LEVEL_GAMEMASTERS {
+        return Component::text(message);
+    }
+    let mut out = Component::text("");
+    let mut plain = String::new();
+    let mut rest = message;
+    let mut replaced = false;
+    while let Some(at) = rest.find('@') {
+        let (before, from) = rest.split_at(at);
+        let boundary = before.chars().last().is_none_or(char::is_whitespace);
+        let end = selector_end(from);
+        let candidate = &from[..end];
+        let names = (boundary && super::selector::parse(candidate).is_ok())
+            .then(|| ctx.select_entities(sender, candidate).ok())
+            .flatten();
+        match names {
+            Some(found) => {
+                plain.push_str(before);
+                if !plain.is_empty() {
+                    out = out.append(Component::text(std::mem::take(&mut plain)));
+                }
+                for (index, target) in found.iter().enumerate() {
+                    if index > 0 {
+                        out = out.append(Component::text(", "));
+                    }
+                    out = out.append(ctx.target_name(*target));
+                }
+                replaced = true;
+            }
+            None => plain.push_str(&rest[..at + end]),
+        }
+        rest = &from[end..];
+    }
+    plain.push_str(rest);
+    if !replaced {
+        return Component::text(message);
+    }
+    if !plain.is_empty() {
+        out = out.append(Component::text(plain));
+    }
+    out
+}
+
 fn announce<C: CommandContext>(ctx: &mut C, sender: CommandSender, kind: ChatKind, message: &str) {
     let name = speaker(ctx, sender);
-    let body = Component::text(message);
+    let body = with_selectors(ctx, sender, message);
     for player in ctx.player_ids() {
         ctx.send_chat(player, kind, name.clone(), None, body.clone());
     }
@@ -60,7 +126,7 @@ fn msg<C: CommandContext>(ctx: &mut C, sender: CommandSender, rest: &str) -> Com
         Err(outcome) => return outcome,
     };
     let from = speaker(ctx, sender);
-    let body = Component::text(message);
+    let body = with_selectors(ctx, sender, message);
     for target in &found {
         let to = ctx.target_name(Target::Player(*target));
         match sender {

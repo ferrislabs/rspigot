@@ -137,7 +137,7 @@ fn teleports_after_a_far_move(multiplier: f64) -> usize {
     server.handle(Inbound::Input {
         player: alice.id,
         input: PlayerInput::Move {
-            position: Some(Vec3::new(150.0, 64.0, 0.5)),
+            position: Some(Vec3::new(15.5, 64.0, 0.5)),
             rotation: None,
             on_ground: true,
         },

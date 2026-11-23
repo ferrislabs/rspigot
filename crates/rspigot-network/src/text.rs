@@ -1,139 +1,55 @@
-use rspigot_domain::text::{Color, Component, Content, Style};
-use rspigot_nbt::{Compound, Tag};
-use serde_json::{Map, Value};
+use rspigot_domain::text::Component;
+use rspigot_domain::text_nbt::component_to_tag;
+use rspigot_nbt::Tag;
+use serde_json::{Map, Number, Value};
 
-fn color_name(color: Color) -> String {
-    match color {
-        Color::Named(named) => named.name().to_owned(),
-        Color::Rgb(rgb) => format!("#{:06X}", rgb & 0xFF_FFFF),
-    }
-}
-
-fn style_flags(style: &Style) -> [(&'static str, Option<bool>); 5] {
-    [
-        ("bold", style.bold),
-        ("italic", style.italic),
-        ("underlined", style.underlined),
-        ("strikethrough", style.strikethrough),
-        ("obfuscated", style.obfuscated),
-    ]
-}
-
-fn is_plain(component: &Component) -> bool {
-    component.style == Style::default()
-        && component.extra.is_empty()
-        && matches!(component.content, Content::Text(_))
-}
+const BOOLEAN_KEYS: [&str; 8] = [
+    "bold",
+    "italic",
+    "underlined",
+    "strikethrough",
+    "obfuscated",
+    "interpret",
+    "plain",
+    "hat",
+];
 
 pub fn to_nbt(component: &Component) -> Tag {
-    if is_plain(component)
-        && let Content::Text(text) = &component.content
-    {
-        return Tag::String(text.clone());
-    }
-    let mut compound = Compound::new();
-    match &component.content {
-        Content::Text(text) => {
-            compound.insert("text", text.as_str());
-        }
-        Content::Translatable { key, args } => {
-            compound.insert("translate", key.as_str());
-            if !args.is_empty() {
-                compound.insert(
-                    "with",
-                    Tag::List(args.iter().map(|a| Tag::Compound(as_compound(a))).collect()),
-                );
-            }
-        }
-    }
-    if let Some(color) = component.style.color {
-        compound.insert("color", color_name(color));
-    }
-    for (key, value) in style_flags(&component.style) {
-        if let Some(value) = value {
-            compound.insert(key, value);
-        }
-    }
-    if let Some(click) = &component.style.click {
-        compound.insert("click_event", click_tag(click.as_ref()));
-    }
-    if let Some(hover) = &component.style.hover {
-        compound.insert(
-            "hover_event",
-            Compound::new()
-                .with("action", "show_text")
-                .with("value", to_nbt(hover)),
-        );
-    }
-    if !component.extra.is_empty() {
-        compound.insert(
-            "extra",
-            Tag::List(
-                component
-                    .extra
-                    .iter()
-                    .map(|c| Tag::Compound(as_compound(c)))
-                    .collect(),
-            ),
-        );
-    }
-    Tag::Compound(compound)
+    component_to_tag(component)
 }
 
-fn click_tag(click: &rspigot_domain::text::ClickEvent) -> Compound {
-    use rspigot_domain::text::ClickEvent;
-
-    let (action, field, value) = match click {
-        ClickEvent::RunCommand(command) => ("run_command", "command", command),
-        ClickEvent::SuggestCommand(command) => ("suggest_command", "command", command),
-        ClickEvent::OpenUrl(url) => ("open_url", "url", url),
-        ClickEvent::CopyToClipboard(text) => ("copy_to_clipboard", "value", text),
-        ClickEvent::Custom(id) => ("custom", "id", id),
-    };
-    Compound::new()
-        .with("action", action)
-        .with(field, value.as_str())
-}
-
-fn as_compound(component: &Component) -> Compound {
-    match to_nbt(component) {
-        Tag::Compound(c) => c,
-        Tag::String(text) => Compound::new().with("text", text),
-        _ => Compound::new(),
+fn tag_to_json(key: &str, tag: &Tag) -> Value {
+    match tag {
+        Tag::Byte(value) if BOOLEAN_KEYS.contains(&key) => Value::Bool(*value != 0),
+        Tag::Byte(value) => Value::from(*value),
+        Tag::Short(value) => Value::from(*value),
+        Tag::Int(value) => Value::from(*value),
+        Tag::Long(value) => Value::from(*value),
+        Tag::Float(value) => Number::from_f64(f64::from(*value)).map_or(Value::Null, Value::Number),
+        Tag::Double(value) => Number::from_f64(*value).map_or(Value::Null, Value::Number),
+        Tag::String(text) => Value::String(text.clone()),
+        Tag::List(items) => Value::Array(items.iter().map(|item| tag_to_json(key, item)).collect()),
+        Tag::Compound(compound) => Value::Object(
+            compound
+                .iter()
+                .map(|(name, value)| (name.to_owned(), tag_to_json(name, value)))
+                .collect::<Map<_, _>>(),
+        ),
+        Tag::IntArray(values) => Value::from(values.clone()),
+        Tag::LongArray(values) => Value::from(values.clone()),
+        Tag::ByteArray(values) => Value::from(values.clone()),
     }
 }
 
 pub fn to_json_value(component: &Component) -> Value {
-    let mut object = Map::new();
-    match &component.content {
-        Content::Text(text) => {
-            object.insert("text".to_owned(), Value::String(text.clone()));
+    match to_nbt(component) {
+        Tag::String(text) => {
+            let mut object = Map::new();
+            object.insert("text".to_owned(), Value::String(text));
+            Value::Object(object)
         }
-        Content::Translatable { key, args } => {
-            object.insert("translate".to_owned(), Value::String(key.clone()));
-            if !args.is_empty() {
-                object.insert(
-                    "with".to_owned(),
-                    Value::Array(args.iter().map(to_json_value).collect()),
-                );
-            }
-        }
+        other => tag_to_json("", &other),
     }
-    if let Some(color) = component.style.color {
-        object.insert("color".to_owned(), Value::String(color_name(color)));
-    }
-    for (key, value) in style_flags(&component.style) {
-        if let Some(value) = value {
-            object.insert(key.to_owned(), Value::Bool(value));
-        }
-    }
-    if !component.extra.is_empty() {
-        object.insert(
-            "extra".to_owned(),
-            Value::Array(component.extra.iter().map(to_json_value).collect()),
-        );
-    }
-    Value::Object(object)
 }
 
 pub fn to_json(component: &Component) -> String {
@@ -143,6 +59,7 @@ pub fn to_json(component: &Component) -> String {
 #[cfg(test)]
 mod tests {
     use rspigot_domain::text::NamedColor;
+    use rspigot_nbt::Tag;
 
     use super::*;
 
@@ -230,5 +147,31 @@ mod tests {
             to_json(&Component::text("x").bold()),
             r#"{"bold":true,"text":"x"}"#
         );
+    }
+
+    #[test]
+    fn new_contents_and_style_fields_reach_the_wire() {
+        use rspigot_domain::text::Content;
+
+        let mut component = Component::text("");
+        component.content = Content::Score {
+            name: "@s".to_owned(),
+            objective: "kills".to_owned(),
+        };
+        component.style.with_extras(|extras| {
+            extras.insertion = Some("ins".into());
+            extras.font = Some("minecraft:uniform".into());
+            extras.shadow_color = Some(0xFF00_FF00);
+        });
+        let Tag::Compound(root) = to_nbt(&component) else {
+            panic!("compound");
+        };
+        let score = root.get_compound("score").unwrap();
+        assert_eq!(score.get_str("objective"), Some("kills"));
+        assert_eq!(root.get_str("insertion"), Some("ins"));
+        assert_eq!(root.get_str("font"), Some("minecraft:uniform"));
+        assert_eq!(root.get_i32("shadow_color"), Some(0xFF00_FF00_u32 as i32));
+        let json = to_json_value(&Component::text("a").bold());
+        assert_eq!(json["bold"], serde_json::Value::Bool(true));
     }
 }

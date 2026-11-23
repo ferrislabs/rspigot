@@ -191,7 +191,9 @@ fn component_of<C: CommandContext>(
     sender: CommandSender,
     raw: &str,
 ) -> Result<Component, CommandOutcome> {
-    json_text::parse(raw).map_err(|error| reply_err(ctx, sender, error))
+    json_text::parse(raw)
+        .and_then(|component| super::text_resolve::resolve_for_source(ctx, sender, &component))
+        .map_err(|error| reply_err(ctx, sender, error))
 }
 
 fn number_format_from<C: CommandContext>(

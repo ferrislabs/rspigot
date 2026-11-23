@@ -419,12 +419,18 @@ impl<L: ClientLink> Server<L> {
                 game_time: level.game_time,
                 day_time: level.day_time.wrapping_add(time),
                 advance_time: level.daylight_cycle && !self.world.dimension.has_fixed_time,
+                clock: self.default_clock_id(),
+                rate: level.clock.network_rate(),
+                partial_tick: level.clock.partial_tick,
             }
         } else {
             ClientEvent::Time {
                 game_time: level.game_time,
                 day_time: time.rem_euclid(DAY_TICKS),
                 advance_time: false,
+                clock: self.default_clock_id(),
+                rate: level.clock.network_rate(),
+                partial_tick: level.clock.partial_tick,
             }
         };
         self.push(Audience::One(id), event);

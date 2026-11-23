@@ -68,6 +68,7 @@ impl<L: ClientLink> Server<L> {
                 self.config.hopper_transfer_ticks = config.hopper_transfer_ticks;
                 self.config.max_tnt_per_tick = config.max_tnt_per_tick;
                 self.config.combat_exhaustion = config.combat_exhaustion;
+                self.config.hunger = config.hunger;
                 self.config.messages = config.messages;
                 self.config.save_players = config.save_players;
                 self.config.save_advancements = config.save_advancements;

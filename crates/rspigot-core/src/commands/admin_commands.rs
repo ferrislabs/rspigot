@@ -110,10 +110,14 @@ fn setidletimeout<C: CommandContext>(
 
 fn debug<C: CommandContext>(ctx: &mut C, sender: CommandSender, rest: &str) -> CommandOutcome {
     let help = "/debug start|stop|function <name>";
-    let Some((action, _)) = next_argument(rest) else {
+    let Some((action, after)) = next_argument(rest) else {
         return usage(ctx, sender, help);
     };
     match action {
+        "function" => match next_argument(after) {
+            Some((name, _)) => super::function_commands::debug_function(ctx, sender, name),
+            None => usage(ctx, sender, help),
+        },
         "start" => {
             if !ctx.start_profiler() {
                 return fail(ctx, sender, "commands.debug.alreadyRunning", Vec::new());

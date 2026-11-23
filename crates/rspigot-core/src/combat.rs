@@ -531,7 +531,7 @@ impl<L: ClientLink> Server<L> {
         );
         self.mace_smash(id, victim.entity, feet);
         let exhaustion = self.config.combat_exhaustion;
-        self.exhaust(id, exhaustion, EntityExhaustionReason::Unknown);
+        self.exhaust(id, exhaustion, EntityExhaustionReason::Attack);
     }
 
     fn sweep_attack(

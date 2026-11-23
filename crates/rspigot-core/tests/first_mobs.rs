@@ -939,6 +939,8 @@ fn lava_sets_players_on_fire_and_water_puts_them_out() {
     let events = alice.drain();
     let player = server.player_entity_id(alice.id).unwrap();
     assert!(events.iter().any(|e| matches!(e, ClientEvent::DamageEvent { entity, kind: DamageType::Lava, .. } if *entity == player)));
+    stand(&mut server, &alice, Vec3::new(3.5, 64.0, 0.5));
+    stand(&mut server, &alice, Vec3::new(6.5, 64.0, 0.5));
     stand(&mut server, &alice, Vec3::new(6.5, 63.0, 0.5));
     pump(&mut server, &mut alice, 2);
     assert!(

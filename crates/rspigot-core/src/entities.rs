@@ -86,6 +86,7 @@ pub(crate) fn metadata(values: &[(u8, SyncedValue)]) -> Vec<MetadataEntry> {
                 SyncedValue::BlockPos(pos) => MetadataValue::BlockPos(*pos),
                 SyncedValue::OptionalBlockPos(pos) => MetadataValue::OptionalBlockPos(*pos),
                 SyncedValue::Particle(particle) => MetadataValue::Particle(particle.clone()),
+                SyncedValue::Particles(list) => MetadataValue::Particles(list.clone()),
                 SyncedValue::Variant(kind, id) => MetadataValue::Variant(*kind, *id),
                 SyncedValue::Long(v) => MetadataValue::Long(*v),
                 SyncedValue::Direction(face) => MetadataValue::Direction(*face as u8),
@@ -922,6 +923,15 @@ impl<L: ClientLink> Server<L> {
         level.pvp = Some(self.config.pvp);
         if let Some(fight) = &self.entities.fight {
             level.dragon_fight = Some(fight.data.to_nbt());
+        }
+        let end = rspigot_domain::Identifier::minecraft("the_end");
+        let end_level = if self.world.dimension.key == end {
+            Some(&self.world.level)
+        } else {
+            self.dormant.get(&end).map(|state| &state.world.level)
+        };
+        if let Some(end_level) = end_level {
+            level.end_clock = Some((end_level.day_time, end_level.clock));
         }
         level
     }

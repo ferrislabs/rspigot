@@ -68,6 +68,7 @@ pub enum DigAction {
     ReleaseUseItem,
     SwapHands,
     Stab,
+    ChangeDestroyDirection,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -500,6 +501,7 @@ pub enum MetadataValue {
     BlockPos(BlockPos),
     OptionalBlockPos(Option<BlockPos>),
     Particle(rspigot_domain::entity::ParticleSetting),
+    Particles(Vec<rspigot_domain::entity::ParticleSetting>),
     Variant(VariantKind, u32),
     Long(i64),
     Direction(u8),
@@ -698,6 +700,9 @@ pub enum ClientEvent {
         game_time: i64,
         day_time: i64,
         advance_time: bool,
+        clock: &'static str,
+        rate: f32,
+        partial_tick: f32,
     },
     SystemChat {
         message: Component,
@@ -933,6 +938,11 @@ pub enum ClientEvent {
         duration: i32,
     },
     Camera(EntityId),
+    MoveVehicle {
+        position: Vec3,
+        velocity: Vec3,
+        rotation: Rotation,
+    },
     ProjectilePower {
         entity: EntityId,
         power: f64,

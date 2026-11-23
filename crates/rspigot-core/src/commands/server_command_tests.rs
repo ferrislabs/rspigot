@@ -203,7 +203,7 @@ fn spawnpoint_sets_the_respawn_config() {
     let mut rig = rig();
     rig.texts();
     assert_eq!(
-        rig.run("spawnpoint @s 10 70 -5 90"),
+        rig.run("spawnpoint @s 10 70 -5 90 12"),
         CommandOutcome::Success
     );
     let respawn = rig.server.players[&rig.id]
@@ -211,7 +211,7 @@ fn spawnpoint_sets_the_respawn_config() {
         .clone()
         .expect("a respawn point");
     assert_eq!((respawn.pos.x, respawn.pos.y, respawn.pos.z), (10, 70, -5));
-    assert_eq!(respawn.yaw, 90.0);
+    assert_eq!((respawn.yaw, respawn.pitch), (90.0, 12.0));
     assert!(respawn.forced);
     assert_eq!(
         rig.texts(),

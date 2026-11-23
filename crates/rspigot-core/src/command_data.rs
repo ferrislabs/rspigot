@@ -56,8 +56,32 @@ impl<L: ClientLink> Server<L> {
                 chunk.set_block_entity(entity);
                 Ok(())
             }
-            DataTarget::Entity(_) => Err(invalid("commands.data.entity.invalid")),
+            DataTarget::Entity(Target::Entity(id)) => self.replace_entity_data(*id, data),
+            DataTarget::Entity(Target::Player(_)) => Err(invalid("commands.data.entity.invalid")),
         }
+    }
+
+    fn replace_entity_data(
+        &mut self,
+        id: rspigot_domain::EntityId,
+        mut data: Compound,
+    ) -> Result<(), Component> {
+        let uuid = self
+            .entities
+            .store
+            .get(id)
+            .map(|entity| entity.base.uuid)
+            .ok_or_else(|| invalid("commands.data.entity.invalid"))?;
+        data.insert("UUID", rspigot_domain::entity::save::uuid_tag(uuid));
+        let entity = rspigot_domain::entity::save::load_entity(&data, id, uuid)
+            .map_err(|_| invalid("commands.data.entity.invalid"))?;
+        let slot = self
+            .entities
+            .store
+            .get_mut(id)
+            .ok_or_else(|| invalid("commands.data.entity.invalid"))?;
+        *slot = entity;
+        Ok(())
     }
 
     pub(crate) fn target_of_entity(&self, id: rspigot_domain::EntityId) -> Option<Target> {
@@ -72,6 +96,14 @@ impl<L: ClientLink> Server<L> {
             Target::Player(id) => self.players.get(&id).map(|p| p.entity_id),
             Target::Entity(id) => Some(id),
         }
+    }
+
+    fn saved_owner_of(&self, entity: rspigot_domain::EntityId) -> Option<uuid::Uuid> {
+        let saved = self.saved_entity(entity)?;
+        ["Owner", "owner"]
+            .into_iter()
+            .find_map(|key| saved.get(key))
+            .and_then(rspigot_domain::entity::save::read_uuid)
     }
 
     pub(crate) fn relations_of(&self, target: Target, relation: Relation) -> Vec<Target> {
@@ -101,6 +133,7 @@ impl<L: ClientLink> Server<L> {
                 .store
                 .get(entity)
                 .and_then(|e| rspigot_domain::entity::tamable::owner(&e.base))
+                .or_else(|| self.saved_owner_of(entity))
                 .and_then(|uuid| {
                     self.entities
                         .store
@@ -109,7 +142,25 @@ impl<L: ClientLink> Server<L> {
                 })
                 .into_iter()
                 .collect(),
-            Relation::Target | Relation::Attacker | Relation::Origin => Vec::new(),
+            Relation::Origin => self
+                .saved_owner_of(entity)
+                .and_then(|uuid| {
+                    self.entities
+                        .store
+                        .by_uuid(uuid)
+                        .or_else(|| self.players.get(&PlayerId(uuid)).map(|p| p.entity_id))
+                })
+                .into_iter()
+                .collect(),
+            Relation::Target => self.mob_target(entity).into_iter().collect(),
+            Relation::Attacker => self
+                .entities
+                .store
+                .get(entity)
+                .and_then(|e| e.living())
+                .and_then(|living| living.damage.last_hurt_by_mob)
+                .into_iter()
+                .collect(),
         };
         found
             .into_iter()

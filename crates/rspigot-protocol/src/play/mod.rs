@@ -34,8 +34,9 @@ pub mod clientbound {
     pub use super::effect::{RemoveMobEffect, UpdateMobEffect};
     pub use super::entity::{
         AddEntity, Animate, EntityPositionSync, MoveEntityPos, MoveEntityPosRot, MoveEntityRot,
-        RemoveEntities, RotateHead, SetCamera, SetEntityLink, SetEntityMotion, SetEquipment,
-        SetPassengers, SwingAnimation, TakeItemEntity, TeleportEntity, UpdateAttributes,
+        MoveVehicle, RemoveEntities, RotateHead, SetCamera, SetEntityLink, SetEntityMotion,
+        SetEquipment, SetPassengers, SwingAnimation, TakeItemEntity, TeleportEntity,
+        UpdateAttributes,
     };
     pub use super::gaps::{
         ChunkBiomeData, ChunksBiomes, LookAtEntity, OpenBook, PlayerCombatEnd, PlayerCombatEnter,

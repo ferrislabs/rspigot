@@ -58,6 +58,7 @@ pub enum DamageType {
     InWall,
     Cramming,
     Campfire,
+    FlyIntoWall,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -96,7 +97,7 @@ impl DamageTag {
 }
 
 impl DamageType {
-    pub const ALL: [Self; 48] = [
+    pub const ALL: [Self; 49] = [
         Self::Fall,
         Self::EnderPearl,
         Self::OutOfWorld,
@@ -145,6 +146,7 @@ impl DamageType {
         Self::InWall,
         Self::Cramming,
         Self::Campfire,
+        Self::FlyIntoWall,
     ];
 
     pub fn from_name(name: &str) -> Option<Self> {
@@ -201,6 +203,7 @@ impl DamageType {
             Self::InWall => "minecraft:in_wall",
             Self::Cramming => "minecraft:cramming",
             Self::Campfire => "minecraft:campfire",
+            Self::FlyIntoWall => "minecraft:fly_into_wall",
         }
     }
 
@@ -252,6 +255,7 @@ impl DamageType {
             Self::InWall => "inWall",
             Self::Cramming => "cramming",
             Self::Campfire => "inFire",
+            Self::FlyIntoWall => "flyIntoWall",
         }
     }
 
@@ -401,6 +405,12 @@ mod tests {
             (DamageType::InWall, "minecraft:in_wall", "inWall", 0.0),
             (DamageType::Cramming, "minecraft:cramming", "cramming", 0.0),
             (DamageType::Campfire, "minecraft:campfire", "inFire", 0.1),
+            (
+                DamageType::FlyIntoWall,
+                "minecraft:fly_into_wall",
+                "flyIntoWall",
+                0.0,
+            ),
         ];
         for (kind, name, message, exhaustion) in all {
             assert!(kind.registry_id().is_some(), "{name}");

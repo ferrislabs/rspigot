@@ -406,6 +406,13 @@ wire_struct! {
 }
 
 wire_struct! {
+    #[derive(Debug, Clone, Copy, PartialEq)]
+    pub struct MoveVehicle = id::MOVE_VEHICLE {
+        pub change: PositionMoveRotation,
+    }
+}
+
+wire_struct! {
     #[derive(Debug, Clone, Copy, PartialEq, Eq)]
     pub struct SetCamera = id::SET_CAMERA {
         pub camera_id: i32 as Var,

@@ -146,6 +146,7 @@ fn sprinting_in_water_counts_swim_one_cm_in_three_dimensions() {
     }
     if let Some(player) = server.players.get_mut(&id) {
         player.sprinting = true;
+        player.motion.swimming = true;
         player.on_ground = false;
     }
     let to = Vec3::new(1.5, 70.0, 0.5);

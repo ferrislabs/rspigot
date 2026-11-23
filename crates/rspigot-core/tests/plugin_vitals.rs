@@ -168,11 +168,11 @@ fn exhaustion_comes_from_attacks_hurts_and_hunger_with_its_reason() {
         .into_iter()
         .map(|(reason, _)| reason)
         .collect();
-    assert!(reasons.contains(&EntityExhaustionReason::Unknown));
+    assert!(reasons.contains(&EntityExhaustionReason::Attack));
     assert!(reasons.contains(&EntityExhaustionReason::Damaged));
     assert!(reasons.contains(&EntityExhaustionReason::HungerEffect));
     assert!(
-        exhaustions(&s).contains(&(EntityExhaustionReason::Unknown, 0.1)),
+        exhaustions(&s).contains(&(EntityExhaustionReason::Attack, 0.1)),
         "{:?}",
         exhaustions(&s)
     );

@@ -43,20 +43,11 @@ impl<L: ClientLink> Server<L> {
             .filter(|entity| entity.living().is_some())
             .map(|entity| (entity.base.id, entity.base.pose()))
             .collect();
-        current.extend(self.players.values().map(|player| {
-            let stance = if player.sleeping.is_some() {
-                Stance::Sleeping
-            } else if player.fall_flying {
-                Stance::FallFlying
-            } else if player.spin.is_some() {
-                Stance::SpinAttack
-            } else if player.sneaking && !player.flying {
-                Stance::Crouching
-            } else {
-                Stance::Standing
-            };
-            (player.entity_id, stance)
-        }));
+        current.extend(
+            self.players
+                .values()
+                .map(|player| (player.entity_id, player.pose())),
+        );
         let changed: Vec<(EntityId, Stance)> = current
             .iter()
             .filter(|(id, stance)| {

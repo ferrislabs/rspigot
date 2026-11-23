@@ -236,6 +236,40 @@ impl TreeBuilder {
     }
 }
 
+fn time_subtree(b: &mut TreeBuilder, parent: usize, of_clock: bool) {
+    let set = b.literal(parent, "set", false);
+    b.argument(set, "time", ArgumentParser::Time { min: 0 }, true);
+    b.argument(set, "timemarker", ArgumentParser::ResourceLocation, true);
+    let add = b.literal(parent, "add", false);
+    b.argument(add, "time", ArgumentParser::Time { min: i32::MIN }, true);
+    b.literal(parent, "pause", true);
+    b.literal(parent, "resume", true);
+    let rate = b.literal(parent, "rate", false);
+    b.argument(
+        rate,
+        "rate",
+        ArgumentParser::Float {
+            min: Some(1.0e-5),
+            max: Some(1000.0),
+        },
+        true,
+    );
+    let query = b.literal(parent, "query", false);
+    b.literal(query, "time", true);
+    if !of_clock {
+        b.literal(query, "gametime", true);
+    }
+    let timeline = b.argument(
+        query,
+        "timeline",
+        ArgumentParser::Resource {
+            registry: "minecraft:timeline".to_owned(),
+        },
+        true,
+    );
+    b.literal(timeline, "repetition", true);
+}
+
 fn entities() -> ArgumentParser {
     ArgumentParser::Entity {
         single: false,
@@ -273,9 +307,14 @@ pub fn build_tree(level: u8) -> CommandTree {
         }],
     };
     let root = 0;
-    for name in ["help", "list", "version", "plugins", "tps"] {
+    for name in ["version", "plugins", "tps"] {
         b.literal(root, name, true);
     }
+    let help = b.literal(root, "help", true);
+    b.argument(help, "command", ArgumentParser::GreedyString, true);
+    let list = b.literal(root, "list", true);
+    b.literal(list, "uuids", true);
+    random_commands(&mut b, root, level >= LEVEL_GAMEMASTERS);
     let me = b.literal(root, "me", false);
     b.argument(me, "action", ArgumentParser::Message, true);
     let msg = b.literal(root, "msg", false);
@@ -333,7 +372,7 @@ fn data_target_nodes(
     );
     leaf(b, path);
     let block = b.literal(parent, "block", false);
-    let pos = position_argument(b, block, "targetPos");
+    let pos = position_argument(b, block, "target");
     let path = b.argument(
         pos,
         "path",
@@ -458,7 +497,7 @@ fn condition_tree(b: &mut TreeBuilder, parent: usize, execute: usize) {
     );
     finish(b, path);
     let block = b.literal(data, "block", false);
-    let pos = position_argument(b, block, "sourcePos");
+    let pos = position_argument(b, block, "source");
     let path = b.argument(
         pos,
         "path",
@@ -475,6 +514,48 @@ fn condition_tree(b: &mut TreeBuilder, parent: usize, execute: usize) {
         false,
     );
     finish(b, path);
+    let items = b.literal(parent, "items", false);
+    let slots = b.literal(parent, "slots", false);
+    for (root, with_predicate) in [(items, true), (slots, false)] {
+        let block = b.literal(root, "block", false);
+        let pos = position_argument(b, block, "source");
+        let slot = b.argument(
+            pos,
+            "slots",
+            ArgumentParser::Named("minecraft:slot_source"),
+            !with_predicate,
+        );
+        let entity = b.literal(root, "entity", false);
+        let who = b.argument(entity, "source", entities(), false);
+        let entity_slot = b.argument(
+            who,
+            "slots",
+            ArgumentParser::Named("minecraft:slot_source"),
+            !with_predicate,
+        );
+        for node in [slot, entity_slot] {
+            if with_predicate {
+                let predicate = b.argument(
+                    node,
+                    "item_predicate",
+                    ArgumentParser::Named("minecraft:item_predicate"),
+                    false,
+                );
+                finish(b, predicate);
+            } else {
+                finish(b, node);
+            }
+        }
+    }
+    let stopwatch = b.literal(parent, "stopwatch", false);
+    let id = b.argument(stopwatch, "id", ArgumentParser::ResourceLocation, false);
+    let range = b.argument(
+        id,
+        "range",
+        ArgumentParser::Named("minecraft:float_range"),
+        false,
+    );
+    finish(b, range);
 }
 
 fn store_tree(b: &mut TreeBuilder, parent: usize, execute: usize) {
@@ -621,12 +702,7 @@ fn data_endpoints(b: &mut TreeBuilder, parent: usize, source: bool) -> [usize; 3
     let entity = b.literal(parent, "entity", false);
     let entity_node = b.argument(entity, key, single_entity(), false);
     let block = b.literal(parent, "block", false);
-    let block_node = b.argument(
-        block,
-        if source { "sourcePos" } else { "targetPos" },
-        ArgumentParser::BlockPos,
-        false,
-    );
+    let block_node = b.argument(block, key, ArgumentParser::BlockPos, false);
     let storage = b.literal(parent, "storage", false);
     let storage_node = b.argument(storage, key, ArgumentParser::ResourceLocation, false);
     [entity_node, block_node, storage_node]
@@ -640,7 +716,7 @@ fn data_commands(b: &mut TreeBuilder, root: usize) {
         b.argument(node, "nbt", ArgumentParser::NbtCompoundTag, true);
     }
     let get = b.literal(data, "get", false);
-    for node in data_endpoints(b, get, true) {
+    for node in data_endpoints(b, get, false) {
         b.nodes[node].executable = true;
         let path = b.argument(node, "path", nbt_path(), true);
         b.argument(
@@ -703,6 +779,21 @@ fn data_commands(b: &mut TreeBuilder, root: usize) {
                     true,
                 );
             }
+            let compute = b.literal(operation, "compute", false);
+            let block = b.literal(compute, "block", false);
+            let block_pos = position_argument(b, block, "computePos");
+            let default = b.literal(compute, "default", false);
+            let entity = b.literal(compute, "entity", false);
+            let entity_target = b.argument(entity, "computeTarget", single_entity(), false);
+            for parent in [block_pos, default, entity_target] {
+                for (kind, parser) in [
+                    ("float", "minecraft:context_float_provider"),
+                    ("integer", "minecraft:context_int_provider"),
+                ] {
+                    let node = b.literal(parent, kind, false);
+                    b.argument(node, "provider", ArgumentParser::Named(parser), true);
+                }
+            }
             let value = b.literal(operation, "value", false);
             b.argument(
                 value,
@@ -729,33 +820,9 @@ fn text_commands(b: &mut TreeBuilder, root: usize) {
         b.argument(node, "title", component(), true);
     }
     let times = b.literal(targets, "times", false);
-    let fade_in = b.argument(
-        times,
-        "fadeIn",
-        ArgumentParser::Integer {
-            min: Some(0),
-            max: None,
-        },
-        false,
-    );
-    let stay = b.argument(
-        fade_in,
-        "stay",
-        ArgumentParser::Integer {
-            min: Some(0),
-            max: None,
-        },
-        false,
-    );
-    b.argument(
-        stay,
-        "fadeOut",
-        ArgumentParser::Integer {
-            min: Some(0),
-            max: None,
-        },
-        true,
-    );
+    let fade_in = b.argument(times, "fadeIn", ArgumentParser::Time { min: 0 }, false);
+    let stay = b.argument(fade_in, "stay", ArgumentParser::Time { min: 0 }, false);
+    b.argument(stay, "fadeOut", ArgumentParser::Time { min: 0 }, true);
 }
 
 fn rule_commands(b: &mut TreeBuilder, root: usize) {
@@ -776,7 +843,7 @@ fn rule_commands(b: &mut TreeBuilder, root: usize) {
     let experience = b.literal(root, "experience", false);
     for action in ["add", "set"] {
         let node = b.literal(experience, action, false);
-        let targets = b.argument(node, "targets", player_targets(), false);
+        let targets = b.argument(node, "target", player_targets(), false);
         let amount = b.argument(
             targets,
             "amount",
@@ -791,7 +858,7 @@ fn rule_commands(b: &mut TreeBuilder, root: usize) {
         }
     }
     let query = b.literal(experience, "query", false);
-    let target = b.argument(query, "targets", player_arg(), false);
+    let target = b.argument(query, "target", player_arg(), false);
     for unit in ["points", "levels"] {
         b.literal(target, unit, true);
     }
@@ -803,6 +870,18 @@ fn rule_commands(b: &mut TreeBuilder, root: usize) {
         b.argument(node, "name", ArgumentParser::Word, true);
     }
     b.literal(targets, "list", true);
+    let spawnpoint = b.literal(root, "spawnpoint", true);
+    let targets = b.argument(spawnpoint, "targets", player_targets(), true);
+    let pos = b.argument(targets, "pos", ArgumentParser::BlockPos, true);
+    b.argument(
+        pos,
+        "rotation",
+        ArgumentParser::Named("minecraft:rotation"),
+        true,
+    );
+}
+
+fn random_commands(b: &mut TreeBuilder, root: usize, gamemaster: bool) {
     let random = b.literal(root, "random", false);
     for mode in ["value", "roll"] {
         let node = b.literal(random, mode, false);
@@ -812,20 +891,28 @@ fn rule_commands(b: &mut TreeBuilder, root: usize) {
             ArgumentParser::Named("minecraft:int_range"),
             true,
         );
-        b.argument(range, "sequence", ArgumentParser::ResourceLocation, true);
+        if gamemaster {
+            b.argument(range, "sequence", ArgumentParser::ResourceLocation, true);
+        }
     }
-    let spawnpoint = b.literal(root, "spawnpoint", true);
-    let targets = b.argument(spawnpoint, "targets", player_targets(), true);
-    let pos = b.argument(targets, "pos", ArgumentParser::BlockPos, true);
-    b.argument(
-        pos,
-        "angle",
-        ArgumentParser::Float {
-            min: None,
-            max: None,
-        },
-        true,
-    );
+    if gamemaster {
+        let reset = b.literal(random, "reset", false);
+        let all = b.literal(reset, "*", true);
+        let sequence = b.argument(reset, "sequence", ArgumentParser::ResourceLocation, true);
+        for parent in [all, sequence] {
+            let seed = b.argument(
+                parent,
+                "seed",
+                ArgumentParser::Integer {
+                    min: None,
+                    max: None,
+                },
+                true,
+            );
+            let world = b.argument(seed, "includeWorldSeed", ArgumentParser::Bool, true);
+            b.argument(world, "includeSequenceId", ArgumentParser::Bool, true);
+        }
+    }
 }
 
 fn objective() -> ArgumentParser {
@@ -1015,7 +1102,7 @@ fn bossbar_commands(b: &mut TreeBuilder, root: usize) {
     let visible = b.literal(id, "visible", false);
     b.argument(visible, "visible", ArgumentParser::Bool, true);
     let players = b.literal(id, "players", true);
-    b.argument(players, "targets", entities(), true);
+    b.argument(players, "targets", player_targets(), true);
 }
 
 fn team_commands(b: &mut TreeBuilder, root: usize) {
@@ -1046,6 +1133,7 @@ fn team_commands(b: &mut TreeBuilder, root: usize) {
         ArgumentParser::Named("minecraft:team_color"),
         true,
     );
+    b.literal(color, "reset", true);
     for flag in ["friendlyFire", "seeFriendlyInvisibles"] {
         let node = b.literal(target, flag, false);
         b.argument(node, "allowed", ArgumentParser::Bool, true);
@@ -1086,7 +1174,7 @@ fn block_commands(b: &mut TreeBuilder, root: usize) {
     let setblock = b.literal(root, "setblock", false);
     let pos = position_argument(b, setblock, "pos");
     let block = b.argument(pos, "block", ArgumentParser::BlockState, true);
-    for mode in ["destroy", "keep", "replace"] {
+    for mode in ["destroy", "keep", "replace", "strict"] {
         b.literal(block, mode, true);
     }
     let fill = b.literal(root, "fill", false);
@@ -1094,32 +1182,61 @@ fn block_commands(b: &mut TreeBuilder, root: usize) {
     let to = position_argument(b, from, "to");
     let block = b.argument(to, "block", ArgumentParser::BlockState, true);
     let replace = b.literal(block, "replace", true);
-    b.argument(
+    let filter = b.argument(
         replace,
         "filter",
         ArgumentParser::Named("minecraft:block_predicate"),
         true,
     );
-    for mode in ["keep", "outline", "hollow", "destroy"] {
+    for mode in ["destroy", "hollow", "outline", "strict"] {
+        b.literal(filter, mode, true);
+    }
+    for mode in ["destroy", "hollow", "keep", "outline", "strict"] {
         b.literal(block, mode, true);
     }
     let clone = b.literal(root, "clone", false);
     let begin = position_argument(b, clone, "begin");
     let end = position_argument(b, begin, "end");
-    let destination = position_argument(b, end, "destination");
+    clone_destination(b, end);
+    let to_node = b.literal(end, "to", false);
+    let target_dimension = b.argument(to_node, "targetDimension", ArgumentParser::Dimension, false);
+    clone_destination(b, target_dimension);
+    let from_node = b.literal(clone, "from", false);
+    let source_dimension = b.argument(
+        from_node,
+        "sourceDimension",
+        ArgumentParser::Dimension,
+        false,
+    );
+    let begin = position_argument(b, source_dimension, "begin");
+    let end = position_argument(b, begin, "end");
+    clone_destination(b, end);
+    let to_node = b.literal(end, "to", false);
+    let target_dimension = b.argument(to_node, "targetDimension", ArgumentParser::Dimension, false);
+    clone_destination(b, target_dimension);
+}
+
+fn clone_destination(b: &mut TreeBuilder, parent: usize) {
+    let destination = position_argument(b, parent, "destination");
     b.nodes[destination].executable = true;
-    let replace = b.literal(destination, "replace", true);
-    let masked = b.literal(destination, "masked", true);
-    let filtered = b.literal(destination, "filtered", false);
+    clone_modes(b, destination);
+    let strict = b.literal(destination, "strict", true);
+    clone_modes(b, strict);
+}
+
+fn clone_modes(b: &mut TreeBuilder, parent: usize) {
+    let replace = b.literal(parent, "replace", true);
+    let masked = b.literal(parent, "masked", true);
+    let filtered = b.literal(parent, "filtered", false);
     let filter = b.argument(
         filtered,
         "filter",
         ArgumentParser::Named("minecraft:block_predicate"),
         true,
     );
-    for parent in [replace, masked, filter] {
+    for node in [replace, masked, filter] {
         for flag in ["force", "move", "normal"] {
-            b.literal(parent, flag, true);
+            b.literal(node, flag, true);
         }
     }
 }
@@ -1137,14 +1254,28 @@ fn gamemaster_commands(b: &mut TreeBuilder, root: usize) {
     let say = b.literal(root, "say", false);
     b.argument(say, "message", ArgumentParser::Message, true);
     let gamemode = b.literal(root, "gamemode", false);
-    for mode in ["survival", "creative", "adventure", "spectator"] {
-        let m = b.literal(gamemode, mode, true);
-        b.argument(m, "target", player_arg(), true);
-    }
+    let mode = b.argument(gamemode, "gamemode", ArgumentParser::GameMode, true);
+    b.argument(mode, "target", player_targets(), true);
     let teleport = b.literal(root, "teleport", false);
     let targets = b.argument(teleport, "targets", entities(), false);
-    b.argument(targets, "location", ArgumentParser::Vec3, true);
+    let location = b.argument(targets, "location", ArgumentParser::Vec3, true);
     b.argument(targets, "destination", single_entity(), true);
+    b.argument(
+        location,
+        "rotation",
+        ArgumentParser::Named("minecraft:rotation"),
+        true,
+    );
+    let facing = b.literal(location, "facing", false);
+    let entity = b.literal(facing, "entity", false);
+    let face = b.argument(entity, "facingEntity", single_entity(), true);
+    b.argument(
+        face,
+        "facingAnchor",
+        ArgumentParser::Named("minecraft:entity_anchor"),
+        true,
+    );
+    b.argument(facing, "facingLocation", ArgumentParser::Vec3, true);
     b.argument(teleport, "location", ArgumentParser::Vec3, true);
     b.argument(teleport, "destination", single_entity(), true);
     b.alias(root, "tp", teleport);
@@ -1166,31 +1297,46 @@ fn gamemaster_commands(b: &mut TreeBuilder, root: usize) {
     let pos = b.argument(entity, "pos", ArgumentParser::Vec3, true);
     b.argument(pos, "nbt", ArgumentParser::NbtCompoundTag, true);
     let time = b.literal(root, "time", false);
-    let set = b.literal(time, "set", false);
-    for preset in ["day", "noon", "night", "midnight"] {
-        b.literal(set, preset, true);
-    }
-    b.argument(set, "time", ArgumentParser::Time { min: 0 }, true);
-    let add = b.literal(time, "add", false);
-    b.argument(add, "time", ArgumentParser::Time { min: 0 }, true);
-    let query = b.literal(time, "query", false);
-    for q in ["daytime", "gametime", "day"] {
-        b.literal(query, q, true);
-    }
+    time_subtree(b, time, false);
+    let of = b.literal(time, "of", false);
+    let clock = b.argument(
+        of,
+        "clock",
+        ArgumentParser::Resource {
+            registry: "minecraft:world_clock".to_owned(),
+        },
+        false,
+    );
+    time_subtree(b, clock, true);
     let give = b.literal(root, "give", false);
-    let who = b.argument(give, "targets", player_arg(), false);
+    let who = b.argument(give, "targets", player_targets(), false);
     let item = b.argument(who, "item", ArgumentParser::ItemStack, true);
     b.argument(
         item,
         "count",
         ArgumentParser::Integer {
             min: Some(1),
-            max: Some(6400),
+            max: None,
         },
         true,
     );
     let clear = b.literal(root, "clear", true);
-    b.argument(clear, "targets", player_arg(), true);
+    let clear_targets = b.argument(clear, "targets", player_targets(), true);
+    let clear_item = b.argument(
+        clear_targets,
+        "item",
+        ArgumentParser::Named("minecraft:item_predicate"),
+        true,
+    );
+    b.argument(
+        clear_item,
+        "maxCount",
+        ArgumentParser::Integer {
+            min: Some(0),
+            max: None,
+        },
+        true,
+    );
     let kill = b.literal(root, "kill", true);
     b.argument(kill, "targets", entities(), true);
     let difficulty = b.literal(root, "difficulty", true);
@@ -1199,10 +1345,17 @@ fn gamemaster_commands(b: &mut TreeBuilder, root: usize) {
     }
     let weather = b.literal(root, "weather", false);
     for w in ["clear", "rain", "thunder"] {
-        b.literal(weather, w, true);
+        let node = b.literal(weather, w, true);
+        b.argument(node, "duration", ArgumentParser::Time { min: 1 }, true);
     }
     let spawn = b.literal(root, "setworldspawn", true);
-    b.argument(spawn, "pos", ArgumentParser::BlockPos, true);
+    let spawn_pos = b.argument(spawn, "pos", ArgumentParser::BlockPos, true);
+    b.argument(
+        spawn_pos,
+        "rotation",
+        ArgumentParser::Named("minecraft:rotation"),
+        true,
+    );
     let effect = b.literal(root, "effect", false);
     let clear = b.literal(effect, "clear", true);
     let clear_targets = b.argument(clear, "targets", entities(), true);
@@ -1237,7 +1390,7 @@ fn gamemaster_commands(b: &mut TreeBuilder, root: usize) {
 fn admin_commands(b: &mut TreeBuilder, root: usize) {
     extra::admin_extras(b, root);
     let kick = b.literal(root, "kick", false);
-    let kicked = b.argument(kick, "targets", player_arg(), true);
+    let kicked = b.argument(kick, "targets", player_targets(), true);
     b.argument(kicked, "reason", ArgumentParser::Message, true);
     for name in ["op", "deop"] {
         let node = b.literal(root, name, false);
@@ -1424,7 +1577,7 @@ mod tests {
         }
         let schedule = literal(tree.root, "schedule").expect("schedule");
         let scheduled = literal(schedule, "function").expect("function");
-        let name = argument(scheduled, "name").expect("name");
+        let name = argument(scheduled, "function").expect("function");
         let time = argument(name, "time").expect("time");
         assert!(matches!(
             &tree.nodes[time].kind,

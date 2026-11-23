@@ -208,14 +208,14 @@ impl Scene {
 fn key_of(message: &Component) -> Option<&str> {
     match &message.content {
         Content::Translatable { key, .. } => Some(key),
-        Content::Text(_) => None,
+        _ => None,
     }
 }
 
 fn args_of(message: &Component) -> &[Component] {
     match &message.content {
         Content::Translatable { args, .. } => args,
-        Content::Text(_) => &[],
+        _ => &[],
     }
 }
 

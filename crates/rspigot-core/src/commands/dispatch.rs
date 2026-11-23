@@ -7,7 +7,6 @@ use rspigot_domain::scoreboard::{Scoreboard, ScoreboardMessage};
 use rspigot_domain::text::{Component, NamedColor};
 use rspigot_domain::world::Difficulty;
 use rspigot_domain::{BlockPos, EntityId, Identifier, ItemId, Rotation, Vec3};
-use rspigot_items::ItemKind;
 use rspigot_nbt::Compound;
 
 use super::selector::split_argument;
@@ -76,9 +75,17 @@ pub trait CommandContext: super::surface::Surface {
     fn day_time(&self) -> i64;
     fn game_time(&self) -> i64;
     fn set_day_time(&mut self, time: i64);
+    fn clock_runtime(&self) -> rspigot_domain::world_clock::ClockRuntime {
+        rspigot_domain::world_clock::ClockRuntime::default()
+    }
+    fn set_clock_runtime(&mut self, _state: rspigot_domain::world_clock::ClockRuntime) {}
     fn skip_day_time(&mut self, time: i64);
     fn give(&mut self, player: PlayerId, item: ItemId, count: u32) -> bool;
     fn clear_inventory(&mut self, player: PlayerId) -> u32;
+    fn inventory_stacks(&self, _player: PlayerId) -> Vec<(usize, rspigot_domain::item::ItemStack)> {
+        Vec::new()
+    }
+    fn take_from_slot(&mut self, _player: PlayerId, _slot: usize, _count: u32) {}
     fn kick(&mut self, player: PlayerId, reason: Component);
     fn set_operator(&mut self, name: &str, operator: bool) -> bool;
     fn set_whitelist_enabled(&mut self, enabled: bool) -> bool;
@@ -117,6 +124,9 @@ pub trait CommandContext: super::surface::Surface {
     fn set_difficulty(&mut self, difficulty: Difficulty);
     fn set_weather(&mut self, weather: Weather, duration: Option<i32>);
     fn set_world_spawn(&mut self, pos: BlockPos);
+    fn set_world_spawn_rotated(&mut self, pos: BlockPos, _yaw: f32, _pitch: f32) {
+        self.set_world_spawn(pos);
+    }
     fn save_all(&mut self, flush: bool) -> bool;
     fn request_reload(&mut self, _whitelist_only: bool) -> bool {
         false
@@ -206,6 +216,16 @@ pub trait CommandContext: super::surface::Surface {
 
     fn face_target(&mut self, _target: Target, _facing: &FaceRequest) {}
 
+    fn teleport_across(
+        &mut self,
+        _target: Target,
+        _dimension: &Identifier,
+        _position: Vec3,
+        _rotation: Option<Rotation>,
+    ) -> bool {
+        false
+    }
+
     fn kill_target(&mut self, target: Target) -> bool {
         match target {
             Target::Player(id) => self.kill(id),
@@ -247,6 +267,15 @@ pub trait CommandContext: super::surface::Surface {
         _nbt: Option<&Compound>,
     ) -> bool {
         false
+    }
+
+    fn place_block_strict(
+        &mut self,
+        pos: BlockPos,
+        state: rspigot_blocks::StateId,
+        nbt: Option<&Compound>,
+    ) -> bool {
+        self.place_block(pos, state, nbt)
     }
 
     fn destroy_block(&mut self, _pos: BlockPos) -> bool {
@@ -312,6 +341,17 @@ pub trait CommandContext: super::surface::Surface {
         _pos: BlockPos,
         _angle: f32,
     ) {
+    }
+
+    fn set_spawn_point_rotated(
+        &mut self,
+        player: PlayerId,
+        dimension: Identifier,
+        pos: BlockPos,
+        yaw: f32,
+        _pitch: f32,
+    ) {
+        self.set_spawn_point(player, dimension, pos, yaw);
     }
 
     fn tell_player(&mut self, _player: PlayerId, _message: Component, _overlay: bool) {}
@@ -478,6 +518,13 @@ pub trait CommandContext: super::surface::Surface {
 
     fn reload_datapacks(&mut self) -> bool {
         false
+    }
+
+    fn create_datapack(&mut self, _name: &str, _meta: &str) -> Result<bool, Component> {
+        Err(Component::translatable(
+            "commands.datapack.create.io_failure",
+            vec![Component::text("unsupported")],
+        ))
     }
 
     fn datapack_lists_changed(&mut self, _lists: crate::functions::DataPackLists) {}
@@ -800,8 +847,14 @@ pub fn execute<C: CommandContext>(
         .split_once(char::is_whitespace)
         .map_or("", |(_, r)| r.trim());
     let outcome = match label.as_str() {
-        "help" | "?" => help(ctx, sender),
-        "list" => list(ctx, sender),
+        "help" | "?" => {
+            if rest.trim().is_empty() {
+                help(ctx, sender)
+            } else {
+                help_command(ctx, sender, rest.trim())
+            }
+        }
+        "list" => list(ctx, sender, rest.trim() == "uuids"),
         "seed" => {
             let seed = ctx.seed();
             ctx.reply(
@@ -843,14 +896,14 @@ pub fn execute<C: CommandContext>(
             CommandOutcome::Success
         }
         "me" | "say" | "msg" | "tell" | "w" => super::chat_commands::run(ctx, sender, &label, rest),
-        "gamemode" => gamemode(ctx, sender, &args),
+        "gamemode" => super::player_commands::gamemode(ctx, sender, rest),
         "tp" | "teleport" => teleport(ctx, sender, rest).unwrap_or_else(|outcome| outcome),
         "execute" => super::execute::run(ctx, sender, rest),
         "summon" => summon(ctx, sender, rest).unwrap_or_else(|outcome| outcome),
-        "time" => time(ctx, sender, &args),
-        "give" => give(ctx, sender, &args),
-        "clear" => clear(ctx, sender, &args),
-        "kick" => kick(ctx, sender, &args),
+        "time" => super::time_commands::run(ctx, sender, &args),
+        "give" => super::player_commands::give(ctx, sender, rest),
+        "clear" => super::player_commands::clear(ctx, sender, rest),
+        "kick" => super::player_commands::kick(ctx, sender, rest),
         "op" | "deop" => operator(ctx, sender, &args, label == "op"),
         "whitelist" => whitelist(ctx, sender, &args),
         "ban" => ban(ctx, sender, &args),
@@ -984,6 +1037,66 @@ fn not_found<C: CommandContext>(ctx: &mut C, sender: CommandSender) -> CommandOu
     CommandOutcome::Failure
 }
 
+fn usage_lines(tree: &super::tree::CommandTree, node: usize, prefix: &str, out: &mut Vec<String>) {
+    use super::tree::CommandNodeKind;
+    let current = &tree.nodes[node];
+    if current.executable && !prefix.is_empty() {
+        out.push(format!("/{prefix}"));
+    }
+    let effective = current.redirect.unwrap_or(node);
+    if current.redirect.is_some() && current.children.is_empty() {
+        return;
+    }
+    for child in &tree.nodes[effective].children {
+        let label = match &tree.nodes[*child].kind {
+            CommandNodeKind::Literal(name) => name.clone(),
+            CommandNodeKind::Argument { name, .. } => format!("<{name}>"),
+            CommandNodeKind::Root => continue,
+        };
+        let next = if prefix.is_empty() {
+            label
+        } else {
+            format!("{prefix} {label}")
+        };
+        if out.len() < 64 {
+            usage_lines(tree, *child, &next, out);
+        }
+    }
+}
+
+fn help_command<C: CommandContext>(
+    ctx: &mut C,
+    sender: CommandSender,
+    command: &str,
+) -> CommandOutcome {
+    use super::tree::{CommandNodeKind, build_tree};
+    let tree = build_tree(ctx.permission_level(sender));
+    let mut node = tree.root;
+    let mut trail = Vec::new();
+    for word in command.split_whitespace() {
+        let next = tree.nodes[tree.nodes[node].redirect.unwrap_or(node)]
+            .children
+            .iter()
+            .copied()
+            .find(|child| matches!(&tree.nodes[*child].kind, CommandNodeKind::Literal(name) if name == word));
+        let Some(next) = next else {
+            return fail(ctx, sender, "commands.help.failed", Vec::new());
+        };
+        trail.push(word);
+        node = next;
+    }
+    let mut lines = Vec::new();
+    usage_lines(&tree, node, &trail.join(" "), &mut lines);
+    if lines.is_empty() {
+        return fail(ctx, sender, "commands.help.failed", Vec::new());
+    }
+    for line in &lines {
+        ctx.reply(sender, Component::text(line.clone()));
+    }
+    ctx.record_result(lines.len() as i32);
+    CommandOutcome::Success
+}
+
 fn help<C: CommandContext>(ctx: &mut C, sender: CommandSender) -> CommandOutcome {
     let mut lines = vec![
         "/help",
@@ -1027,9 +1140,43 @@ fn help<C: CommandContext>(ctx: &mut C, sender: CommandSender) -> CommandOutcome
     CommandOutcome::Success
 }
 
-fn list<C: CommandContext>(ctx: &mut C, sender: CommandSender) -> CommandOutcome {
+fn list<C: CommandContext>(ctx: &mut C, sender: CommandSender, uuids: bool) -> CommandOutcome {
     let names = ctx.player_names();
     let max = ctx.max_players();
+    if uuids {
+        let entries: Vec<Component> = names
+            .iter()
+            .map(|name| {
+                let id = ctx
+                    .find_player(name)
+                    .map(|player| player.0.to_string())
+                    .unwrap_or_default();
+                Component::translatable(
+                    "commands.list.nameAndId",
+                    vec![Component::text(name.clone()), Component::text(id)],
+                )
+            })
+            .collect();
+        let mut joined = Component::text("");
+        for (index, entry) in entries.into_iter().enumerate() {
+            if index > 0 {
+                joined = joined.append(Component::text(", "));
+            }
+            joined = joined.append(entry);
+        }
+        ctx.reply(
+            sender,
+            Component::translatable(
+                "commands.list.players",
+                vec![
+                    Component::text(names.len().to_string()),
+                    Component::text(max.to_string()),
+                    joined,
+                ],
+            ),
+        );
+        return CommandOutcome::Success;
+    }
     ctx.reply(
         sender,
         Component::translatable(
@@ -1041,69 +1188,6 @@ fn list<C: CommandContext>(ctx: &mut C, sender: CommandSender) -> CommandOutcome
             ],
         ),
     );
-    CommandOutcome::Success
-}
-
-fn target_or_self<C: CommandContext>(
-    ctx: &C,
-    sender: CommandSender,
-    arg: Option<&&str>,
-) -> Option<PlayerId> {
-    match arg {
-        Some(name) if *name == "@s" => match sender {
-            CommandSender::Player(id) => Some(id),
-            CommandSender::Console => None,
-        },
-        Some(name) => ctx.find_player(name),
-        None => match sender {
-            CommandSender::Player(id) => Some(id),
-            CommandSender::Console => None,
-        },
-    }
-}
-
-fn mode_key(mode: GameMode) -> String {
-    format!("gameMode.{}", mode.name())
-}
-
-fn gamemode<C: CommandContext>(
-    ctx: &mut C,
-    sender: CommandSender,
-    args: &[&str],
-) -> CommandOutcome {
-    let Some(mode) = args.first().and_then(|m| GameMode::from_name(m)) else {
-        return usage(
-            ctx,
-            sender,
-            "/gamemode <survival|creative|adventure|spectator> [player]",
-        );
-    };
-    let Some(target) = target_or_self(ctx, sender, args.get(1)) else {
-        return not_found(ctx, sender);
-    };
-    let mode_name = Component::translatable(mode_key(mode), Vec::new());
-    let replies = if CommandSender::Player(target) == sender {
-        vec![(
-            sender,
-            Component::translatable("commands.gamemode.success.self", vec![mode_name]),
-        )]
-    } else {
-        let name = ctx.player_name(target).unwrap_or_default();
-        vec![
-            (
-                CommandSender::Player(target),
-                Component::translatable("gameMode.changed", vec![mode_name.clone()]),
-            ),
-            (
-                sender,
-                Component::translatable(
-                    "commands.gamemode.success.other",
-                    vec![Component::text(name), mode_name],
-                ),
-            ),
-        ]
-    };
-    ctx.set_game_mode(target, mode, replies);
     CommandOutcome::Success
 }
 
@@ -1255,6 +1339,67 @@ enum Facing {
     Entity(Target, Anchor),
 }
 
+#[derive(Clone, Copy)]
+struct Angle {
+    value: f32,
+    relative: bool,
+}
+
+impl Angle {
+    fn parse(token: &str) -> Option<Self> {
+        let (relative, body) = match token.strip_prefix('~') {
+            Some(rest) => (true, rest),
+            None => (false, token),
+        };
+        let value = if body.is_empty() && relative {
+            0.0
+        } else {
+            body.parse::<f32>().ok()?
+        };
+        Some(Self { value, relative })
+    }
+
+    fn resolve(self, current: f32) -> f32 {
+        if self.relative {
+            current + self.value
+        } else {
+            self.value
+        }
+    }
+}
+
+fn wrap_degrees(value: f32) -> f32 {
+    let wrapped = value % 360.0;
+    if wrapped >= 180.0 {
+        wrapped - 360.0
+    } else if wrapped < -180.0 {
+        wrapped + 360.0
+    } else {
+        wrapped
+    }
+}
+
+fn parse_rotation<C: CommandContext>(
+    ctx: &mut C,
+    sender: CommandSender,
+    tail: &str,
+) -> Result<Option<[Angle; 2]>, CommandOutcome> {
+    let Some((yaw, after)) = next_argument(tail) else {
+        return Ok(None);
+    };
+    if yaw == "facing" {
+        return Ok(None);
+    }
+    let usage_text = "/tp <targets> <location> [<yaw> <pitch>]";
+    let Some((pitch, _)) = next_argument(after) else {
+        return Err(usage(ctx, sender, usage_text));
+    };
+    match (Angle::parse(yaw), Angle::parse(pitch)) {
+        (Some(yaw), Some(pitch)) => Ok(Some([yaw, pitch])),
+        _ => Err(usage(ctx, sender, usage_text)),
+    }
+}
+
 fn parse_facing<C: CommandContext>(
     ctx: &mut C,
     sender: CommandSender,
@@ -1302,54 +1447,62 @@ fn teleport<C: CommandContext>(
     };
     let executor = ctx.command_source(sender).executor;
     let self_target = || executor;
-    let (targets, destination, destination_name, tail) = if looks_like_coordinate(first) {
-        let (position, tail) = match take_vec3(ctx, sender, rest) {
-            Ok(Some((position, tail))) => (position, tail),
-            Ok(None) => return Err(usage(ctx, sender, usage_text)),
-            Err(message) => {
-                ctx.reply(sender, message.color(NamedColor::Red));
-                return Err(CommandOutcome::Failure);
-            }
-        };
-        let Some(target) = self_target() else {
-            return Err(fail(ctx, sender, "permissions.requires.entity", Vec::new()));
-        };
-        (vec![target], position, None, tail)
-    } else {
-        match next_argument(after_first) {
-            None => {
-                let destination = select_one(ctx, sender, first)?;
-                let Some(target) = self_target() else {
-                    return Err(fail(ctx, sender, "permissions.requires.entity", Vec::new()));
-                };
-                let position = ctx.target_position(destination).unwrap_or(Vec3::ZERO);
-                (
-                    vec![target],
-                    position,
-                    Some(ctx.target_name(destination)),
-                    "",
-                )
-            }
-            Some((second, _)) => {
-                let targets = select(ctx, sender, Some(first))?;
-                if looks_like_coordinate(second) {
-                    let (position, tail) = match take_vec3(ctx, sender, after_first) {
-                        Ok(Some((position, tail))) => (position, tail),
-                        Ok(None) => return Err(usage(ctx, sender, usage_text)),
-                        Err(message) => {
-                            ctx.reply(sender, message.color(NamedColor::Red));
-                            return Err(CommandOutcome::Failure);
-                        }
+    let (targets, destination, destination_name, tail, destination_entity) =
+        if looks_like_coordinate(first) {
+            let (position, tail) = match take_vec3(ctx, sender, rest) {
+                Ok(Some((position, tail))) => (position, tail),
+                Ok(None) => return Err(usage(ctx, sender, usage_text)),
+                Err(message) => {
+                    ctx.reply(sender, message.color(NamedColor::Red));
+                    return Err(CommandOutcome::Failure);
+                }
+            };
+            let Some(target) = self_target() else {
+                return Err(fail(ctx, sender, "permissions.requires.entity", Vec::new()));
+            };
+            (vec![target], position, None, tail, None)
+        } else {
+            match next_argument(after_first) {
+                None => {
+                    let destination = select_one(ctx, sender, first)?;
+                    let Some(target) = self_target() else {
+                        return Err(fail(ctx, sender, "permissions.requires.entity", Vec::new()));
                     };
-                    (targets, position, None, tail)
-                } else {
-                    let destination = select_one(ctx, sender, second)?;
                     let position = ctx.target_position(destination).unwrap_or(Vec3::ZERO);
-                    (targets, position, Some(ctx.target_name(destination)), "")
+                    (
+                        vec![target],
+                        position,
+                        Some(ctx.target_name(destination)),
+                        "",
+                        Some(destination),
+                    )
+                }
+                Some((second, _)) => {
+                    let targets = select(ctx, sender, Some(first))?;
+                    if looks_like_coordinate(second) {
+                        let (position, tail) = match take_vec3(ctx, sender, after_first) {
+                            Ok(Some((position, tail))) => (position, tail),
+                            Ok(None) => return Err(usage(ctx, sender, usage_text)),
+                            Err(message) => {
+                                ctx.reply(sender, message.color(NamedColor::Red));
+                                return Err(CommandOutcome::Failure);
+                            }
+                        };
+                        (targets, position, None, tail, None)
+                    } else {
+                        let destination = select_one(ctx, sender, second)?;
+                        let position = ctx.target_position(destination).unwrap_or(Vec3::ZERO);
+                        (
+                            targets,
+                            position,
+                            Some(ctx.target_name(destination)),
+                            "",
+                            Some(destination),
+                        )
+                    }
                 }
             }
-        }
-    };
+        };
     if !destination.is_finite()
         || destination.x.abs() > 30_000_000.0
         || destination.z.abs() > 30_000_000.0
@@ -1362,9 +1515,39 @@ fn teleport<C: CommandContext>(
             Vec::new(),
         ));
     }
-    let facing = parse_facing(ctx, sender, tail)?;
+    let rotation = parse_rotation(ctx, sender, tail)?;
+    let facing = if rotation.is_some() {
+        None
+    } else {
+        parse_facing(ctx, sender, tail)?
+    };
+    let destination_dimension = match destination_entity {
+        Some(entity) => ctx.target_dimension(entity),
+        None => ctx.command_source(sender).dimension,
+    };
+    let destination_rotation = destination_entity.and_then(|entity| ctx.target_rotation(entity));
     for target in &targets {
+        let current = ctx.target_rotation(*target).unwrap_or_default();
+        let wanted = match (&rotation, destination_rotation) {
+            (Some(angles), _) => Some(Rotation::new(
+                wrap_degrees(angles[0].resolve(current.yaw)),
+                angles[1].resolve(current.pitch).clamp(-90.0, 90.0),
+            )),
+            (None, Some(copied)) => Some(copied),
+            (None, None) => None,
+        };
+        let elsewhere = destination_dimension
+            .as_ref()
+            .filter(|dimension| ctx.target_dimension(*target).as_ref() != Some(dimension));
+        if let Some(dimension) = elsewhere.cloned()
+            && ctx.teleport_across(*target, &dimension, destination, wanted)
+        {
+            continue;
+        }
         ctx.teleport_target(*target, destination);
+        if let Some(wanted) = wanted {
+            ctx.rotate_to(*target, wanted.yaw, wanted.pitch);
+        }
     }
     if let Some(facing) = &facing {
         let anchor = ctx.command_source(sender).anchor;
@@ -1423,7 +1606,7 @@ fn teleport<C: CommandContext>(
             vec![Component::text(many.len().to_string()), name],
         ),
     };
-    ctx.reply(sender, message);
+    super::announce::reply_and_broadcast(ctx, sender, message);
     Ok(CommandOutcome::Success)
 }
 
@@ -1512,142 +1695,6 @@ pub(super) fn parse_time(raw: &str) -> Option<i64> {
     };
     let value: f64 = number.parse().ok()?;
     (value >= 0.0).then(|| (value * unit).round() as i64)
-}
-
-fn time<C: CommandContext>(ctx: &mut C, sender: CommandSender, args: &[&str]) -> CommandOutcome {
-    match (args.first().copied(), args.get(1).copied()) {
-        (Some("set"), Some(value)) => {
-            let ticks = match value {
-                "day" => Some(1000),
-                "noon" => Some(6000),
-                "night" => Some(13000),
-                "midnight" => Some(18000),
-                other => parse_time(other),
-            };
-            let Some(ticks) = ticks else {
-                return usage(ctx, sender, "/time set <day|noon|night|midnight|ticks>");
-            };
-            ctx.set_day_time(ticks);
-            ctx.record_result((ticks.rem_euclid(24_000)) as i32);
-            ctx.reply(
-                sender,
-                Component::translatable(
-                    "commands.time.set",
-                    vec![Component::text(ticks.to_string())],
-                ),
-            );
-            CommandOutcome::Success
-        }
-        (Some("add"), Some(value)) => {
-            let Some(ticks) = parse_time(value) else {
-                return usage(ctx, sender, "/time add <ticks>");
-            };
-            let now = ctx.day_time() + ticks;
-            ctx.skip_day_time(now);
-            ctx.record_result(now.rem_euclid(24_000) as i32);
-            ctx.reply(
-                sender,
-                Component::translatable(
-                    "commands.time.set",
-                    vec![Component::text(now.to_string())],
-                ),
-            );
-            CommandOutcome::Success
-        }
-        (Some("query"), Some(kind)) => {
-            let value = match kind {
-                "daytime" => ctx.day_time().rem_euclid(24000),
-                "gametime" => ctx.game_time(),
-                "day" => ctx.day_time().div_euclid(24000),
-                _ => return usage(ctx, sender, "/time query <daytime|gametime|day>"),
-            };
-            ctx.record_result((value % i64::from(i32::MAX)) as i32);
-            ctx.reply(
-                sender,
-                Component::translatable(
-                    "commands.time.query",
-                    vec![Component::text(value.to_string())],
-                ),
-            );
-            CommandOutcome::Success
-        }
-        _ => usage(ctx, sender, "/time <set|add|query> <value>"),
-    }
-}
-
-fn give<C: CommandContext>(ctx: &mut C, sender: CommandSender, args: &[&str]) -> CommandOutcome {
-    if args.len() < 2 {
-        return usage(ctx, sender, "/give <player> <item> [count]");
-    }
-    let Some(target) = target_or_self(ctx, sender, args.first()) else {
-        return not_found(ctx, sender);
-    };
-    let Some(item) = ItemKind::from_name(args[1]) else {
-        ctx.reply(
-            sender,
-            Component::translatable("argument.item.id.invalid", vec![Component::text(args[1])])
-                .color(NamedColor::Red),
-        );
-        return CommandOutcome::Failure;
-    };
-    let count = args
-        .get(2)
-        .and_then(|c| c.parse::<u32>().ok())
-        .unwrap_or(1)
-        .clamp(1, 6400);
-    if !ctx.give(target, item.id(), count) {
-        return CommandOutcome::Failure;
-    }
-    let name = ctx.player_name(target).unwrap_or_default();
-    ctx.reply(
-        sender,
-        Component::translatable(
-            "commands.give.success.single",
-            vec![
-                Component::text(count.to_string()),
-                Component::text(format!("[{}]", item.name())),
-                Component::text(name),
-            ],
-        ),
-    );
-    CommandOutcome::Success
-}
-
-fn clear<C: CommandContext>(ctx: &mut C, sender: CommandSender, args: &[&str]) -> CommandOutcome {
-    let Some(target) = target_or_self(ctx, sender, args.first()) else {
-        return not_found(ctx, sender);
-    };
-    let removed = ctx.clear_inventory(target);
-    let name = ctx.player_name(target).unwrap_or_default();
-    ctx.reply(
-        sender,
-        Component::translatable(
-            "commands.clear.success.single",
-            vec![Component::text(removed.to_string()), Component::text(name)],
-        ),
-    );
-    CommandOutcome::Success
-}
-
-fn kick<C: CommandContext>(ctx: &mut C, sender: CommandSender, args: &[&str]) -> CommandOutcome {
-    let Some(target) = args.first().and_then(|n| ctx.find_player(n)) else {
-        return not_found(ctx, sender);
-    };
-    let reason = if args.len() > 1 {
-        args[1..].join(" ")
-    } else {
-        "Kicked by an operator".to_owned()
-    };
-    let name = ctx.player_name(target).unwrap_or_default();
-    ctx.kick(target, Component::text(reason.clone()));
-    ctx.reply(
-        sender,
-        Component::translatable(
-            "commands.kick.success",
-            vec![Component::text(name), Component::text(reason)],
-        ),
-    );
-    CommandOutcome::Success
 }
 
 fn operator<C: CommandContext>(
@@ -2329,16 +2376,20 @@ fn set_world_spawn<C: CommandContext>(
         CommandSender::Player(id) => ctx.player_position(id).unwrap_or(Vec3::ZERO),
         CommandSender::Console => Vec3::ZERO,
     };
-    let position = match args {
-        [] => Some(base),
-        [x, y, z] => parse_vec3(ctx, sender, [x, y, z]).ok(),
-        _ => None,
+    let (position, yaw, pitch) = match args {
+        [] => (Some(base), 0.0, 0.0),
+        [x, y, z] => (parse_vec3(ctx, sender, [x, y, z]).ok(), 0.0, 0.0),
+        [x, y, z, yaw, pitch] => match (yaw.parse::<f32>(), pitch.parse::<f32>()) {
+            (Ok(yaw), Ok(pitch)) => (parse_vec3(ctx, sender, [x, y, z]).ok(), yaw, pitch),
+            _ => (None, 0.0, 0.0),
+        },
+        _ => (None, 0.0, 0.0),
     };
     let Some(position) = position else {
-        return usage(ctx, sender, "/setworldspawn [x y z]");
+        return usage(ctx, sender, "/setworldspawn [x y z [yaw pitch]]");
     };
     let pos = position.block();
-    ctx.set_world_spawn(pos);
+    ctx.set_world_spawn_rotated(pos, yaw, pitch);
     ctx.reply(
         sender,
         Component::translatable(
@@ -2347,7 +2398,7 @@ fn set_world_spawn<C: CommandContext>(
                 Component::text(pos.x.to_string()),
                 Component::text(pos.y.to_string()),
                 Component::text(pos.z.to_string()),
-                Component::text("0.0"),
+                Component::text(yaw.to_string()),
             ],
         ),
     );

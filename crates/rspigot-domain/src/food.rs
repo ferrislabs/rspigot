@@ -119,6 +119,23 @@ impl FoodData {
         health: f32,
         max_health: f32,
     ) -> FoodEffect {
+        self.tick_regeneration_costing(
+            difficulty,
+            natural_regeneration,
+            health,
+            max_health,
+            EXHAUSTION_HEAL,
+        )
+    }
+
+    pub fn tick_regeneration_costing(
+        &mut self,
+        difficulty: Difficulty,
+        natural_regeneration: bool,
+        health: f32,
+        max_health: f32,
+        regen_exhaustion: f32,
+    ) -> FoodEffect {
         let hurt = health > 0.0 && health < max_health;
         if natural_regeneration && self.saturation > 0.0 && hurt && self.food >= MAX_FOOD {
             self.tick_timer += 1;
@@ -136,7 +153,7 @@ impl FoodData {
                 self.tick_timer = 0;
                 return FoodEffect::Heal {
                     amount: 1.0,
-                    exhaustion: EXHAUSTION_HEAL,
+                    exhaustion: regen_exhaustion,
                 };
             }
         } else if self.food <= 0 {
@@ -221,6 +238,26 @@ mod tests {
                 };
                 2
             ]
+        );
+    }
+
+    #[test]
+    fn unsaturated_regeneration_costs_the_configured_exhaustion() {
+        let mut food = FoodData {
+            food: 20,
+            saturation: 0.0,
+            ..FoodData::default()
+        };
+        let mut effect = FoodEffect::None;
+        for _ in 0..UNSATURATED_REGEN_TICKS {
+            effect = food.tick_regeneration_costing(Difficulty::Normal, true, 10.0, 20.0, 3.0);
+        }
+        assert_eq!(
+            effect,
+            FoodEffect::Heal {
+                amount: 1.0,
+                exhaustion: 3.0
+            }
         );
     }
 

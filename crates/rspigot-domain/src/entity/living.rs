@@ -26,6 +26,7 @@ use crate::{BlockPos, EntityId, Vec3, mth};
 
 pub const DATA_LIVING_FLAGS: u8 = 8;
 pub const DATA_HEALTH: u8 = 9;
+pub const DATA_EFFECT_PARTICLES: u8 = 10;
 pub const DATA_EFFECT_AMBIENCE: u8 = 11;
 pub const DATA_ARROW_COUNT: u8 = 12;
 pub const DATA_STINGER_COUNT: u8 = 13;
@@ -488,6 +489,8 @@ impl LivingState {
         let kind = base.kind;
         base.data.define(DATA_LIVING_FLAGS, SyncedValue::Byte(0));
         base.data.define(DATA_HEALTH, SyncedValue::Float(1.0));
+        base.data
+            .define(DATA_EFFECT_PARTICLES, SyncedValue::Particles(Vec::new()));
         base.data
             .define(DATA_EFFECT_AMBIENCE, SyncedValue::Boolean(false));
         base.data.define(DATA_ARROW_COUNT, SyncedValue::Int(0));

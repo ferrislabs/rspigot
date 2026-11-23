@@ -80,6 +80,9 @@ fn time() -> ClientEvent {
         game_time: 1,
         day_time: 2,
         advance_time: true,
+        clock: "minecraft:overworld",
+        rate: 1.0,
+        partial_tick: 0.0,
     }
 }
 

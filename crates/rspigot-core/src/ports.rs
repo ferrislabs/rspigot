@@ -330,6 +330,13 @@ pub trait DatapackSource: Send + Sync + 'static {
     fn read_extras(&self) -> Result<Vec<PackExtras>, DatapackError> {
         Ok(Vec::new())
     }
+
+    fn create_pack(&self, _name: &str, _meta: &str) -> Result<bool, DatapackError> {
+        Err(DatapackError::Io(std::io::Error::new(
+            std::io::ErrorKind::Unsupported,
+            "this datapack source cannot create packs",
+        )))
+    }
 }
 
 pub trait RconExecutor: Send + Sync + 'static {

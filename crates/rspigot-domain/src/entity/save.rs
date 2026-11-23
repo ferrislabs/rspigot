@@ -38,20 +38,12 @@ use crate::effect::{
     AttributeModifier, AttributeOperation, EffectDuration, EffectId, EffectInstance,
 };
 use crate::item::ItemStack;
-use crate::text::{Color, Component, Content, Style};
 use crate::{BlockPos, BlockStateId, EntityId, ItemId, Vec3};
 
 const MOTION_LIMIT: f64 = 10.0;
 const HORIZONTAL_LIMIT: f64 = 30_000_512.0;
 const VERTICAL_LIMIT: f64 = 20_000_000.0;
 const BUKKIT_UPDATE_LEVEL: i32 = 2;
-const STYLE_FLAGS: [&str; 5] = [
-    "bold",
-    "italic",
-    "underlined",
-    "strikethrough",
-    "obfuscated",
-];
 const ENTITY_KEYS: [&str; 30] = [
     "id",
     "Pos",
@@ -323,82 +315,7 @@ pub fn block_state_from_nbt(compound: &Compound) -> BlockStateId {
     state
 }
 
-pub fn component_from_tag(tag: &Tag) -> Option<Component> {
-    match tag {
-        Tag::String(text) => Some(Component::text(text.clone())),
-        Tag::Compound(compound) => {
-            if let Some(wrapped) = list_wrapped(compound) {
-                return component_from_tag(wrapped);
-            }
-            let mut component = if let Some(text) = compound.get_str("text") {
-                Component::text(text)
-            } else if let Some(key) = compound.get_str("translate") {
-                let args = compound
-                    .get_list("with")
-                    .map(|list| list.iter().filter_map(component_from_tag).collect())
-                    .unwrap_or_default();
-                Component::translatable(key, args)
-            } else {
-                Component::text("")
-            };
-            component.style = Style::from_parts(
-                compound.get_str("color").and_then(Color::parse),
-                STYLE_FLAGS.map(|flag| compound.get_bool(flag)),
-            );
-            if let Some(extra) = compound.get_list("extra") {
-                component.extra = extra.iter().filter_map(component_from_tag).collect();
-            }
-            Some(component)
-        }
-        Tag::List(list) => {
-            let mut parts = list.iter().filter_map(component_from_tag);
-            let mut first = parts.next()?;
-            first.extra.extend(parts);
-            Some(first)
-        }
-        other => other
-            .as_i64()
-            .map(|v| Component::text(v.to_string()))
-            .or_else(|| other.as_f64().map(|v| Component::text(v.to_string()))),
-    }
-}
-
-pub fn component_to_tag(component: &Component) -> Tag {
-    let plain = component.extra.is_empty() && component.style == Style::default();
-    let mut out = match &component.content {
-        Content::Text(text) if plain => return Tag::String(text.clone()),
-        Content::Text(text) => Compound::new().with("text", text.as_str()),
-        Content::Translatable { key, args } => {
-            let mut out = Compound::new().with("translate", key.as_str());
-            if !args.is_empty() {
-                out.insert(
-                    "with",
-                    Tag::List(args.iter().map(component_to_tag).collect()),
-                );
-            }
-            out
-        }
-    };
-    if let Some(color) = component.style.color {
-        out.insert("color", color.serialize());
-    }
-    for (flag, value) in STYLE_FLAGS.into_iter().zip(component.style.flags()) {
-        if let Some(value) = value {
-            out.insert(flag, value);
-        }
-    }
-    if !component.extra.is_empty() {
-        out.insert(
-            "extra",
-            Tag::List(component.extra.iter().map(component_to_tag).collect()),
-        );
-    }
-    Tag::Compound(out)
-}
-
-fn list_wrapped(compound: &Compound) -> Option<&Tag> {
-    compound.get("").filter(|_| compound.len() == 1)
-}
+pub use crate::text_nbt::{component_from_tag, component_to_tag};
 
 fn operation_name(operation: AttributeOperation) -> &'static str {
     match operation {
@@ -1798,6 +1715,7 @@ pub fn entity_position(nbt: &Compound) -> Option<Vec3> {
 mod tests {
     use super::*;
     use crate::text::NamedColor;
+    use crate::text::{Color, Component};
     use rspigot_data::variants::VariantFamily;
 
     fn cow_nbt() -> Compound {
