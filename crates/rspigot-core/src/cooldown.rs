@@ -1,24 +1,14 @@
+use rspigot_domain::item::ItemStack;
 use rspigot_domain::player::PlayerId;
+use rspigot_domain::stack_components;
 use rspigot_items::{ItemId, ItemKind};
 
 use crate::events::{ClientEvent, Hand};
 use crate::ports::ClientLink;
 use crate::server::{Audience, Server};
 
-pub(crate) const ENDER_PEARL_TICKS: i32 = 20;
-pub(crate) const CHORUS_FRUIT_TICKS: i32 = 20;
-pub(crate) const SHIELD_DISABLE_TICKS: i32 = 100;
-
 pub(crate) fn group_of(item: ItemId) -> Option<&'static str> {
     item.kind().map(ItemKind::name)
-}
-
-pub(crate) fn use_ticks(item: ItemKind) -> Option<i32> {
-    match item {
-        ItemKind::EnderPearl => Some(ENDER_PEARL_TICKS),
-        ItemKind::ChorusFruit => Some(CHORUS_FRUIT_TICKS),
-        _ => None,
-    }
 }
 
 impl<L: ClientLink> Server<L> {
@@ -26,6 +16,10 @@ impl<L: ClientLink> Server<L> {
         let Some(group) = group_of(item) else {
             return;
         };
+        self.start_group_cooldown(id, group, ticks);
+    }
+
+    pub(crate) fn start_group_cooldown(&mut self, id: PlayerId, group: &str, ticks: i32) {
         let now = self.current_tick();
         let Some(player) = self.players.get_mut(&id) else {
             return;
@@ -46,19 +40,31 @@ impl<L: ClientLink> Server<L> {
         );
     }
 
+    pub(crate) fn start_use_cooldown(&mut self, id: PlayerId, stack: &ItemStack) {
+        if let Some(cooldown) = stack_components::use_cooldown(stack) {
+            self.start_group_cooldown(id, cooldown.group, cooldown.ticks());
+        }
+    }
+
     pub fn is_on_cooldown(&self, id: PlayerId, item: ItemId) -> bool {
-        let Some(group) = group_of(item) else {
-            return false;
-        };
+        group_of(item).is_some_and(|group| self.group_on_cooldown(id, group))
+    }
+
+    pub(crate) fn group_on_cooldown(&self, id: PlayerId, group: &str) -> bool {
         self.players
             .get(&id)
             .and_then(|player| player.cooldowns.get(group))
             .is_some_and(|expiry| *expiry > self.current_tick())
     }
 
+    pub(crate) fn stack_on_cooldown(&self, id: PlayerId, stack: &ItemStack) -> bool {
+        stack_components::cooldown_group(stack)
+            .is_some_and(|group| self.group_on_cooldown(id, group))
+    }
+
     pub(crate) fn held_on_cooldown(&self, id: PlayerId, hand: Hand) -> bool {
         self.held(id, hand)
-            .is_some_and(|stack| self.is_on_cooldown(id, stack.item))
+            .is_some_and(|stack| self.stack_on_cooldown(id, &stack))
     }
 
     pub(crate) fn tick_cooldowns(&mut self) {
@@ -186,10 +192,25 @@ mod tests {
     }
 
     #[test]
-    fn vanilla_durations_are_known_for_pearls_and_chorus_fruit_only() {
-        assert_eq!(use_ticks(ItemKind::EnderPearl), Some(20));
-        assert_eq!(use_ticks(ItemKind::ChorusFruit), Some(20));
-        assert_eq!(use_ticks(ItemKind::Snowball), None);
-        assert_eq!(use_ticks(ItemKind::Egg), None);
+    fn a_stack_cooldown_uses_its_own_seconds_and_group() {
+        let (mut server, id, link) = arrive();
+        let mut stick = ItemStack::new(ItemKind::Stick.id(), std::num::NonZeroU8::MIN);
+        stick.components.insert(
+            "minecraft:use_cooldown",
+            rspigot_nbt::Compound::new()
+                .with("seconds", 2.0f32)
+                .with("cooldown_group", "minecraft:custom"),
+        );
+        server.start_use_cooldown(id, &stick);
+        server.deliver();
+        assert!(server.stack_on_cooldown(id, &stick));
+        assert!(!server.is_on_cooldown(id, ItemKind::Stick.id()));
+        assert_eq!(
+            cooldown_events(&link),
+            vec![("minecraft:custom".to_owned(), 40)]
+        );
+        let pearl = ItemStack::new(ItemKind::EnderPearl.id(), std::num::NonZeroU8::MIN);
+        server.start_use_cooldown(id, &pearl);
+        assert!(server.stack_on_cooldown(id, &pearl));
     }
 }

@@ -8,6 +8,7 @@ mod files;
 mod log_files;
 mod logging;
 mod restart;
+mod watchdog;
 
 use std::net::SocketAddr;
 use std::path::PathBuf;
@@ -181,7 +182,9 @@ fn main() -> anyhow::Result<()> {
         game_config.user_cache = game_config.user_cache.with_sink(user_cache_updates);
     }
     let user_cache = game_config.user_cache.clone();
-    let mut network_config = files.network_config(files::read_favicon(&args.root))?;
+    let favicon = files::read_favicon(&args.root);
+    game_config.server_icon = favicon.as_deref().and_then(files::icon_bytes);
+    let mut network_config = files.network_config(favicon)?;
     if network_config.online_mode {
         game_config.chat.services_keys =
             rspigot_auth::fetch_profile_keys(&rspigot_auth::UreqClient::new(), None);
@@ -258,6 +261,7 @@ fn main() -> anyhow::Result<()> {
     );
     let restart_requested = Arc::new(std::sync::atomic::AtomicBool::new(false));
     let restart_script = game_config.messages.restart_script.clone();
+    let heartbeat = rspigot_core::heartbeat::Heartbeat::new();
     let (timings_reports, timings_inbox) = crossbeam_channel::unbounded();
     files::spawn_timings_writer(args.root.clone(), timings_inbox);
     let mut server: Server<NetLink> = Server::new(
@@ -276,7 +280,8 @@ fn main() -> anyhow::Result<()> {
     .with_datapacks(Arc::new(DirectoryDatapacks::new(&datapacks)))
     .with_startup_inbox(game_inbox.clone())
     .with_timings_sink(timings_reports)
-    .with_restart_signal(Arc::clone(&restart_requested));
+    .with_restart_signal(Arc::clone(&restart_requested))
+    .with_heartbeat(heartbeat.clone());
     let (reload_requests, reload_inbox) = crossbeam_channel::unbounded();
     files::spawn_reloader(args.root.clone(), reload_inbox, inbound.clone());
     server = server.with_reload_sink(reload_requests);
@@ -327,7 +332,23 @@ fn main() -> anyhow::Result<()> {
         "Done ({:.3}s)! For help, type \"help\"",
         started.elapsed().as_secs_f64()
     );
+    let watchdog = files.watchdog().and_then(|settings| {
+        let root = args.root.clone();
+        let script = restart_script.clone();
+        match watchdog::Watchdog::spawn(settings, heartbeat, move || {
+            restart::perform(&root, &script)
+        }) {
+            Ok(watchdog) => Some(watchdog),
+            Err(error) => {
+                tracing::warn!("The watchdog could not start: {error}");
+                None
+            }
+        }
+    });
     let level = server.run(&game_inbox);
+    if let Some(watchdog) = watchdog {
+        drop(watchdog.stop());
+    }
     drop(game_inbox);
     if user_cache_on_stop_only {
         files::save_user_cache(&args.root, &user_cache);

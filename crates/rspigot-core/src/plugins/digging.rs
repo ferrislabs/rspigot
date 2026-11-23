@@ -3,12 +3,13 @@ const GUARDED_BY_PIGLINS: &str = "minecraft:guarded_by_piglins";
 
 use rspigot_domain::item::ItemStack;
 use rspigot_domain::player::{GameMode, PlayerId};
+use rspigot_domain::stack_components;
 use rspigot_domain::{BlockPos, BlockStateId, EntityId, Vec3};
 use rspigot_entities::EntityKind as Kind;
-use rspigot_items::ItemKind;
 use rustc_hash::FxHashMap;
 use uuid::Uuid;
 
+use crate::adventure::{is_game_master_block, may_break_in_adventure};
 use crate::events::{ClientEvent, Direction};
 use crate::game_events::GameEventContext;
 use crate::loot::{self, LootContext, LootEntity};
@@ -36,7 +37,10 @@ const NO_SEQUENCE: i32 = -1;
 const CORRECT_TOOL_DIVISOR: f32 = 30.0;
 const WRONG_TOOL_DIVISOR: f32 = 100.0;
 const HASTE_PER_LEVEL: f32 = 0.2;
-const SUBMERGED_MINING_SPEED: f32 = 0.2;
+const SUBMERGED_MINING_SPEED: &str = "minecraft:submerged_mining_speed";
+const MINING_EFFICIENCY: &str = "minecraft:mining_efficiency";
+const BLOCK_BREAK_SPEED: &str = "minecraft:block_break_speed";
+const MINING_FATIGUE_BASE: f64 = 0.3;
 const AIRBORNE_DIVISOR: f32 = 5.0;
 const NEIGHBOURS: [Direction; 6] = [
     Direction::Down,
@@ -75,12 +79,7 @@ fn hardness_of(state: BlockStateId) -> f32 {
 }
 
 fn fatigue_factor(amplifier: u8) -> f32 {
-    match amplifier {
-        0 => 0.3,
-        1 => 0.09,
-        2 => 0.0027,
-        _ => 8.1e-4,
-    }
+    MINING_FATIGUE_BASE.powi(i32::from(amplifier) + 1) as f32
 }
 
 fn amplifier_of<L>(player: &Player<L>, name: &str) -> Option<u8> {
@@ -91,37 +90,26 @@ fn amplifier_of<L>(player: &Player<L>, name: &str) -> Option<u8> {
         .map(|instance| instance.amplifier)
 }
 
-fn efficiency_of(stack: &ItemStack) -> f32 {
-    stack
-        .enchantments()
-        .into_iter()
-        .find(|(key, _)| key == "minecraft:efficiency")
-        .map_or(0.0, |(_, level)| {
-            let level = f32::from(level);
-            level * level + 1.0
-        })
+fn mines_like_survival(game_mode: GameMode) -> bool {
+    matches!(game_mode, GameMode::Survival | GameMode::Adventure)
 }
 
 pub(crate) fn mines_in_creative(held: Option<&ItemStack>) -> bool {
-    held.and_then(|stack| stack.item.kind())
-        .and_then(ItemKind::tool)
-        .is_none_or(|tool| tool.can_destroy_blocks_in_creative)
+    held.and_then(stack_components::tool)
+        .is_none_or(|tool| tool.can_destroy_blocks_in_creative())
 }
 
 impl<L: ClientLink> Server<L> {
     fn destroy_speed(&self, player: &Player<L>, state: BlockStateId) -> f32 {
         let held = player.inventory.held();
-        let tool = held
-            .and_then(|stack| stack.item.kind())
-            .and_then(ItemKind::tool);
+        let tool = held.and_then(stack_components::tool);
+        let attributes = crate::health::attributes(player);
         let mut speed = match (tool, state.kind()) {
             (Some(tool), Some(kind)) => tool.mining_speed(kind.id()),
             _ => 1.0,
         };
-        if speed > 1.0
-            && let Some(stack) = held
-        {
-            speed += efficiency_of(stack);
+        if speed > 1.0 {
+            speed += attributes.get(MINING_EFFICIENCY) as f32;
         }
         let haste = [
             amplifier_of(player, "minecraft:haste"),
@@ -136,6 +124,7 @@ impl<L: ClientLink> Server<L> {
         if let Some(amplifier) = amplifier_of(player, "minecraft:mining_fatigue") {
             speed *= fatigue_factor(amplifier);
         }
+        speed *= attributes.get(BLOCK_BREAK_SPEED) as f32;
         let eyes = player.eye_position();
         let submerged = self
             .world
@@ -143,7 +132,7 @@ impl<L: ClientLink> Server<L> {
             .block(eyes.block())
             .is_some_and(|state| state.flags().contains(rspigot_blocks::StateFlags::WATER));
         if submerged {
-            speed *= SUBMERGED_MINING_SPEED;
+            speed *= attributes.get(SUBMERGED_MINING_SPEED) as f32;
         }
         if !player.on_ground {
             speed /= AIRBORNE_DIVISOR;
@@ -191,7 +180,8 @@ impl<L: ClientLink> Server<L> {
         self.count_note_attacked(id, state);
         match game_mode {
             GameMode::Creative => {
-                let refused = !mines_in_creative(held.as_ref());
+                let refused = !mines_in_creative(held.as_ref())
+                    || (is_game_master_block(state) && !self.can_use_game_master_blocks(id));
                 self.ask_break(BreakStep {
                     player: id,
                     pos,
@@ -203,7 +193,11 @@ impl<L: ClientLink> Server<L> {
                     exp: 0,
                 });
             }
-            GameMode::Survival if !state.is_air() => {
+            GameMode::Survival | GameMode::Adventure
+                if !state.is_air()
+                    && (game_mode == GameMode::Survival
+                        || may_break_in_adventure(held.as_ref(), state)) =>
+            {
                 let insta = self.destroy_progress(id, state) >= 1.0;
                 let step = DamageStep {
                     player: id,
@@ -236,7 +230,8 @@ impl<L: ClientLink> Server<L> {
         let Some(player) = self.players.get(&id) else {
             return;
         };
-        let valid = player.game_mode == GameMode::Survival
+        let game_mode = player.game_mode;
+        let valid = mines_like_survival(game_mode)
             && player.inventory.held() == step.held.as_ref()
             && self.world.chunks.block(pos) == Some(step.state);
         if cancelled || !valid {
@@ -244,13 +239,13 @@ impl<L: ClientLink> Server<L> {
             return;
         }
         if step.insta || patch.insta_break == Some(true) {
-            let exp = self.mined_experience(step.state, step.held.as_ref(), GameMode::Survival);
+            let exp = self.mined_experience(step.state, step.held.as_ref(), game_mode);
             self.ask_break(BreakStep {
                 player: id,
                 pos,
                 sequence: step.sequence,
                 state: step.state,
-                game_mode: GameMode::Survival,
+                game_mode,
                 held: step.held,
                 refused: false,
                 exp,
@@ -277,7 +272,7 @@ impl<L: ClientLink> Server<L> {
         let state = self.world.chunks.block(pos);
         let Some((state, mining)) = state
             .zip(started)
-            .filter(|_| game_mode == GameMode::Survival)
+            .filter(|_| mines_like_survival(game_mode))
         else {
             if started.is_some() {
                 self.broadcast_destroy_stage(id, pos, -1);
@@ -402,7 +397,7 @@ impl<L: ClientLink> Server<L> {
                     if self
                         .players
                         .get(&id)
-                        .is_some_and(|player| player.game_mode == GameMode::Survival)
+                        .is_some_and(|player| mines_like_survival(player.game_mode))
                     {
                         self.break_mined(id, mining.pos, NO_SEQUENCE, state);
                     }
@@ -422,7 +417,13 @@ impl<L: ClientLink> Server<L> {
         };
         let game_mode = player.game_mode;
         let held = player.inventory.held().cloned();
-        if hardness_of(state) < 0.0 || !self.within_reach(id, pos) || self.is_protected(id, pos) {
+        let restricted =
+            game_mode == GameMode::Adventure && !may_break_in_adventure(held.as_ref(), state);
+        if restricted
+            || hardness_of(state) < 0.0
+            || !self.within_reach(id, pos)
+            || self.is_protected(id, pos)
+        {
             self.refuse_block(id, pos, sequence);
             return;
         }
@@ -508,7 +509,7 @@ impl<L: ClientLink> Server<L> {
             GameEventContext::entity_in(actor, step.state),
         );
         self.ack_block(id, sequence);
-        let survival = step.game_mode == GameMode::Survival;
+        let survival = mines_like_survival(step.game_mode);
         if survival {
             self.wear_tool_for_mining(id, hardness_of(step.state));
             if let Some(kind) = step.state.kind() {

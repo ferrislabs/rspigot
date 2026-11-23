@@ -611,9 +611,8 @@ impl<L: ClientLink> Server<L> {
             .players
             .get(&id)
             .and_then(|player| player.inventory.held())
-            .and_then(|stack| stack.item.kind())
-            .and_then(|kind| kind.weapon_damage())
-            .and_then(|amount| i32::try_from(amount).ok());
+            .and_then(rspigot_domain::stack_components::weapon)
+            .and_then(|weapon| i32::try_from(weapon.item_damage_per_attack).ok());
         if let Some(amount) = amount {
             self.hurt_and_break(id, Hand::Main, amount);
         }

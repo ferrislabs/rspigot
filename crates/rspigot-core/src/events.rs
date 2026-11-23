@@ -209,6 +209,10 @@ pub enum PlayerInput {
         secondary: Option<i32>,
     },
     SelectTrade(i32),
+    BundleItemSelected {
+        slot: i32,
+        index: i32,
+    },
     RenameItem(String),
     RecipeBookSettings {
         kind: crate::recipe_book::BookKind,
@@ -741,6 +745,11 @@ pub enum ClientEvent {
         game_mode: GameMode,
     },
     PlayerInfoRemove(Vec<PlayerId>),
+    PlayerInfoLatency(Vec<(PlayerId, i32)>),
+    ServerData {
+        motd: Component,
+        icon: Option<Vec<u8>>,
+    },
     TabList {
         header: Component,
         footer: Component,

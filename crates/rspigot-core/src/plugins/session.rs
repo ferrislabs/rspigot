@@ -437,6 +437,7 @@ impl<L: ClientLink> Server<L> {
         let max = self.config.view_distance;
         if let Some(player) = self.players.get_mut(&id) {
             let view = max.min(settings.view_distance.max(2));
+            let listing = player.settings.allows_listing != settings.allows_listing;
             player.settings = settings;
             player.streamer.set_view_distance(
                 view,
@@ -444,6 +445,9 @@ impl<L: ClientLink> Server<L> {
                 &self.workers,
                 &player.link,
             );
+            if listing {
+                self.refresh_status();
+            }
         }
     }
 

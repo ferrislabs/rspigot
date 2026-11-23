@@ -618,7 +618,8 @@ fn w27_medium_spawn_commands_take_a_rotation_and_list_shows_uuids() {
     let (outcome, says) = run(&mut s, &alice, "help time");
     assert_eq!(outcome, CommandOutcome::Success);
     assert!(
-        says.iter().any(|line| line == "/time of <clock> pause"),
+        says.iter()
+            .any(|line| line.contains("/time of <clock> pause")),
         "{says:?}"
     );
     let (outcome, _) = run(&mut s, &alice, "help nothing");

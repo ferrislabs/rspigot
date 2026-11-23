@@ -101,6 +101,24 @@ pub enum MainHand {
     Right,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum ChatVisibility {
+    #[default]
+    Full,
+    System,
+    Hidden,
+}
+
+impl ChatVisibility {
+    pub const fn accepts_chat(self) -> bool {
+        matches!(self, Self::Full)
+    }
+
+    pub const fn accepts_system(self, overlay: bool) -> bool {
+        overlay || !matches!(self, Self::Hidden)
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ClientSettings {
     pub locale: String,
@@ -108,6 +126,8 @@ pub struct ClientSettings {
     pub chat_colors: bool,
     pub skin_parts: u8,
     pub main_hand: MainHand,
+    pub chat_visibility: ChatVisibility,
+    pub allows_listing: bool,
 }
 
 impl Default for ClientSettings {
@@ -118,6 +138,8 @@ impl Default for ClientSettings {
             chat_colors: true,
             skin_parts: 0x7F,
             main_hand: MainHand::Right,
+            chat_visibility: ChatVisibility::Full,
+            allows_listing: true,
         }
     }
 }
@@ -125,6 +147,16 @@ impl Default for ClientSettings {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn chat_visibility_follows_vanilla_acceptance_rules() {
+        assert!(ChatVisibility::Full.accepts_chat());
+        assert!(!ChatVisibility::System.accepts_chat());
+        assert!(!ChatVisibility::Hidden.accepts_chat());
+        assert!(ChatVisibility::System.accepts_system(false));
+        assert!(!ChatVisibility::Hidden.accepts_system(false));
+        assert!(ChatVisibility::Hidden.accepts_system(true));
+    }
 
     #[test]
     fn offline_uuid_matches_vanilla() {

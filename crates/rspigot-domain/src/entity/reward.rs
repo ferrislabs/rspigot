@@ -88,14 +88,7 @@ pub fn base_experience_reward(entity: &Entity, random: &mut impl RandomSource) -
 pub const DAMAGE_COMPONENT: &str = "minecraft:damage";
 
 pub fn max_damage(stack: &ItemStack) -> Option<i32> {
-    if stack.components.contains_key("minecraft:unbreakable") {
-        return None;
-    }
-    stack
-        .item
-        .kind()
-        .and_then(|kind| kind.max_damage())
-        .and_then(|max| i32::try_from(max).ok())
+    crate::stack_components::max_damage(stack)
 }
 
 pub fn damage_value(stack: &ItemStack) -> i32 {

@@ -22,6 +22,7 @@ use crate::events::{
     MetadataValue, PlayerListEntry, SpawnInfo,
 };
 use crate::falling::ScheduledFalls;
+use crate::heartbeat::TickPhase;
 use crate::player::Player;
 use crate::player_io::PlayerIo;
 use crate::plugins::events::PlayerLoginResult;
@@ -33,7 +34,7 @@ use crate::ports::{
     ChunkGenerator, ChunkStore, ClientLink, EntityStore, PlayerStore, PluginOutbox,
 };
 use crate::spawning::Spawning;
-use crate::status::{PingHook, PlayerSample, StatusBoard};
+use crate::status::{PingHook, StatusBoard};
 use crate::streaming::ChunkStreamer;
 
 const KICK_DATE: &str = "%Y-%m-%d at %H:%M:%S UTC";
@@ -148,6 +149,7 @@ pub struct Server<L> {
     pub(crate) timings: crate::timings::Timings,
     pub(crate) timings_sink: Option<Sender<crate::timings::TimingsReport>>,
     pub(crate) restart_signal: Option<std::sync::Arc<std::sync::atomic::AtomicBool>>,
+    pub(crate) heartbeat: Option<crate::heartbeat::Heartbeat>,
     pub(crate) empty_ticks: u64,
     pub(crate) profiler: Option<(Instant, u64)>,
     pub(crate) command_source: Option<crate::commands::source::Source>,
@@ -267,6 +269,7 @@ impl<L: ClientLink> Server<L> {
             timings: Default::default(),
             timings_sink: None,
             restart_signal: None,
+            heartbeat: None,
             empty_ticks: 0,
             profiler: None,
             saving_enabled: true,
@@ -407,14 +410,20 @@ impl<L: ClientLink> Server<L> {
         while self.running {
             let now = Instant::now();
             if now >= next_tick || self.tick_rate.is_sprinting() {
+                self.mark_phase(TickPhase::Inbox);
                 self.handle_waiting(inbound);
                 if !self.running {
                     break;
                 }
                 let started = Instant::now();
+                self.beat_heart();
+                self.mark_phase(TickPhase::Tick);
                 self.tick();
+                self.mark_phase(TickPhase::Deliver);
                 self.report_slow_tick(started.elapsed());
                 self.finish_tick_timing(started.elapsed());
+                self.beat_heart();
+                self.mark_phase(TickPhase::Idle);
                 if self.tick_rate.is_sprinting() {
                     next_tick = Instant::now();
                     continue;
@@ -450,6 +459,7 @@ impl<L: ClientLink> Server<L> {
                 default(next_tick.saturating_duration_since(now)) => {}
             }
         }
+        self.stop_heart();
         self.shutdown(inbound)
     }
 
@@ -608,17 +618,17 @@ impl<L: ClientLink> Server<L> {
             match audience {
                 Audience::One(id) => {
                     if let Some(player) = self.players.get(&id) {
-                        player.link.send(event);
+                        crate::chat_visibility::send(player, event);
                     }
                 }
                 Audience::All => {
                     for player in self.players.values() {
-                        player.link.send(event.clone());
+                        crate::chat_visibility::send(player, event.clone());
                     }
                 }
                 Audience::Dimension(key) => {
                     for player in self.players.values().filter(|p| p.dim == key) {
-                        player.link.send(event.clone());
+                        crate::chat_visibility::send(player, event.clone());
                     }
                 }
                 Audience::Trackers(entity) => {
@@ -627,7 +637,7 @@ impl<L: ClientLink> Server<L> {
                         .values()
                         .filter(|p| p.tracked.contains(&entity))
                     {
-                        player.link.send(event.clone());
+                        crate::chat_visibility::send(player, event.clone());
                     }
                 }
                 Audience::TrackersExcept(entity, excluded) => {
@@ -636,7 +646,7 @@ impl<L: ClientLink> Server<L> {
                         .values()
                         .filter(|p| p.id != excluded && p.tracked.contains(&entity))
                     {
-                        player.link.send(event.clone());
+                        crate::chat_visibility::send(player, event.clone());
                     }
                 }
                 Audience::ChunkViewers(pos) => {
@@ -645,7 +655,7 @@ impl<L: ClientLink> Server<L> {
                         .values()
                         .filter(|p| p.dim == active && p.streamer.has_sent(pos))
                     {
-                        player.link.send(event.clone());
+                        crate::chat_visibility::send(player, event.clone());
                     }
                 }
                 Audience::Nearby {
@@ -659,7 +669,7 @@ impl<L: ClientLink> Server<L> {
                             && except.is_none_or(|source| !self.visibility.hides(p.id, source))
                             && p.position.distance_squared(position) < range * range
                     }) {
-                        player.link.send(event.clone());
+                        crate::chat_visibility::send(player, event.clone());
                     }
                 }
             }
@@ -670,7 +680,7 @@ impl<L: ClientLink> Server<L> {
         PlayerListEntry {
             profile: player.profile.clone(),
             game_mode: player.game_mode,
-            latency_ms: 0,
+            latency_ms: player.latency,
             listed: true,
             display_name: None,
         }
@@ -909,6 +919,7 @@ impl<L: ClientLink> Server<L> {
             .chain(std::iter::once(Self::list_entry(&player)))
             .collect();
         player.link.send(ClientEvent::PlayerInfo(entries));
+        player.link.send(self.server_data());
         let sessions: Vec<(PlayerId, crate::events::ChatSessionKey)> = self
             .players
             .values()
@@ -1093,16 +1104,16 @@ impl<L: ClientLink> Server<L> {
         self.leave_event(snapshot, player.kick_leave_message.take(), announce);
     }
 
-    fn refresh_status(&self) {
-        let sample: Vec<PlayerSample> = self
-            .players
-            .values()
-            .take(self.config.status_sample_count)
-            .map(|p| PlayerSample {
-                id: p.id,
-                name: p.profile.name.clone(),
-            })
-            .collect();
+    pub(crate) fn refresh_status(&self) {
+        let sample = crate::status::shuffled(
+            self.players
+                .values()
+                .take(self.config.status_sample_count)
+                .map(|p| {
+                    crate::status::sample_entry(p.id, &p.profile.name, p.settings.allows_listing)
+                })
+                .collect(),
+        );
         let online = self.players.len() as u32;
         self.status.update(|s| {
             s.online = online;
@@ -1114,6 +1125,7 @@ impl<L: ClientLink> Server<L> {
         self.activate_data();
         self.tick += 1;
         self.tps.record(self.tick);
+        self.broadcast_latency();
         self.track_emptiness();
         self.simulating = self.tick_rate.runs_simulation() && !self.paused_while_empty();
         if self.simulating {

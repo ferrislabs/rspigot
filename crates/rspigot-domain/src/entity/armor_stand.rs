@@ -1,5 +1,5 @@
 use rspigot_entities::{EntityDimensions, EntityKind};
-use rspigot_items::{EquipmentSlot, ItemKind};
+use rspigot_items::EquipmentSlot;
 use rspigot_nbt::{Compound, Tag};
 
 use super::base::EntityBase;
@@ -226,10 +226,8 @@ pub fn set_item(state: &mut StandState, slot: EquipmentSlot, stack: Option<ItemS
 }
 
 pub fn slot_for_item(base: &EntityBase, state: &StandState, stack: &ItemStack) -> EquipmentSlot {
-    stack
-        .item
-        .kind()
-        .and_then(ItemKind::equippable)
+    crate::stack_components::equippable(stack)
+        .map(|found| found.slot)
         .filter(|slot| can_use_slot(base, state, *slot))
         .unwrap_or(EquipmentSlot::Mainhand)
 }
@@ -570,5 +568,31 @@ mod tests {
             tick(base, &Ground);
         }
         assert_eq!(base.position.y, 70.0);
+    }
+
+    fn stick_for(slot_name: &str) -> ItemStack {
+        let mut stack = ItemStack::new(
+            rspigot_items::ItemKind::Stick.id(),
+            std::num::NonZeroU8::MIN,
+        );
+        stack.components.insert(
+            "minecraft:equippable",
+            rspigot_nbt::Compound::new().with("slot", slot_name),
+        );
+        stack
+    }
+
+    #[test]
+    fn the_equippable_component_picks_the_armor_stand_slot() {
+        let mut base = EntityBase::new(
+            EntityId(1),
+            Uuid::nil(),
+            rspigot_entities::EntityKind::ArmorStand,
+        );
+        let state = define(&mut base);
+        assert_eq!(
+            slot_for_item(&base, &state, &stick_for("head")),
+            EquipmentSlot::Head
+        );
     }
 }

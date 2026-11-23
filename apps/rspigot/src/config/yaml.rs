@@ -27,9 +27,9 @@ settings:
     maxAbsorption:
       max: 2048.0
     maxHealth:
-      max: 1024.0
+      max: 2048.0
     movementSpeed:
-      max: 1024.0
+      max: 2048.0
     attackDamage:
       max: 2048.0
 messages:
@@ -62,6 +62,7 @@ stats:
   forced-stats: {}
 world-settings:
   default:
+    verbose: false
     below-zero-generation-in-existing-chunks: true
     view-distance: default
     simulation-distance: default
@@ -76,16 +77,14 @@ world-settings:
     entity-activation-range:
       animals: 32
       monsters: 32
-      raiders: 64
+      raiders: 48
       misc: 16
-      water: 16
-      villagers: 32
-      flying-monsters: 32
+      tick-inactive-villagers: true
     entity-tracking-range:
-      players: 128
-      animals: 96
-      monsters: 96
-      misc: 96
+      players: 48
+      animals: 48
+      monsters: 48
+      misc: 32
       display: 128
       other: 64
     ticks-per:
@@ -103,7 +102,51 @@ world-settings:
     max-tick-time:
       tile: 50
       entity: 50
-    verbose: false
+    thunder-chance: 100000
+    hanging-tick-frequency: 100
+    unload-frozen-chunks: false
+    enable-zombie-pigmen-portal-spawns: true
+    wither-spawn-sound-radius: 0
+    end-portal-sound-radius: 0
+    dragon-death-sound-radius: 0
+    nerf-spawner-mobs: false
+    hopper-amount: 1
+    hopper-can-load-chunks: false
+    growth:
+      cactus-modifier: 100
+      cane-modifier: 100
+      melon-modifier: 100
+      mushroom-modifier: 100
+      pumpkin-modifier: 100
+      sapling-modifier: 100
+      beetroot-modifier: 100
+      carrot-modifier: 100
+      potato-modifier: 100
+      wheat-modifier: 100
+      netherwart-modifier: 100
+      vine-modifier: 100
+      cocoa-modifier: 100
+      bamboo-modifier: 100
+      sweetberry-modifier: 100
+      kelp-modifier: 100
+      twistingvines-modifier: 100
+      weepingvines-modifier: 100
+      cavevines-modifier: 100
+    seed-village: 10387312
+    seed-desert: 14357617
+    seed-igloo: 14357618
+    seed-jungle: 14357619
+    seed-swamp: 14357620
+    seed-monument: 10387313
+    seed-shipwreck: 165745295
+    seed-ocean: 14357621
+    seed-outpost: 165745296
+    seed-endcity: 10387313
+    seed-slime: 987234911
+    seed-nether: 30084232
+    seed-mansion: 10387319
+    seed-fossil: 14357921
+    seed-portal: 34222645
 "#;
 
 pub const BUKKIT_DEFAULTS: &str = r#"settings:
@@ -175,6 +218,7 @@ fn scalar(value: &Value) -> Option<String> {
 #[derive(Debug, Clone)]
 pub struct YamlConfig {
     root: Value,
+    world: Option<String>,
 }
 
 impl YamlConfig {
@@ -195,19 +239,38 @@ impl YamlConfig {
         if changed || !path.exists() {
             fs::write(path, serde_yaml_ng::to_string(&root)?)?;
         }
-        Ok(Self { root })
+        Ok(Self { root, world: None })
+    }
+
+    pub fn for_world(&self, name: &str) -> Self {
+        Self {
+            root: self.root.clone(),
+            world: Some(name.to_owned()),
+        }
     }
 
     #[cfg(test)]
     pub fn from_str(text: &str) -> anyhow::Result<Self> {
         Ok(Self {
             root: serde_yaml_ng::from_str(text)?,
+            world: None,
         })
     }
 
-    fn get(&self, path: &str) -> Option<&Value> {
+    fn lookup(&self, path: &str) -> Option<&Value> {
         path.split('.')
             .try_fold(&self.root, |node, key| node.get(key))
+    }
+
+    fn get(&self, path: &str) -> Option<&Value> {
+        if let Some(world) = self.world.as_deref().filter(|world| *world != "default")
+            && let Some(rest) = path.strip_prefix("world-settings.default.")
+            && let Some(own) = self.lookup(&format!("world-settings.{world}.{rest}"))
+            && !own.is_null()
+        {
+            return Some(own);
+        }
+        self.lookup(path)
     }
 
     pub fn string(&self, path: &str, fallback: &str) -> String {
@@ -259,7 +322,7 @@ mod tests {
         assert_eq!(spigot.int("settings.timeout-time", 0), 60);
         assert_eq!(
             spigot.int("world-settings.default.entity-tracking-range.players", 0),
-            128
+            48
         );
         assert_eq!(
             spigot.string("world-settings.default.view-distance", ""),
@@ -277,6 +340,66 @@ mod tests {
     }
 
     #[test]
+    fn a_world_section_overrides_the_default_key_by_key() {
+        let text = "world-settings:\n  default:\n    view-distance: 8\n    mob-spawn-range: 6\n    entity-tracking-range:\n      players: 48\n      animals: 48\n  nether:\n    view-distance: 4\n    entity-tracking-range:\n      players: 20\n";
+        let spigot = YamlConfig::from_str(text).unwrap();
+        let nether = spigot.for_world("nether");
+        assert_eq!(nether.int("world-settings.default.view-distance", 0), 4);
+        assert_eq!(nether.int("world-settings.default.mob-spawn-range", 0), 6);
+        assert_eq!(
+            nether.int("world-settings.default.entity-tracking-range.players", 0),
+            20
+        );
+        assert_eq!(
+            nether.int("world-settings.default.entity-tracking-range.animals", 0),
+            48
+        );
+        let other = spigot.for_world("elsewhere");
+        assert_eq!(other.int("world-settings.default.view-distance", 0), 8);
+        assert_eq!(spigot.int("world-settings.default.view-distance", 0), 8);
+    }
+
+    #[test]
+    fn a_world_with_no_section_reads_the_default() {
+        let spigot = YamlConfig::from_str(SPIGOT_DEFAULTS)
+            .unwrap()
+            .for_world("world_the_end");
+        assert_eq!(spigot.int("world-settings.default.mob-spawn-range", 0), 6);
+    }
+
+    #[test]
+    fn the_spigot_defaults_carry_the_world_keys_the_audit_listed() {
+        let spigot = YamlConfig::from_str(SPIGOT_DEFAULTS).unwrap();
+        for key in [
+            "growth.cactus-modifier",
+            "growth.cavevines-modifier",
+            "nerf-spawner-mobs",
+            "hopper-amount",
+            "ticks-per.hopper-check",
+            "thunder-chance",
+            "seed-village",
+            "seed-portal",
+            "max-tick-time.tile",
+            "entity-activation-range.tick-inactive-villagers",
+        ] {
+            assert!(
+                !spigot
+                    .string(&format!("world-settings.default.{key}"), "")
+                    .is_empty(),
+                "{key}"
+            );
+        }
+        assert_eq!(
+            spigot.int("world-settings.default.entity-tracking-range.misc", 0),
+            32
+        );
+        assert_eq!(
+            spigot.int("world-settings.default.entity-activation-range.raiders", 0),
+            48
+        );
+    }
+
+    #[test]
     fn merge_adds_missing_keys_and_keeps_user_values() {
         let mut target: Mapping =
             serde_yaml_ng::from_str("settings:\n  timeout-time: 30\n").unwrap();
@@ -284,6 +407,7 @@ mod tests {
         assert!(merge(&mut target, &defaults));
         let config = YamlConfig {
             root: Value::Mapping(target),
+            world: None,
         };
         assert_eq!(config.int("settings.timeout-time", 0), 30);
         assert_eq!(config.int("settings.netty-threads", 0), 4);

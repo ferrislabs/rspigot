@@ -72,7 +72,9 @@ pub fn decode(
 
 pub fn encode(chunk: &ChunkColumn) -> Vec<u8> {
     let mut out = Vec::with_capacity(64 * 1024);
-    write_named(&mut out, "", &to_nbt(chunk));
+    let mut root = to_nbt(chunk);
+    rspigot_domain::bundle::strip_runtime_selection(&mut root);
+    write_named(&mut out, "", &root);
     out
 }
 

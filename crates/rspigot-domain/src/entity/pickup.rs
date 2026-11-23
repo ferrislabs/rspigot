@@ -1,5 +1,5 @@
 use rspigot_entities::EntityKind;
-use rspigot_items::{EquipmentSlot, ItemKind, ModifierOperation};
+use rspigot_items::{EquipmentSlot, ModifierOperation};
 
 use super::living::{LivingState, slot_index};
 use crate::attribute::{ARMOR, ARMOR_TOUGHNESS, ATTACK_DAMAGE};
@@ -38,11 +38,7 @@ pub fn handled_elsewhere(kind: EntityKind) -> bool {
 }
 
 pub fn slot_for(stack: &ItemStack) -> EquipmentSlot {
-    stack
-        .item
-        .kind()
-        .and_then(ItemKind::equippable)
-        .unwrap_or(EquipmentSlot::Mainhand)
+    crate::stack_components::equippable(stack).map_or(EquipmentSlot::Mainhand, |found| found.slot)
 }
 
 const fn is_armor(slot: EquipmentSlot) -> bool {
@@ -200,6 +196,7 @@ mod tests {
     const BINDING_CURSE: &str = "minecraft:binding_curse";
     use std::num::NonZeroU8;
 
+    use rspigot_items::ItemKind;
     use rspigot_nbt::Compound;
     use uuid::Uuid;
 
@@ -303,5 +300,23 @@ mod tests {
     fn horse_armor_slots_are_not_used_by_ordinary_mobs() {
         let living = zombie();
         assert!(plan(EntityKind::Zombie, &living, &stack(ItemKind::Saddle)).is_none());
+    }
+
+    fn stick_for(slot_name: &str) -> ItemStack {
+        let mut stack = ItemStack::new(
+            rspigot_items::ItemKind::Stick.id(),
+            std::num::NonZeroU8::MIN,
+        );
+        stack.components.insert(
+            "minecraft:equippable",
+            rspigot_nbt::Compound::new().with("slot", slot_name),
+        );
+        stack
+    }
+
+    #[test]
+    fn the_equippable_component_picks_the_slot_a_mob_wears_an_item_in() {
+        assert_eq!(slot_for(&stick_for("head")), EquipmentSlot::Head);
+        assert_eq!(slot_for(&stick_for("feet")), EquipmentSlot::Feet);
     }
 }

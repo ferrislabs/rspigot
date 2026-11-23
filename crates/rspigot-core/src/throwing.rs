@@ -1,4 +1,7 @@
 use rand::Rng;
+use rspigot_data::variants::VariantFamily;
+use rspigot_domain::entity::hurting::HurtingState;
+use rspigot_domain::entity::species;
 use rspigot_domain::entity::thrown::{self, ThrownState};
 use rspigot_domain::entity::{Entity, EntityState, RemovalReason, ageable};
 use rspigot_domain::item::ItemStack;
@@ -7,8 +10,8 @@ use rspigot_domain::{EntityId, Vec3, mth, potion};
 use rspigot_entities::{EntityKind as Kind, SoundSource};
 use rspigot_items::ItemKind;
 
-use crate::cooldown;
 use crate::events::Hand;
+use crate::mobs::ServerRandom;
 use crate::plugins::events::{
     CreatureSpawnReason, EntityRemoveCause, ExpBottle, ExpBottlePatch, PlayerEggThrow,
     PlayerEggThrowPatch,
@@ -28,6 +31,9 @@ const EGG_QUAD_ODDS: i32 = 32;
 const BOTTLE_BASE: i32 = 3;
 const BOTTLE_SPREAD: i32 = 5;
 const BOTTLE_EFFECT: i32 = 2002;
+const WIND_CHARGE_POWER: f32 = 1.5;
+const WIND_CHARGE_THROW_SOUND: &str = "minecraft:entity.wind_charge.throw";
+const CHICKEN_VARIANT: &str = "minecraft:chicken/variant";
 
 struct Throwable {
     kind: Kind,
@@ -39,7 +45,9 @@ struct Throwable {
 fn throwable(item: ItemKind) -> Option<Throwable> {
     let (kind, sound, rotation_offset, power) = match item {
         ItemKind::Snowball => (Kind::Snowball, "minecraft:entity.snowball.throw", 0.0, 1.5),
-        ItemKind::Egg => (Kind::Egg, "minecraft:entity.egg.throw", 0.0, 1.5),
+        ItemKind::Egg | ItemKind::BlueEgg | ItemKind::BrownEgg => {
+            (Kind::Egg, "minecraft:entity.egg.throw", 0.0, 1.5)
+        }
         ItemKind::EnderPearl => (
             Kind::EnderPearl,
             "minecraft:entity.ender_pearl.throw",
@@ -74,6 +82,19 @@ fn throwable(item: ItemKind) -> Option<Throwable> {
     })
 }
 
+fn egg_variant(stack: &ItemStack) -> Option<u32> {
+    let named = stack
+        .components
+        .get_str(CHICKEN_VARIANT)
+        .or_else(|| match stack.item.kind() {
+            Some(ItemKind::BlueEgg) => Some("minecraft:cold"),
+            Some(ItemKind::BrownEgg) => Some("minecraft:warm"),
+            Some(ItemKind::Egg) => Some("minecraft:temperate"),
+            _ => None,
+        })?;
+    VariantFamily::Chicken.variant_index(named)
+}
+
 fn aim(yaw: f32, pitch: f32, offset: f32) -> Vec3 {
     let rad = |degrees: f32| f64::from(degrees * mth::DEG_TO_RAD);
     Vec3::new(
@@ -90,6 +111,9 @@ impl<L: ClientLink> Server<L> {
         };
         if stack.item.kind() == Some(ItemKind::EnderEye) {
             return self.use_eye_of_ender(id, hand);
+        }
+        if stack.item.kind() == Some(ItemKind::WindCharge) {
+            return self.use_wind_charge(id, hand, stack);
         }
         let Some(throwable) = stack.item.kind().and_then(throwable) else {
             return false;
@@ -151,6 +175,65 @@ impl<L: ClientLink> Server<L> {
         true
     }
 
+    fn use_wind_charge(&mut self, id: PlayerId, hand: Hand, stack: ItemStack) -> bool {
+        let Some(player) = self.players.get(&id) else {
+            return false;
+        };
+        let (position, rotation, movement, on_ground, owner) = (
+            player.position,
+            player.rotation,
+            player.known_movement,
+            player.on_ground,
+            player.profile.id.0,
+        );
+        let eye = player.eye_position().y;
+        let mut base = self.new_entity_base(Kind::WindCharge);
+        let origin = Vec3::new(position.x, eye, position.z);
+        base.position = origin;
+        base.old_position = origin;
+        let mut state = HurtingState::new(&mut base);
+        state.owner = Some(owner);
+        let direction = aim(rotation.yaw, rotation.pitch, 0.0);
+        let shot = thrown::movement_to_shoot(
+            &mut ServerRandom(&mut self.rng),
+            direction,
+            WIND_CHARGE_POWER,
+            UNCERTAINTY,
+        );
+        base.velocity = shot
+            + Vec3::new(
+                movement.x,
+                if on_ground { 0.0 } else { movement.y },
+                movement.z,
+            );
+        base.needs_sync = true;
+        let horizontal = (shot.x * shot.x + shot.z * shot.z).sqrt();
+        base.set_yaw((mth::atan2(shot.x, shot.z) * mth::RAD_TO_DEG) as f32);
+        base.set_pitch((mth::atan2(shot.y, horizontal) * mth::RAD_TO_DEG) as f32);
+        let pitch =
+            THROW_PITCH_BASE / (self.rng.random::<f32>() * THROW_PITCH_SPREAD + THROW_PITCH_FLOOR);
+        self.play_sound(
+            None,
+            position,
+            WIND_CHARGE_THROW_SOUND,
+            SoundSource::Neutral,
+            THROW_VOLUME,
+            pitch,
+        );
+        let projectile = Entity::new(base, EntityState::Hurting(Box::new(state)));
+        self.spawn_entity(
+            projectile,
+            Birth::of(CreatureSpawnReason::Default)
+                .by(id)
+                .then(Spawned::Thrown {
+                    player: id,
+                    hand,
+                    stack,
+                }),
+        );
+        true
+    }
+
     pub(crate) fn finish_throw(
         &mut self,
         player: PlayerId,
@@ -165,9 +248,7 @@ impl<L: ClientLink> Server<L> {
         if self.held(player, hand).as_ref() == Some(stack) {
             self.consume_held(player, hand, 1);
         }
-        if let Some(ticks) = stack.item.kind().and_then(cooldown::use_ticks) {
-            self.start_cooldown(player, stack.item, ticks);
-        }
+        self.start_use_cooldown(player, stack);
         self.player_swing(player, hand, false);
         self.refresh_hands(player);
     }
@@ -179,6 +260,7 @@ impl<L: ClientLink> Server<L> {
         count: i32,
         position: Vec3,
         yaw: f32,
+        variant: Option<u32>,
     ) {
         for _ in 0..count {
             let Ok((mut entity, random)) = self.summon_entity(
@@ -195,6 +277,9 @@ impl<L: ClientLink> Server<L> {
                 ageable::set_baby(&mut entity.base, ageable, true);
             }
             entity.base.snap_to(position, yaw, 0.0);
+            if let Some(variant) = variant.filter(|_| kind == Kind::Chicken) {
+                species::set_variant(&mut entity.base, VariantFamily::Chicken, variant);
+            }
             let birth = Birth::of(CreatureSpawnReason::Egg).with_random(random);
             self.spawn_entity(
                 entity,
@@ -222,6 +307,7 @@ impl<L: ClientLink> Server<L> {
             return;
         };
         let (position, yaw) = (entity.base.position, entity.base.yaw);
+        let variant = thrown::item(&entity.base).and_then(|stack| egg_variant(&stack));
         let hatching = self.rng.random_range(0..EGG_HATCH_ODDS) == 0;
         let count = if self.rng.random_range(0..EGG_QUAD_ODDS) == 0 {
             4
@@ -236,6 +322,7 @@ impl<L: ClientLink> Server<L> {
             hatching,
             kind: Kind::Chicken,
             count,
+            variant,
         };
         let Some(player) = player else {
             self.finish_hatch(step, PlayerEggThrowPatch::default());
@@ -265,7 +352,14 @@ impl<L: ClientLink> Server<L> {
             .unwrap_or(step.kind);
         let count = patch.num_hatches.unwrap_or(step.count);
         if hatching {
-            self.hatch_babies(step.player, kind, i32::from(count), step.position, step.yaw);
+            self.hatch_babies(
+                step.player,
+                kind,
+                i32::from(count),
+                step.position,
+                step.yaw,
+                step.variant,
+            );
         }
     }
 

@@ -348,13 +348,14 @@ impl AnvilStore {
                 None => Ok(()),
             };
         }
-        let root = Compound::new()
+        let mut root = Compound::new()
             .with("DataVersion", chunk::DATA_VERSION)
             .with(
                 "Entities",
                 Tag::List(entities.iter().cloned().map(Tag::Compound).collect()),
             )
             .with("Position", Tag::IntArray(vec![pos.x, pos.z]));
+        rspigot_domain::bundle::strip_runtime_selection(&mut root);
         let mut bytes = Vec::with_capacity(1024);
         write_named(&mut bytes, "", &root);
         self.write_bytes(Storage::Entities, dimension, pos, &bytes)

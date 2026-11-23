@@ -1,3 +1,4 @@
+mod help_files;
 mod offers;
 pub mod permissions;
 mod plugins;
@@ -10,10 +11,12 @@ use std::time::Duration;
 
 use rspigot_core::admin::AdminLists;
 use rspigot_core::chunks::ChunkManagerConfig;
+use rspigot_core::commands::help::HelpConfig;
 use rspigot_core::config::{
-    ActivationRanges, GameConfig, MobSettings, ServerMessages, SpawningConfig,
+    ActivationRanges, CommandSettings, GameConfig, MobSettings, ServerMessages, SpawningConfig,
 };
 use rspigot_core::streaming::StreamConfig;
+use rspigot_core::world_keys::{Crop, GrowthModifiers, StructureSeeds, WorldKeys};
 use rspigot_domain::entity::TrackingRanges;
 use rspigot_domain::player::GameMode;
 use rspigot_domain::spawn::state::{CategorySettings, SpawnSettings};
@@ -33,15 +36,30 @@ pub struct ServerFiles {
     pub spigot: YamlConfig,
     pub bukkit: YamlConfig,
     pub plugins: YamlConfig,
+    pub command_settings: CommandSettings,
+    pub help: HelpConfig,
 }
 
 impl ServerFiles {
     pub fn load(root: &Path) -> anyhow::Result<Self> {
+        let properties = Properties::load_or_create(&root.join("server.properties"))?;
+        let level = properties.string("level-name").to_owned();
+        let level = if level.is_empty() { "world" } else { &level };
+        let spigot =
+            YamlConfig::load_or_create(&root.join("spigot.yml"), SPIGOT_DEFAULTS)?.for_world(level);
         Ok(Self {
-            properties: Properties::load_or_create(&root.join("server.properties"))?,
-            spigot: YamlConfig::load_or_create(&root.join("spigot.yml"), SPIGOT_DEFAULTS)?,
+            properties,
+            spigot,
             bukkit: YamlConfig::load_or_create(&root.join("bukkit.yml"), BUKKIT_DEFAULTS)?,
             plugins: YamlConfig::load_or_create(&root.join("plugins.yml"), PLUGINS_DEFAULTS)?,
+            command_settings: help_files::parse_commands(&help_files::load_or_create(
+                &root.join("commands.yml"),
+                help_files::COMMANDS_DEFAULTS,
+            )?)?,
+            help: help_files::parse_help(&help_files::load_or_create(
+                &root.join("help.yml"),
+                help_files::HELP_DEFAULTS,
+            )?)?,
         })
     }
 
@@ -82,10 +100,10 @@ impl ServerFiles {
             spawn_protection: p.int("spawn-protection", 16).max(0) as u32,
             op_permission_level: p.int("op-permission-level", 4).clamp(0, 4) as u8,
             function_permission_level: p.int("function-permission-level", 2).clamp(1, 4) as u8,
-            player_tracking_range: self.spigot.float(
-                "world-settings.default.entity-tracking-range.players",
-                128.0,
-            ) * self.broadcast_scale(),
+            player_tracking_range: self
+                .spigot
+                .float("world-settings.default.entity-tracking-range.players", 48.0)
+                * self.broadcast_scale(),
             tracking: self.tracking_ranges(),
             activation: self.activation_ranges(),
             stream: StreamConfig::default(),
@@ -130,6 +148,13 @@ impl ServerFiles {
                 .float("world-settings.default.hunger.combat-exhaustion", 0.1)
                 .max(0.0) as f32,
             hunger: self.hunger(),
+            thunder_chance: self
+                .spigot
+                .int("world-settings.default.thunder-chance", 100_000)
+                .clamp(0, i64::from(i32::MAX)) as i32,
+            world_keys: self.world_keys(),
+            command_settings: self.command_settings.clone(),
+            help: self.help.clone(),
             messages: self.messages(),
             motd: p.string("motd").to_owned(),
             hide_online_players: p.bool("hide-online-players"),
@@ -171,6 +196,65 @@ impl ServerFiles {
                 ..Default::default()
             },
             ..GameConfig::default()
+        }
+    }
+
+    pub fn world_keys(&self) -> WorldKeys {
+        let defaults = WorldKeys::default();
+        let int = |key: &str, fallback: i32| {
+            self.spigot
+                .int(
+                    &format!("world-settings.default.{key}"),
+                    i64::from(fallback),
+                )
+                .clamp(i64::from(i32::MIN), i64::from(i32::MAX)) as i32
+        };
+        let flag = |key: &str, fallback: bool| {
+            self.spigot_flag(&format!("world-settings.default.{key}"), fallback)
+        };
+        let mut growth = GrowthModifiers::default();
+        for crop in Crop::ALL {
+            growth.set(crop, int(crop.key(), 100));
+        }
+        let seeds = StructureSeeds::default();
+        WorldKeys {
+            growth,
+            nerf_spawner_mobs: flag("nerf-spawner-mobs", defaults.nerf_spawner_mobs),
+            hopper_amount: int("hopper-amount", defaults.hopper_amount).max(1),
+            hopper_check: int("ticks-per.hopper-check", defaults.hopper_check).max(1),
+            hopper_can_load_chunks: flag("hopper-can-load-chunks", false),
+            seeds: StructureSeeds {
+                village: int("seed-village", seeds.village),
+                desert: int("seed-desert", seeds.desert),
+                igloo: int("seed-igloo", seeds.igloo),
+                jungle: int("seed-jungle", seeds.jungle),
+                swamp: int("seed-swamp", seeds.swamp),
+                monument: int("seed-monument", seeds.monument),
+                shipwreck: int("seed-shipwreck", seeds.shipwreck),
+                ocean: int("seed-ocean", seeds.ocean),
+                outpost: int("seed-outpost", seeds.outpost),
+                endcity: int("seed-endcity", seeds.endcity),
+                slime: int("seed-slime", seeds.slime),
+                nether: int("seed-nether", seeds.nether),
+                mansion: int("seed-mansion", seeds.mansion),
+                fossil: int("seed-fossil", seeds.fossil),
+                portal: int("seed-portal", seeds.portal),
+            },
+            hanging_tick_frequency: int("hanging-tick-frequency", defaults.hanging_tick_frequency)
+                .max(1),
+            unload_frozen_chunks: flag("unload-frozen-chunks", false),
+            zombie_pigmen_portal_spawns: flag("enable-zombie-pigmen-portal-spawns", true),
+            wither_spawn_sound_radius: int("wither-spawn-sound-radius", 0),
+            end_portal_sound_radius: int("end-portal-sound-radius", 0),
+            dragon_death_sound_radius: int("dragon-death-sound-radius", 0),
+            max_tick_time_tile_ms: i64::from(int("max-tick-time.tile", 50)),
+            max_tick_time_entity_ms: i64::from(int("max-tick-time.entity", 50)),
+            tick_inactive_villagers: flag("entity-activation-range.tick-inactive-villagers", true),
+            trident_despawn_rate: int("trident-despawn-rate", defaults.trident_despawn_rate),
+            merge_radius_exp: self.spigot.float(
+                "world-settings.default.merge-radius.exp",
+                defaults.merge_radius_exp,
+            ),
         }
     }
 
@@ -216,6 +300,13 @@ impl ServerFiles {
                 .string("settings.shutdown-message", &defaults.shutdown),
             restart_script: self.spigot.string("settings.restart-script", ""),
         }
+    }
+
+    pub fn watchdog(&self) -> Option<crate::watchdog::WatchdogSettings> {
+        crate::watchdog::WatchdogSettings::new(
+            self.spigot.int("settings.timeout-time", 60),
+            self.spigot_flag("settings.restart-on-crash", true),
+        )
     }
 
     pub fn permissions_file(&self) -> String {
@@ -545,7 +636,88 @@ mod tests {
             spigot: merged(spigot, SPIGOT_DEFAULTS),
             bukkit: merged(bukkit, BUKKIT_DEFAULTS),
             plugins: YamlConfig::from_str(PLUGINS_DEFAULTS).unwrap(),
+            command_settings: CommandSettings::default(),
+            help: HelpConfig::default(),
         }
+    }
+
+    fn in_world(mut files: ServerFiles, world: &str) -> ServerFiles {
+        files.spigot = files.spigot.for_world(world);
+        files
+    }
+
+    #[test]
+    fn tracking_range_defaults_are_the_spigot_ones() {
+        let config = files("{}", "{}").game_config(AdminLists::default());
+        assert_eq!(config.tracking.players, 48);
+        assert_eq!(config.tracking.animals, 48);
+        assert_eq!(config.tracking.monsters, 48);
+        assert_eq!(config.tracking.misc, 32);
+        assert_eq!(config.tracking.display, 128);
+        assert_eq!(config.tracking.other, 64);
+        assert_eq!(config.player_tracking_range, 48.0);
+    }
+
+    #[test]
+    fn a_world_section_overrides_the_default_section_key_by_key() {
+        let spigot = "world-settings:\n  default:\n    view-distance: 8\n    mob-spawn-range: 5\n    entity-tracking-range:\n      players: 48\n      animals: 48\n  nether:\n    view-distance: 4\n    entity-tracking-range:\n      players: 20\n";
+        let nether = in_world(files(spigot, "{}"), "nether").game_config(AdminLists::default());
+        assert_eq!(nether.view_distance, 4);
+        assert_eq!(nether.spawning.mob_spawn_range, 5);
+        assert_eq!(nether.tracking.players, 20);
+        assert_eq!(nether.tracking.animals, 48);
+        let other = in_world(files(spigot, "{}"), "world").game_config(AdminLists::default());
+        assert_eq!(other.view_distance, 8);
+        assert_eq!(other.tracking.players, 48);
+    }
+
+    #[test]
+    fn the_world_keys_default_to_the_spigot_values() {
+        let config = files("{}", "{}").game_config(AdminLists::default());
+        assert_eq!(config.world_keys, WorldKeys::default());
+        assert_eq!(config.thunder_chance, 100_000);
+    }
+
+    #[test]
+    fn the_world_keys_are_read_and_fall_back_per_world() {
+        let spigot = "world-settings:\n  default:\n    thunder-chance: 500\n    hopper-amount: 3\n    ticks-per:\n      hopper-check: 4\n    nerf-spawner-mobs: true\n    growth:\n      cactus-modifier: 300\n      wheat-modifier: 0\n    seed-village: 77\n    max-tick-time:\n      tile: 20\n      entity: 30\n    entity-activation-range:\n      tick-inactive-villagers: false\n  nether:\n    hopper-amount: 9\n    growth:\n      cactus-modifier: 50\n";
+        let main = files(spigot, "{}").game_config(AdminLists::default());
+        let keys = main.world_keys;
+        assert_eq!(main.thunder_chance, 500);
+        assert_eq!(keys.hopper_amount, 3);
+        assert_eq!(keys.hopper_check, 4);
+        assert!(keys.nerf_spawner_mobs);
+        assert_eq!(keys.growth.get(Crop::Cactus), 300);
+        assert_eq!(keys.growth.get(Crop::Wheat), 100);
+        assert_eq!(keys.seeds.village, 77);
+        assert_eq!(
+            (keys.max_tick_time_tile_ms, keys.max_tick_time_entity_ms),
+            (20, 30)
+        );
+        assert!(!keys.tick_inactive_villagers);
+        let nether = in_world(files(spigot, "{}"), "nether")
+            .game_config(AdminLists::default())
+            .world_keys;
+        assert_eq!(nether.hopper_amount, 9);
+        assert_eq!(nether.hopper_check, 4);
+        assert_eq!(nether.growth.get(Crop::Cactus), 50);
+        assert!(nether.nerf_spawner_mobs);
+    }
+
+    #[test]
+    fn the_watchdog_follows_timeout_time_and_restart_on_crash() {
+        let on = files("{}", "{}").watchdog().unwrap();
+        assert_eq!(on.timeout, Duration::from_secs(60));
+        assert!(on.restart);
+        let spigot = "settings:\n  timeout-time: 5\n  restart-on-crash: false\n";
+        let custom = files(spigot, "{}").watchdog().unwrap();
+        assert_eq!(custom.timeout, Duration::from_secs(5));
+        assert!(!custom.restart);
+        assert!(
+            files("settings:\n  timeout-time: 0\n", "{}")
+                .watchdog()
+                .is_none()
+        );
     }
 
     #[test]
@@ -603,7 +775,7 @@ mod tests {
             .properties
             .set("entity-broadcast-range-percentage", "50");
         let config = files.game_config(AdminLists::default());
-        assert_eq!(config.player_tracking_range, 64.0);
+        assert_eq!(config.player_tracking_range, 24.0);
     }
 
     #[test]
@@ -613,13 +785,13 @@ mod tests {
             .properties
             .set("entity-broadcast-range-percentage", "50");
         let ranges = files.tracking_ranges();
-        assert_eq!(ranges.animals, 48);
-        assert_eq!(ranges.players, 64);
+        assert_eq!(ranges.animals, 24);
+        assert_eq!(ranges.players, 24);
         assert_eq!(ranges.monster_activation, 32);
         files
             .properties
             .set("entity-broadcast-range-percentage", "1");
-        assert_eq!(files.tracking_ranges().animals, 9);
+        assert_eq!(files.tracking_ranges().animals, 4);
     }
 
     #[test]

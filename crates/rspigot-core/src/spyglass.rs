@@ -139,6 +139,15 @@ impl<L: ClientLink> Server<L> {
                 self.stop_using_now(id);
                 continue;
             }
+            let horn_ticks = self
+                .players
+                .get(&id)
+                .and_then(|player| player.inventory.get(hand_slot(player, using.hand)))
+                .and_then(crate::instruments::instrument_use_ticks);
+            if horn_ticks.is_some_and(|ticks| tick.saturating_sub(using.since) >= ticks) {
+                self.stop_using_now(id);
+                continue;
+            }
             self.tick_player_crossbow(id, using, item);
             self.tick_spear_use(id, using, item);
             self.tick_brush_use(id, using, item);
@@ -166,6 +175,7 @@ impl<L: ClientLink> Server<L> {
                         is_spyglass(stack.item)
                             || crate::spear::is_spear(stack.item)
                             || crate::brushing::is_brush(stack.item)
+                            || crate::instruments::instrument_use_ticks(stack).is_some()
                     })
             })
         });

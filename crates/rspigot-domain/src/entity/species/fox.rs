@@ -129,7 +129,7 @@ impl FoxState {
 }
 
 pub fn is_consumable_food(stack: &ItemStack) -> bool {
-    stack.item.kind().and_then(ItemKind::food).is_some()
+    crate::stack_components::food(stack).is_some()
 }
 
 pub fn define(base: &mut EntityBase) -> FoxState {
@@ -583,5 +583,21 @@ mod tests {
         let mut level = LegacyRandom::new(1);
         finalize(&mut base, &mut living, &environment, None, &mut level);
         assert_eq!(variant(&base), Variant::Red);
+    }
+
+    #[test]
+    fn a_food_component_makes_an_item_foxes_pick_up() {
+        let mut stack = crate::item::ItemStack::new(
+            rspigot_items::ItemKind::Stick.id(),
+            std::num::NonZeroU8::MIN,
+        );
+        assert!(!is_consumable_food(&stack));
+        stack.components.insert(
+            "minecraft:food",
+            rspigot_nbt::Compound::new()
+                .with("nutrition", 2)
+                .with("saturation", 1.0f32),
+        );
+        assert!(is_consumable_food(&stack));
     }
 }

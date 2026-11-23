@@ -4,6 +4,7 @@ use rspigot_domain::Vec3;
 use rspigot_domain::effect::{EffectDuration, EffectInstance, EffectKind};
 use rspigot_domain::item::ItemStack;
 use rspigot_domain::player::{GameMode, PlayerId};
+use rspigot_domain::stack_components;
 use rspigot_entities::SoundSource;
 use rspigot_items::{Food, ItemKind};
 
@@ -49,7 +50,7 @@ fn ominous_amplifier(stack: &ItemStack) -> u8 {
 }
 
 fn food_of(stack: &ItemStack) -> Option<Food> {
-    stack.item.kind().and_then(ItemKind::food)
+    stack_components::food(stack)
 }
 
 pub(crate) fn can_eat<L>(player: &Player<L>, food: Food) -> bool {
@@ -217,10 +218,7 @@ impl<L: ClientLink> Server<L> {
                 count,
                 ..stack.clone()
             });
-            let replacement = stack
-                .item
-                .kind()
-                .and_then(ItemKind::use_remainder)
+            let replacement = stack_components::use_remainder(&stack)
                 .map(|item| ItemStack::new(item, NonZeroU8::MIN));
             match (left, replacement) {
                 (None, replacement) => {
@@ -244,10 +242,10 @@ impl<L: ClientLink> Server<L> {
         if food.is_some() {
             self.play_sound(None, position, BURP_SOUND, SoundSource::Players, 0.5, 1.0);
         } else {
-            self.play_sound(
+            self.play_named_sound(
                 None,
                 position,
-                consumable.sound,
+                &consumable.sound,
                 SoundSource::Players,
                 1.0,
                 1.0,
@@ -259,9 +257,7 @@ impl<L: ClientLink> Server<L> {
             GameEventContext::of(Some(entity)),
         );
         self.apply_consumable(id, &stack, &consumable);
-        if let Some(ticks) = stack.item.kind().and_then(crate::cooldown::use_ticks) {
-            self.start_cooldown(id, stack.item, ticks);
-        }
+        self.start_use_cooldown(id, &stack);
         self.count_used(id, &stack);
         self.trigger_consume_item(id, &stack);
         self.send_inventory(id);

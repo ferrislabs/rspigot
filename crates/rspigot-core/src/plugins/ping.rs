@@ -87,14 +87,19 @@ impl<L: ClientLink> Server<L> {
             .players
             .values()
             .filter(|player| !hidden.contains(&player.id.0));
-        let sample: Vec<PlayerSample> = shown
-            .by_ref()
-            .take(SAMPLE_SIZE)
-            .map(|player| PlayerSample {
-                id: player.id,
-                name: player.profile.name.clone(),
-            })
-            .collect();
+        let sample: Vec<PlayerSample> = crate::status::shuffled(
+            shown
+                .by_ref()
+                .take(SAMPLE_SIZE)
+                .map(|player| {
+                    crate::status::sample_entry(
+                        player.id,
+                        &player.profile.name,
+                        player.settings.allows_listing,
+                    )
+                })
+                .collect(),
+        );
         let online = count(sample.len() + shown.count());
         let _ = reply.send(StatusReply {
             motd: patch.motd.unwrap_or(step.motd),

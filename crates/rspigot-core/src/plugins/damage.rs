@@ -443,6 +443,7 @@ impl<L: ClientLink> Server<L> {
         };
         state.health -= amount.ceil() as i32;
         if state.health <= 0 {
+            self.spill_destroyed_item(id);
             self.remove_entity(id, RemovalReason::Killed, Some(EntityRemoveCause::Death));
         }
         true

@@ -1,11 +1,16 @@
 use rspigot_domain::chunk::BlockEntity;
 use rspigot_domain::entity::save::component_from_tag;
+use rspigot_domain::game_event::GameEvent;
+use rspigot_domain::item::ItemStack;
 use rspigot_domain::player::{GameMode, PlayerId};
 use rspigot_domain::{BlockPos, BlockStateId, Identifier};
+use rspigot_entities::SoundSource;
+use rspigot_items::ItemKind;
 use rspigot_nbt::{Compound, Tag};
 
 use crate::console::console_text;
-use crate::events::ClientEvent;
+use crate::events::{ClientEvent, Hand};
+use crate::game_events::GameEventContext;
 use crate::plugins::events::{PlayerSignOpen, PlayerSignOpenCause, SignChange, SignChangePatch};
 use crate::plugins::steps::Continuation;
 use crate::plugins::{EventPayload, SignData};
@@ -17,6 +22,59 @@ const FRONT_TEXT: &str = "front_text";
 const BACK_TEXT: &str = "back_text";
 const MESSAGES: &str = "messages";
 const WAXED: &str = "is_waxed";
+const COLOR: &str = "color";
+const GLOWING: &str = "has_glowing_text";
+const DEFAULT_COLOR: &str = "black";
+const DYE_SUFFIX: &str = "_dye";
+const DYE_SOUND: &str = "minecraft:item.dye.use";
+const GLOW_INK_SOUND: &str = "minecraft:item.glow_ink_sac.use";
+const INK_SOUND: &str = "minecraft:item.ink_sac.use";
+const WAX_ON_SOUND: &str = "minecraft:item.honeycomb.wax_on";
+const WAX_ON_EVENT: i32 = 3003;
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+enum Applicator {
+    Dye(String),
+    GlowInk,
+    Ink,
+    Honeycomb,
+}
+
+fn applicator_of(stack: &ItemStack) -> Option<Applicator> {
+    let kind = stack.item.kind()?;
+    match kind {
+        ItemKind::GlowInkSac => Some(Applicator::GlowInk),
+        ItemKind::InkSac => Some(Applicator::Ink),
+        ItemKind::Honeycomb => Some(Applicator::Honeycomb),
+        other => {
+            let name = other.name().trim_start_matches("minecraft:");
+            name.strip_suffix(DYE_SUFFIX)
+                .filter(|color| !color.is_empty())
+                .map(|color| Applicator::Dye(color.to_owned()))
+        }
+    }
+}
+
+fn has_message(text: &Compound) -> bool {
+    plain_lines(Some(text)).iter().any(|line| !line.is_empty())
+}
+
+fn glowing(text: &Compound) -> bool {
+    text.get_bool(GLOWING).unwrap_or(false)
+}
+
+fn color_of(text: &Compound) -> &str {
+    text.get_str(COLOR).unwrap_or(DEFAULT_COLOR)
+}
+
+fn can_apply(applicator: &Applicator, text: &Compound) -> bool {
+    match applicator {
+        Applicator::Dye(color) => has_message(text) && color_of(text) != color,
+        Applicator::GlowInk => has_message(text) && !glowing(text),
+        Applicator::Ink => has_message(text) && glowing(text),
+        Applicator::Honeycomb => true,
+    }
+}
 
 #[derive(Debug, Clone, Copy)]
 pub(crate) struct SignOpenStep {
@@ -167,6 +225,86 @@ impl<L: ClientLink> Server<L> {
             front,
             cause: PlayerSignOpenCause::Interact,
         });
+        true
+    }
+
+    pub(crate) fn use_sign_applicator(
+        &mut self,
+        id: PlayerId,
+        hand: Hand,
+        pos: BlockPos,
+        state: BlockStateId,
+    ) -> bool {
+        if !is_sign(state) {
+            return false;
+        }
+        let Some(stack) = self.held(id, hand) else {
+            return false;
+        };
+        let Some(applicator) = applicator_of(&stack) else {
+            return false;
+        };
+        let may_build = self.players.get(&id).is_some_and(|player| {
+            !matches!(player.game_mode, GameMode::Adventure | GameMode::Spectator)
+        });
+        if !may_build || self.sign_waxed(pos) || self.another_edits_sign(id, pos) {
+            return false;
+        }
+        let front = self.facing_front_text(id, pos, state);
+        let key = if front { FRONT_TEXT } else { BACK_TEXT };
+        let mut data = self.sign_data(pos).cloned().unwrap_or_default();
+        let mut text = data.get_compound(key).cloned().unwrap_or_default();
+        if !can_apply(&applicator, &text) {
+            return false;
+        }
+        let sound = match &applicator {
+            Applicator::Dye(color) => {
+                text.insert(COLOR, color.as_str());
+                DYE_SOUND
+            }
+            Applicator::GlowInk => {
+                text.insert(GLOWING, true);
+                GLOW_INK_SOUND
+            }
+            Applicator::Ink => {
+                text.insert(GLOWING, false);
+                INK_SOUND
+            }
+            Applicator::Honeycomb => {
+                data.insert(WAXED, true);
+                WAX_ON_SOUND
+            }
+        };
+        data.insert(key, Tag::Compound(text));
+        let Some(chunk) = self.world.chunks.chunk_mut(pos.chunk()) else {
+            return false;
+        };
+        chunk.set_block_entity(BlockEntity {
+            pos,
+            kind: Identifier::minecraft(entity_kind(state)),
+            data: data.clone(),
+        });
+        self.push(
+            Audience::ChunkViewers(pos.chunk()),
+            ClientEvent::BlockEntityUpdate {
+                pos,
+                kind: entity_kind(state),
+                data,
+            },
+        );
+        if applicator == Applicator::Honeycomb {
+            self.level_event(WAX_ON_EVENT, pos, 0);
+        }
+        self.play_sound(None, pos.center(), sound, SoundSource::Blocks, 1.0, 1.0);
+        let entity = self.players.get(&id).map(|player| player.entity_id);
+        self.block_game_event(
+            GameEvent::BlockChange,
+            pos,
+            GameEventContext::entity_in(entity, state),
+        );
+        self.count_used(id, &stack);
+        self.consume_held(id, hand, 1);
+        self.refresh_hands(id);
         true
     }
 

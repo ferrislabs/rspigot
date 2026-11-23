@@ -143,7 +143,7 @@ impl<L: ClientLink> Server<L> {
     fn still_using(&self, using: &UseItem) -> bool {
         self.players.get(&using.player).is_some_and(|player| {
             player.game_mode == using.game_mode
-                && !matches!(player.game_mode, GameMode::Adventure | GameMode::Spectator)
+                && player.game_mode != GameMode::Spectator
                 && !player.vitals.is_dead()
                 && player.inventory.get(using.slot) == Some(&using.stack)
         })
@@ -204,7 +204,7 @@ impl<L: ClientLink> Server<L> {
         }
         let Some(effects) = step.tool else {
             self.ack_block(id, using.sequence);
-            if using.game_mode == GameMode::Survival {
+            if matches!(using.game_mode, GameMode::Survival | GameMode::Adventure) {
                 self.consume_one(id, using.slot, using.stack);
             }
             if let Some(target) = step.changes.last() {

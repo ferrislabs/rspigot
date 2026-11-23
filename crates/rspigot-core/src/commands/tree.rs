@@ -307,8 +307,11 @@ pub fn build_tree(level: u8) -> CommandTree {
         }],
     };
     let root = 0;
-    for name in ["version", "plugins", "tps"] {
+    for name in ["version", "plugins"] {
         b.literal(root, name, true);
+    }
+    if level >= super::permission::LEVEL_MODERATORS {
+        b.literal(root, "tps", true);
     }
     let help = b.literal(root, "help", true);
     b.argument(help, "command", ArgumentParser::GreedyString, true);

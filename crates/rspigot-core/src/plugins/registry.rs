@@ -89,6 +89,13 @@ impl Registry {
             .collect()
     }
 
+    pub(crate) fn connection_names(&self) -> rustc_hash::FxHashMap<u64, String> {
+        self.connected
+            .iter()
+            .map(|(connection, plugin)| (*connection, plugin.intro.name.clone()))
+            .collect()
+    }
+
     pub(crate) fn commands(&self) -> impl Iterator<Item = (u64, &CommandSpec)> {
         self.connected.iter().flat_map(|(connection, plugin)| {
             plugin
