@@ -257,6 +257,37 @@ impl<'a> Region<'a> {
         }
     }
 
+    pub(crate) fn snapshot(
+        resources: &'a Resources,
+        dimension: &'a Dimension,
+        center: ChunkPos,
+        biome: u8,
+        fill: impl Fn(ChunkPos, &mut ChunkBuffer),
+    ) -> Self {
+        let mut region = Self {
+            provider: Provider::Fixture,
+            resources,
+            dimension,
+            center,
+            slots: std::array::from_fn(|_| None),
+            fixed_biome: biome,
+            block_entities: Vec::new(),
+            entities: Vec::new(),
+            #[cfg(test)]
+            changed: Vec::new(),
+            random: Xoroshiro::from_seed(0),
+        };
+        for dz in -1..=1 {
+            for dx in -1..=1 {
+                let pos = ChunkPos::new(center.x + dx, center.z + dz);
+                let mut buffer = ChunkBuffer::new(dimension.height);
+                fill(pos, &mut buffer);
+                region.install(slot_index(dx, dz), buffer);
+            }
+        }
+        region
+    }
+
     #[cfg(test)]
     pub(crate) fn fixture(
         resources: &'a Resources,
@@ -315,7 +346,6 @@ impl<'a> Region<'a> {
         self.center
     }
 
-    #[cfg(test)]
     fn install(&mut self, index: usize, buffer: ChunkBuffer) {
         let height = self.dimension.height;
         let tops = std::array::from_fn(|i| {

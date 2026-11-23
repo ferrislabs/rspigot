@@ -583,6 +583,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &[],
             experience: 500,
+            loot: &[],
+            function: None,
         },
         telemetry: true,
     },
@@ -614,6 +616,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &[],
             experience: 85,
+            loot: &[],
+            function: None,
         },
         telemetry: true,
     },
@@ -643,6 +647,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &[],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: true,
     },
@@ -674,6 +680,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &[],
             experience: 40,
+            loot: &[],
+            function: None,
         },
         telemetry: true,
     },
@@ -705,6 +713,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &[],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: true,
     },
@@ -736,6 +746,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &[],
             experience: 50,
+            loot: &[],
+            function: None,
         },
         telemetry: true,
     },
@@ -767,6 +779,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &[],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: true,
     },
@@ -796,6 +810,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &[],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: true,
     },
@@ -827,6 +843,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &[],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: true,
     },
@@ -882,6 +900,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &[],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: true,
     },
@@ -911,6 +931,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &[],
             experience: 100,
+            loot: &[],
+            function: None,
         },
         telemetry: true,
     },
@@ -940,6 +962,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &[],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: true,
     },
@@ -1170,6 +1194,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &[],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: true,
     },
@@ -1400,6 +1426,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &[],
             experience: 100,
+            loot: &[],
+            function: None,
         },
         telemetry: true,
     },
@@ -1429,6 +1457,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &[],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: true,
     },
@@ -1460,6 +1490,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &[],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: true,
     },
@@ -1491,6 +1523,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &[],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: true,
     },
@@ -1522,6 +1556,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &[],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: true,
     },
@@ -1551,6 +1587,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &[],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: true,
     },
@@ -1582,6 +1620,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &[],
             experience: 50,
+            loot: &[],
+            function: None,
         },
         telemetry: true,
     },
@@ -1613,6 +1653,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &[],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: true,
     },
@@ -1655,6 +1697,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &[],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: true,
     },
@@ -1686,6 +1730,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &[],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: true,
     },
@@ -1718,6 +1764,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &[],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: true,
     },
@@ -1805,6 +1853,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &[],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: true,
     },
@@ -1836,6 +1886,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &[],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: true,
     },
@@ -1862,6 +1914,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &[],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: true,
     },
@@ -1893,6 +1947,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &[],
             experience: 50,
+            loot: &[],
+            function: None,
         },
         telemetry: true,
     },
@@ -1922,6 +1978,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &[],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: true,
     },
@@ -1953,6 +2011,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &[],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: true,
     },
@@ -1984,6 +2044,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &[],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: true,
     },
@@ -2015,6 +2077,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &[],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: true,
     },
@@ -2046,6 +2110,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &[],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: true,
     },
@@ -2077,6 +2143,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &[],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: true,
     },
@@ -2106,6 +2174,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &[],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: true,
     },
@@ -2135,6 +2205,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &[],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: true,
     },
@@ -2166,6 +2238,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &[],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: true,
     },
@@ -2271,6 +2345,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &[],
             experience: 150,
+            loot: &[],
+            function: None,
         },
         telemetry: true,
     },
@@ -2476,6 +2552,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &[],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: true,
     },
@@ -2507,6 +2585,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &[],
             experience: 65,
+            loot: &[],
+            function: None,
         },
         telemetry: true,
     },
@@ -2538,6 +2618,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &[],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: true,
     },
@@ -2569,6 +2651,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &[],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: true,
     },
@@ -2600,6 +2684,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &[],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: true,
     },
@@ -2631,6 +2717,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &[],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: true,
     },
@@ -2662,6 +2750,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &[],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: true,
     },
@@ -2693,6 +2783,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &[],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: true,
     },
@@ -2724,6 +2816,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &[],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: true,
     },
@@ -2753,6 +2847,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &[],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: true,
     },
@@ -2782,6 +2878,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &[],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: true,
     },
@@ -2811,6 +2909,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &[],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: true,
     },
@@ -2840,6 +2940,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &[],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: true,
     },
@@ -2871,6 +2973,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &[],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: true,
     },
@@ -2897,6 +3001,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &[],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: true,
     },
@@ -2926,6 +3032,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &[],
             experience: 50,
+            loot: &[],
+            function: None,
         },
         telemetry: true,
     },
@@ -2957,6 +3065,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &[],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: true,
     },
@@ -2986,6 +3096,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &[],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: true,
     },
@@ -3017,6 +3129,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &[],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: true,
     },
@@ -3048,6 +3162,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &[],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: true,
     },
@@ -3077,6 +3193,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &[],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: true,
     },
@@ -3302,6 +3420,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &[],
             experience: 100,
+            loot: &[],
+            function: None,
         },
         telemetry: true,
     },
@@ -3587,6 +3707,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &[],
             experience: 100,
+            loot: &[],
+            function: None,
         },
         telemetry: true,
     },
@@ -3616,6 +3738,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &[],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: true,
     },
@@ -3751,6 +3875,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &[],
             experience: 50,
+            loot: &[],
+            function: None,
         },
         telemetry: true,
     },
@@ -3782,6 +3908,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &[],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: true,
     },
@@ -3834,6 +3962,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &[],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: true,
     },
@@ -3867,6 +3997,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &[],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: true,
     },
@@ -3898,6 +4030,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &[],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: true,
     },
@@ -3953,6 +4087,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &[],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: true,
     },
@@ -3984,6 +4120,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &[],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: true,
     },
@@ -4013,6 +4151,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &[],
             experience: 100,
+            loot: &[],
+            function: None,
         },
         telemetry: true,
     },
@@ -4042,6 +4182,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &[],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: true,
     },
@@ -4073,6 +4215,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &[],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: true,
     },
@@ -4115,6 +4259,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &[],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: true,
     },
@@ -4210,6 +4356,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &[],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: true,
     },
@@ -4241,6 +4389,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &[],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: true,
     },
@@ -4272,6 +4422,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &[],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: true,
     },
@@ -4303,6 +4455,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &[],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: true,
     },
@@ -4329,6 +4483,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &[],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: true,
     },
@@ -4360,6 +4516,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &[],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: true,
     },
@@ -4391,6 +4549,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &[],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: true,
     },
@@ -4448,6 +4608,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &[],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: true,
     },
@@ -4477,6 +4639,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &[],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: true,
     },
@@ -4506,6 +4670,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &[],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: true,
     },
@@ -4548,6 +4714,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &[],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: true,
     },
@@ -4579,6 +4747,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &[],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: true,
     },
@@ -4610,6 +4780,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &[],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: true,
     },
@@ -4725,6 +4897,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &[],
             experience: 50,
+            loot: &[],
+            function: None,
         },
         telemetry: true,
     },
@@ -4756,6 +4930,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &[],
             experience: 1000,
+            loot: &[],
+            function: None,
         },
         telemetry: true,
     },
@@ -4787,6 +4963,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &[],
             experience: 100,
+            loot: &[],
+            function: None,
         },
         telemetry: true,
     },
@@ -4816,6 +4994,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &[],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: true,
     },
@@ -4847,6 +5027,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &[],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: true,
     },
@@ -4876,6 +5058,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &[],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: true,
     },
@@ -4905,6 +5089,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &[],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: true,
     },
@@ -4947,6 +5133,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &[],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: true,
     },
@@ -5022,6 +5210,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &[],
             experience: 500,
+            loot: &[],
+            function: None,
         },
         telemetry: true,
     },
@@ -5051,6 +5241,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &[],
             experience: 100,
+            loot: &[],
+            function: None,
         },
         telemetry: true,
     },
@@ -5082,6 +5274,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &[],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: true,
     },
@@ -5113,6 +5307,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &[],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: true,
     },
@@ -5142,6 +5338,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &[],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: true,
     },
@@ -5201,6 +5399,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &[],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: true,
     },
@@ -5235,6 +5435,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &[],
             experience: 100,
+            loot: &[],
+            function: None,
         },
         telemetry: true,
     },
@@ -5264,6 +5466,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &[],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: true,
     },
@@ -5293,6 +5497,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &[],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: true,
     },
@@ -5322,6 +5528,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &[],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: true,
     },
@@ -5353,6 +5561,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &[],
             experience: 50,
+            loot: &[],
+            function: None,
         },
         telemetry: true,
     },
@@ -5384,6 +5594,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &[],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: true,
     },
@@ -5415,6 +5627,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &[],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: true,
     },
@@ -5444,6 +5658,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &[],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: true,
     },
@@ -5475,6 +5691,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &[],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: true,
     },
@@ -5506,6 +5724,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &[],
             experience: 100,
+            loot: &[],
+            function: None,
         },
         telemetry: true,
     },
@@ -5530,6 +5750,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:blaze_powder"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -5554,6 +5776,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:brewing_stand"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -5578,6 +5802,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:cauldron"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -5602,6 +5828,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:fermented_spider_eye"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -5626,6 +5854,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:glass_bottle"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -5650,6 +5880,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:glistering_melon_slice"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -5674,6 +5906,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:golden_carrot"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -5698,6 +5932,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:magma_cream"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -5722,6 +5958,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:acacia_planks"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -5746,6 +5984,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:acacia_slab"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -5770,6 +6010,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:acacia_stairs"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -5794,6 +6036,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:acacia_wood"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -5818,6 +6062,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:amethyst_block"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -5842,6 +6088,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:andesite"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -5866,6 +6114,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:andesite_slab"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -5892,6 +6142,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:andesite_slab_from_andesite_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -5916,6 +6168,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:andesite_stairs"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -5942,6 +6196,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:andesite_stairs_from_andesite_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -5966,6 +6222,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:bamboo_block"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -5990,6 +6248,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:bamboo_mosaic_slab"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -6014,6 +6274,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:bamboo_mosaic_stairs"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -6038,6 +6300,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:bamboo_planks"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -6062,6 +6326,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:bamboo_slab"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -6086,6 +6352,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:bamboo_stairs"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -6110,6 +6378,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:birch_planks"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -6134,6 +6404,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:birch_slab"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -6158,6 +6430,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:birch_stairs"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -6182,6 +6456,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:birch_wood"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -6213,6 +6489,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:black_concrete_powder"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -6237,6 +6515,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:black_concrete_slab"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -6263,6 +6543,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:black_concrete_slab_from_black_concrete_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -6287,6 +6569,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:black_concrete_stairs"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -6313,6 +6597,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:black_concrete_stairs_from_black_concrete_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -6337,6 +6623,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:black_stained_glass"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -6361,6 +6649,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:black_terracotta"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -6385,6 +6675,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:black_wool_slab"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -6409,6 +6701,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:black_wool_stairs"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -6433,6 +6727,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:blackstone_slab"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -6459,6 +6755,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:blackstone_slab_from_blackstone_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -6483,6 +6781,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:blackstone_stairs"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -6509,6 +6809,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:blackstone_stairs_from_blackstone_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -6540,6 +6842,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:blue_concrete_powder"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -6564,6 +6868,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:blue_concrete_slab"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -6590,6 +6896,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:blue_concrete_slab_from_blue_concrete_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -6614,6 +6922,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:blue_concrete_stairs"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -6640,6 +6950,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:blue_concrete_stairs_from_blue_concrete_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -6664,6 +6976,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:blue_ice"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -6688,6 +7002,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:blue_stained_glass"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -6712,6 +7028,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:blue_terracotta"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -6736,6 +7054,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:blue_wool_slab"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -6760,6 +7080,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:blue_wool_stairs"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -6784,6 +7106,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:bone_block"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -6808,6 +7132,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:bookshelf"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -6832,6 +7158,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:brick_slab"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -6856,6 +7184,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:brick_slab_from_bricks_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -6880,6 +7210,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:brick_stairs"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -6904,6 +7236,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:brick_stairs_from_bricks_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -6928,6 +7262,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:bricks"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -6959,6 +7295,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:brown_concrete_powder"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -6983,6 +7321,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:brown_concrete_slab"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -7009,6 +7349,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:brown_concrete_slab_from_brown_concrete_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -7033,6 +7375,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:brown_concrete_stairs"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -7059,6 +7403,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:brown_concrete_stairs_from_brown_concrete_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -7083,6 +7429,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:brown_stained_glass"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -7107,6 +7455,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:brown_terracotta"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -7131,6 +7481,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:brown_wool_slab"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -7155,6 +7507,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:brown_wool_stairs"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -7179,6 +7533,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:cherry_planks"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -7203,6 +7559,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:cherry_slab"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -7227,6 +7585,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:cherry_stairs"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -7251,6 +7611,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:cherry_wood"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -7275,6 +7637,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:chiseled_bookshelf"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -7299,6 +7663,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:chiseled_cinnabar"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -7325,6 +7691,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:chiseled_cinnabar_from_cinnabar_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -7349,6 +7717,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:chiseled_copper"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -7375,6 +7745,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:chiseled_copper_from_copper_block_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -7401,6 +7773,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:chiseled_copper_from_cut_copper_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -7425,6 +7799,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:chiseled_deepslate"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -7451,6 +7827,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:chiseled_deepslate_from_cobbled_deepslate_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -7477,6 +7855,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:chiseled_deepslate_from_deepslate_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -7501,6 +7881,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:chiseled_nether_bricks"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -7527,6 +7909,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:chiseled_nether_bricks_from_nether_bricks_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -7551,6 +7935,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:chiseled_polished_blackstone"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -7577,6 +7963,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:chiseled_polished_blackstone_from_blackstone_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -7605,6 +7993,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
                 "minecraft:chiseled_polished_blackstone_from_polished_blackstone_stonecutting",
             ],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -7648,6 +8038,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:chiseled_quartz_block"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -7674,6 +8066,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:chiseled_quartz_block_from_quartz_block_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -7717,6 +8111,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:chiseled_red_sandstone"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -7743,6 +8139,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:chiseled_red_sandstone_from_red_sandstone_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -7767,6 +8165,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:chiseled_resin_bricks"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -7793,6 +8193,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:chiseled_resin_bricks_from_resin_bricks_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -7817,6 +8219,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:chiseled_sandstone"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -7843,6 +8247,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:chiseled_sandstone_from_sandstone_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -7867,6 +8273,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:chiseled_stone_bricks"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -7893,6 +8301,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:chiseled_stone_bricks_from_stone_bricks_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -7919,6 +8329,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:chiseled_stone_bricks_from_stone_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -7943,6 +8355,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:chiseled_sulfur"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -7969,6 +8383,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:chiseled_sulfur_from_sulfur_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -7993,6 +8409,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:chiseled_tuff"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -8017,6 +8435,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:chiseled_tuff_bricks"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -8043,6 +8463,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:chiseled_tuff_bricks_from_polished_tuff_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -8069,6 +8491,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:chiseled_tuff_bricks_from_tuff_bricks_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -8095,6 +8519,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:chiseled_tuff_bricks_from_tuff_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -8119,6 +8545,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:chiseled_tuff_from_tuff_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -8143,6 +8571,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:cinnabar_brick_slab"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -8169,6 +8599,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:cinnabar_brick_slab_from_cinnabar_bricks_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -8195,6 +8627,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:cinnabar_brick_slab_from_cinnabar_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -8221,6 +8655,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:cinnabar_brick_slab_from_polished_cinnabar_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -8245,6 +8681,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:cinnabar_brick_stairs"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -8271,6 +8709,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:cinnabar_brick_stairs_from_cinnabar_bricks_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -8297,6 +8737,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:cinnabar_brick_stairs_from_cinnabar_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -8323,6 +8765,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:cinnabar_brick_stairs_from_polished_cinnabar_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -8347,6 +8791,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:cinnabar_bricks"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -8373,6 +8819,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:cinnabar_bricks_from_cinnabar_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -8399,6 +8847,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:cinnabar_bricks_from_polished_cinnabar_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -8423,6 +8873,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:cinnabar_slab"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -8449,6 +8901,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:cinnabar_slab_from_cinnabar_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -8473,6 +8927,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:cinnabar_stairs"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -8499,6 +8955,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:cinnabar_stairs_from_cinnabar_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -8523,6 +8981,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:clay"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -8547,6 +9007,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:coal_block"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -8571,6 +9033,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:coarse_dirt"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -8597,6 +9061,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:cobbled_deepslate_from_deepslate_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -8621,6 +9087,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:cobbled_deepslate_slab"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -8647,6 +9115,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:cobbled_deepslate_slab_from_cobbled_deepslate_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -8673,6 +9143,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:cobbled_deepslate_slab_from_deepslate_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -8697,6 +9169,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:cobbled_deepslate_stairs"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -8723,6 +9197,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:cobbled_deepslate_stairs_from_cobbled_deepslate_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -8749,6 +9225,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:cobbled_deepslate_stairs_from_deepslate_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -8773,6 +9251,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:cobblestone_from_stone_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -8797,6 +9277,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:cobblestone_slab"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -8823,6 +9305,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:cobblestone_slab_from_cobblestone_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -8849,6 +9333,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:cobblestone_slab_from_stone_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -8873,6 +9359,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:cobblestone_stairs"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -8899,6 +9387,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:cobblestone_stairs_from_cobblestone_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -8925,6 +9415,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:cobblestone_stairs_from_stone_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -8949,6 +9441,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:copper_block"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -8973,6 +9467,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:copper_grate"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -8999,6 +9495,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:copper_grate_from_copper_block_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -9023,6 +9521,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:cracked_deepslate_bricks"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -9047,6 +9547,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:cracked_deepslate_tiles"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -9071,6 +9573,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:cracked_nether_bricks"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -9095,6 +9599,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:cracked_polished_blackstone_bricks"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -9119,6 +9625,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:cracked_stone_bricks"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -9143,6 +9651,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:crimson_hyphae"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -9167,6 +9677,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:crimson_planks"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -9191,6 +9703,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:crimson_slab"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -9215,6 +9729,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:crimson_stairs"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -9239,6 +9755,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:cut_copper"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -9265,6 +9783,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:cut_copper_from_copper_block_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -9289,6 +9809,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:cut_copper_slab"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -9315,6 +9837,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:cut_copper_slab_from_copper_block_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -9341,6 +9865,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:cut_copper_slab_from_cut_copper_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -9365,6 +9891,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:cut_copper_stairs"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -9391,6 +9919,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:cut_copper_stairs_from_copper_block_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -9417,6 +9947,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:cut_copper_stairs_from_cut_copper_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -9441,6 +9973,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:cut_red_sandstone"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -9467,6 +10001,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:cut_red_sandstone_from_red_sandstone_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -9491,6 +10027,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:cut_red_sandstone_slab"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -9517,6 +10055,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:cut_red_sandstone_slab_from_cut_red_sandstone_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -9543,6 +10083,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:cut_red_sandstone_slab_from_red_sandstone_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -9567,6 +10109,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:cut_sandstone"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -9593,6 +10137,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:cut_sandstone_from_sandstone_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -9617,6 +10163,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:cut_sandstone_slab"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -9643,6 +10191,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:cut_sandstone_slab_from_cut_sandstone_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -9669,6 +10219,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:cut_sandstone_slab_from_sandstone_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -9700,6 +10252,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:cyan_concrete_powder"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -9724,6 +10278,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:cyan_concrete_slab"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -9750,6 +10306,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:cyan_concrete_slab_from_cyan_concrete_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -9774,6 +10332,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:cyan_concrete_stairs"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -9800,6 +10360,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:cyan_concrete_stairs_from_cyan_concrete_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -9824,6 +10386,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:cyan_stained_glass"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -9848,6 +10412,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:cyan_terracotta"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -9872,6 +10438,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:cyan_wool_slab"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -9896,6 +10464,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:cyan_wool_stairs"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -9920,6 +10490,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:dark_oak_planks"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -9944,6 +10516,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:dark_oak_slab"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -9968,6 +10542,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:dark_oak_stairs"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -9992,6 +10568,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:dark_oak_wood"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -10016,6 +10594,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:dark_prismarine"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -10040,6 +10620,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:dark_prismarine_slab"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -10066,6 +10648,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:dark_prismarine_slab_from_dark_prismarine_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -10090,6 +10674,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:dark_prismarine_stairs"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -10116,6 +10702,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:dark_prismarine_stairs_from_dark_prismarine_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -10140,6 +10728,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:deepslate"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -10164,6 +10754,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:deepslate_brick_slab"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -10190,6 +10782,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:deepslate_brick_slab_from_cobbled_deepslate_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -10216,6 +10810,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:deepslate_brick_slab_from_deepslate_bricks_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -10242,6 +10838,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:deepslate_brick_slab_from_deepslate_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -10268,6 +10866,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:deepslate_brick_slab_from_polished_deepslate_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -10292,6 +10892,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:deepslate_brick_stairs"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -10318,6 +10920,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:deepslate_brick_stairs_from_cobbled_deepslate_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -10344,6 +10948,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:deepslate_brick_stairs_from_deepslate_bricks_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -10370,6 +10976,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:deepslate_brick_stairs_from_deepslate_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -10396,6 +11004,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:deepslate_brick_stairs_from_polished_deepslate_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -10420,6 +11030,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:deepslate_bricks"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -10446,6 +11058,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:deepslate_bricks_from_cobbled_deepslate_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -10472,6 +11086,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:deepslate_bricks_from_deepslate_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -10498,6 +11114,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:deepslate_bricks_from_polished_deepslate_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -10522,6 +11140,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:deepslate_tile_slab"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -10548,6 +11168,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:deepslate_tile_slab_from_cobbled_deepslate_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -10574,6 +11196,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:deepslate_tile_slab_from_deepslate_bricks_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -10600,6 +11224,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:deepslate_tile_slab_from_deepslate_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -10626,6 +11252,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:deepslate_tile_slab_from_deepslate_tiles_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -10652,6 +11280,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:deepslate_tile_slab_from_polished_deepslate_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -10676,6 +11306,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:deepslate_tile_stairs"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -10702,6 +11334,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:deepslate_tile_stairs_from_cobbled_deepslate_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -10728,6 +11362,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:deepslate_tile_stairs_from_deepslate_bricks_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -10754,6 +11390,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:deepslate_tile_stairs_from_deepslate_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -10780,6 +11418,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:deepslate_tile_stairs_from_deepslate_tiles_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -10806,6 +11446,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:deepslate_tile_stairs_from_polished_deepslate_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -10830,6 +11472,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:deepslate_tiles"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -10856,6 +11500,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:deepslate_tiles_from_cobbled_deepslate_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -10882,6 +11528,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:deepslate_tiles_from_deepslate_bricks_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -10908,6 +11556,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:deepslate_tiles_from_deepslate_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -10934,6 +11584,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:deepslate_tiles_from_polished_deepslate_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -10958,6 +11610,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:diamond_block"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -10982,6 +11636,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:diorite"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -11006,6 +11662,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:diorite_slab"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -11032,6 +11690,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:diorite_slab_from_diorite_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -11056,6 +11716,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:diorite_stairs"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -11082,6 +11744,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:diorite_stairs_from_diorite_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -11106,6 +11770,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:dried_ghast"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -11130,6 +11796,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:dried_kelp_block"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -11154,6 +11822,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:dripstone_block"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -11178,6 +11848,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:dye_black_wool"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -11202,6 +11874,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:dye_black_wool_slab"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -11226,6 +11900,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:dye_black_wool_stairs"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -11250,6 +11926,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:dye_blue_wool"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -11274,6 +11952,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:dye_blue_wool_slab"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -11298,6 +11978,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:dye_blue_wool_stairs"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -11322,6 +12004,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:dye_brown_wool"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -11346,6 +12030,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:dye_brown_wool_slab"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -11370,6 +12056,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:dye_brown_wool_stairs"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -11394,6 +12082,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:dye_cyan_wool"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -11418,6 +12108,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:dye_cyan_wool_slab"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -11442,6 +12134,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:dye_cyan_wool_stairs"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -11466,6 +12160,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:dye_gray_wool"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -11490,6 +12186,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:dye_gray_wool_slab"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -11514,6 +12212,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:dye_gray_wool_stairs"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -11538,6 +12238,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:dye_green_wool"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -11562,6 +12264,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:dye_green_wool_slab"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -11586,6 +12290,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:dye_green_wool_stairs"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -11610,6 +12316,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:dye_light_blue_wool"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -11634,6 +12342,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:dye_light_blue_wool_slab"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -11658,6 +12368,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:dye_light_blue_wool_stairs"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -11682,6 +12394,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:dye_light_gray_wool"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -11706,6 +12420,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:dye_light_gray_wool_slab"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -11730,6 +12446,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:dye_light_gray_wool_stairs"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -11754,6 +12472,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:dye_lime_wool"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -11778,6 +12498,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:dye_lime_wool_slab"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -11802,6 +12524,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:dye_lime_wool_stairs"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -11826,6 +12550,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:dye_magenta_wool"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -11850,6 +12576,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:dye_magenta_wool_slab"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -11874,6 +12602,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:dye_magenta_wool_stairs"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -11898,6 +12628,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:dye_orange_wool"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -11922,6 +12654,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:dye_orange_wool_slab"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -11946,6 +12680,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:dye_orange_wool_stairs"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -11970,6 +12706,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:dye_pink_wool"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -11994,6 +12732,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:dye_pink_wool_slab"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -12018,6 +12758,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:dye_pink_wool_stairs"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -12042,6 +12784,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:dye_purple_wool"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -12066,6 +12810,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:dye_purple_wool_slab"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -12090,6 +12836,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:dye_purple_wool_stairs"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -12114,6 +12862,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:dye_red_wool"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -12138,6 +12888,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:dye_red_wool_slab"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -12162,6 +12914,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:dye_red_wool_stairs"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -12186,6 +12940,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:dye_white_wool"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -12210,6 +12966,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:dye_white_wool_slab"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -12234,6 +12992,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:dye_white_wool_stairs"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -12258,6 +13018,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:dye_yellow_wool"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -12282,6 +13044,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:dye_yellow_wool_slab"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -12306,6 +13070,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:dye_yellow_wool_stairs"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -12330,6 +13096,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:emerald_block"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -12354,6 +13122,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:end_stone_brick_slab"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -12380,6 +13150,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:end_stone_brick_slab_from_end_stone_bricks_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -12406,6 +13178,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:end_stone_brick_slab_from_end_stone_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -12430,6 +13204,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:end_stone_brick_stairs"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -12456,6 +13232,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:end_stone_brick_stairs_from_end_stone_bricks_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -12482,6 +13260,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:end_stone_brick_stairs_from_end_stone_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -12506,6 +13286,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:end_stone_bricks"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -12532,6 +13314,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:end_stone_bricks_from_end_stone_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -12556,6 +13340,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:exposed_chiseled_copper"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -12582,6 +13368,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:exposed_chiseled_copper_from_exposed_copper_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -12608,6 +13396,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:exposed_chiseled_copper_from_exposed_cut_copper_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -12632,6 +13422,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:exposed_copper_grate"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -12658,6 +13450,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:exposed_copper_grate_from_exposed_copper_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -12682,6 +13476,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:exposed_cut_copper"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -12708,6 +13504,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:exposed_cut_copper_from_exposed_copper_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -12732,6 +13530,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:exposed_cut_copper_slab"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -12758,6 +13558,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:exposed_cut_copper_slab_from_exposed_copper_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -12784,6 +13586,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:exposed_cut_copper_slab_from_exposed_cut_copper_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -12808,6 +13612,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:exposed_cut_copper_stairs"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -12834,6 +13640,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:exposed_cut_copper_stairs_from_exposed_copper_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -12860,6 +13668,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:exposed_cut_copper_stairs_from_exposed_cut_copper_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -12884,6 +13694,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:glass"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -12908,6 +13720,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:glowstone"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -12932,6 +13746,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:gold_block"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -12956,6 +13772,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:granite"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -12980,6 +13798,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:granite_slab"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -13006,6 +13826,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:granite_slab_from_granite_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -13030,6 +13852,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:granite_stairs"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -13056,6 +13880,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:granite_stairs_from_granite_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -13087,6 +13913,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:gray_concrete_powder"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -13111,6 +13939,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:gray_concrete_slab"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -13137,6 +13967,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:gray_concrete_slab_from_gray_concrete_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -13161,6 +13993,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:gray_concrete_stairs"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -13187,6 +14021,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:gray_concrete_stairs_from_gray_concrete_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -13211,6 +14047,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:gray_stained_glass"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -13235,6 +14073,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:gray_terracotta"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -13259,6 +14099,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:gray_wool_slab"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -13283,6 +14125,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:gray_wool_stairs"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -13314,6 +14158,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:green_concrete_powder"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -13338,6 +14184,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:green_concrete_slab"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -13364,6 +14212,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:green_concrete_slab_from_green_concrete_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -13388,6 +14238,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:green_concrete_stairs"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -13414,6 +14266,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:green_concrete_stairs_from_green_concrete_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -13438,6 +14292,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:green_stained_glass"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -13462,6 +14318,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:green_terracotta"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -13486,6 +14344,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:green_wool_slab"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -13510,6 +14370,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:green_wool_stairs"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -13534,6 +14396,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:hay_block"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -13558,6 +14422,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:iron_block"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -13582,6 +14448,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:jack_o_lantern"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -13606,6 +14474,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:jungle_planks"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -13630,6 +14500,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:jungle_slab"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -13654,6 +14526,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:jungle_stairs"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -13678,6 +14552,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:jungle_wood"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -13702,6 +14578,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:lapis_block"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -13733,6 +14611,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:light_blue_concrete_powder"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -13757,6 +14637,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:light_blue_concrete_slab"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -13783,6 +14665,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:light_blue_concrete_slab_from_light_blue_concrete_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -13807,6 +14691,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:light_blue_concrete_stairs"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -13835,6 +14721,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
                 "minecraft:light_blue_concrete_stairs_from_light_blue_concrete_stonecutting",
             ],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -13859,6 +14747,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:light_blue_stained_glass"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -13883,6 +14773,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:light_blue_terracotta"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -13907,6 +14799,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:light_blue_wool_slab"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -13931,6 +14825,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:light_blue_wool_stairs"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -13962,6 +14858,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:light_gray_concrete_powder"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -13986,6 +14884,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:light_gray_concrete_slab"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -14012,6 +14912,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:light_gray_concrete_slab_from_light_gray_concrete_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -14036,6 +14938,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:light_gray_concrete_stairs"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -14064,6 +14968,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
                 "minecraft:light_gray_concrete_stairs_from_light_gray_concrete_stonecutting",
             ],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -14088,6 +14994,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:light_gray_stained_glass"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -14112,6 +15020,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:light_gray_terracotta"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -14136,6 +15046,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:light_gray_wool_slab"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -14160,6 +15072,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:light_gray_wool_stairs"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -14191,6 +15105,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:lime_concrete_powder"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -14215,6 +15131,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:lime_concrete_slab"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -14241,6 +15159,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:lime_concrete_slab_from_lime_concrete_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -14265,6 +15185,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:lime_concrete_stairs"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -14291,6 +15213,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:lime_concrete_stairs_from_lime_concrete_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -14315,6 +15239,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:lime_stained_glass"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -14339,6 +15265,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:lime_terracotta"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -14363,6 +15291,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:lime_wool_slab"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -14387,6 +15317,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:lime_wool_stairs"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -14418,6 +15350,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:magenta_concrete_powder"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -14442,6 +15376,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:magenta_concrete_slab"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -14468,6 +15404,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:magenta_concrete_slab_from_magenta_concrete_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -14492,6 +15430,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:magenta_concrete_stairs"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -14518,6 +15458,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:magenta_concrete_stairs_from_magenta_concrete_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -14542,6 +15484,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:magenta_stained_glass"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -14566,6 +15510,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:magenta_terracotta"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -14590,6 +15536,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:magenta_wool_slab"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -14614,6 +15562,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:magenta_wool_stairs"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -14638,6 +15588,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:magma_block"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -14662,6 +15614,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:mangrove_planks"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -14686,6 +15640,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:mangrove_slab"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -14710,6 +15666,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:mangrove_stairs"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -14734,6 +15692,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:mangrove_wood"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -14758,6 +15718,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:melon"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -14782,6 +15744,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:mossy_cobblestone_from_moss_block"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -14806,6 +15770,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:mossy_cobblestone_from_vine"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -14830,6 +15796,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:mossy_cobblestone_slab"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -14856,6 +15824,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:mossy_cobblestone_slab_from_mossy_cobblestone_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -14880,6 +15850,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:mossy_cobblestone_stairs"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -14906,6 +15878,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:mossy_cobblestone_stairs_from_mossy_cobblestone_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -14930,6 +15904,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:mossy_stone_brick_slab"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -14956,6 +15932,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:mossy_stone_brick_slab_from_mossy_stone_bricks_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -14980,6 +15958,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:mossy_stone_brick_stairs"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -15006,6 +15986,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:mossy_stone_brick_stairs_from_mossy_stone_bricks_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -15030,6 +16012,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:mossy_stone_bricks_from_moss_block"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -15054,6 +16038,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:mossy_stone_bricks_from_vine"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -15078,6 +16064,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:mud_brick_slab"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -15104,6 +16092,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:mud_brick_slab_from_mud_bricks_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -15128,6 +16118,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:mud_brick_stairs"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -15154,6 +16146,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:mud_brick_stairs_from_mud_bricks_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -15178,6 +16172,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:mud_bricks"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -15202,6 +16198,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:muddy_mangrove_roots"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -15226,6 +16224,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:nether_brick_slab"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -15252,6 +16252,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:nether_brick_slab_from_nether_bricks_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -15276,6 +16278,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:nether_brick_stairs"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -15302,6 +16306,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:nether_brick_stairs_from_nether_bricks_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -15326,6 +16332,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:nether_bricks"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -15350,6 +16358,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:nether_wart_block"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -15374,6 +16384,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:netherite_block"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -15398,6 +16410,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:oak_planks"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -15422,6 +16436,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:oak_slab"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -15446,6 +16462,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:oak_stairs"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -15470,6 +16488,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:oak_wood"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -15501,6 +16521,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:orange_concrete_powder"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -15525,6 +16547,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:orange_concrete_slab"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -15551,6 +16575,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:orange_concrete_slab_from_orange_concrete_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -15575,6 +16601,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:orange_concrete_stairs"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -15601,6 +16629,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:orange_concrete_stairs_from_orange_concrete_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -15625,6 +16655,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:orange_stained_glass"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -15649,6 +16681,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:orange_terracotta"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -15673,6 +16707,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:orange_wool_slab"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -15697,6 +16733,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:orange_wool_stairs"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -15721,6 +16759,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:oxidized_chiseled_copper"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -15747,6 +16787,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:oxidized_chiseled_copper_from_oxidized_copper_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -15773,6 +16815,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:oxidized_chiseled_copper_from_oxidized_cut_copper_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -15797,6 +16841,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:oxidized_copper_grate"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -15823,6 +16869,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:oxidized_copper_grate_from_oxidized_copper_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -15847,6 +16895,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:oxidized_cut_copper"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -15873,6 +16923,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:oxidized_cut_copper_from_oxidized_copper_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -15897,6 +16949,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:oxidized_cut_copper_slab"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -15923,6 +16977,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:oxidized_cut_copper_slab_from_oxidized_copper_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -15949,6 +17005,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:oxidized_cut_copper_slab_from_oxidized_cut_copper_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -15973,6 +17031,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:oxidized_cut_copper_stairs"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -15999,6 +17059,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:oxidized_cut_copper_stairs_from_oxidized_copper_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -16027,6 +17089,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
                 "minecraft:oxidized_cut_copper_stairs_from_oxidized_cut_copper_stonecutting",
             ],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -16051,6 +17115,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:packed_ice"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -16075,6 +17141,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:packed_mud"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -16099,6 +17167,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:pale_oak_planks"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -16123,6 +17193,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:pale_oak_slab"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -16147,6 +17219,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:pale_oak_stairs"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -16171,6 +17245,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:pale_oak_wood"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -16202,6 +17278,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:pink_concrete_powder"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -16226,6 +17304,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:pink_concrete_slab"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -16252,6 +17332,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:pink_concrete_slab_from_pink_concrete_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -16276,6 +17358,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:pink_concrete_stairs"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -16302,6 +17386,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:pink_concrete_stairs_from_pink_concrete_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -16326,6 +17412,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:pink_stained_glass"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -16350,6 +17438,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:pink_terracotta"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -16374,6 +17464,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:pink_wool_slab"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -16398,6 +17490,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:pink_wool_stairs"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -16422,6 +17516,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:polished_andesite"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -16448,6 +17544,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:polished_andesite_from_andesite_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -16472,6 +17570,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:polished_andesite_slab"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -16498,6 +17598,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:polished_andesite_slab_from_andesite_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -16524,6 +17626,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:polished_andesite_slab_from_polished_andesite_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -16548,6 +17652,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:polished_andesite_stairs"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -16574,6 +17680,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:polished_andesite_stairs_from_andesite_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -16600,6 +17708,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:polished_andesite_stairs_from_polished_andesite_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -16624,6 +17734,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:polished_basalt"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -16650,6 +17762,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:polished_basalt_from_basalt_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -16674,6 +17788,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:polished_blackstone"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -16698,6 +17814,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:polished_blackstone_brick_slab"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -16724,6 +17842,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:polished_blackstone_brick_slab_from_blackstone_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -16752,6 +17872,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
                 "minecraft:polished_blackstone_brick_slab_from_polished_blackstone_bricks_stonecutting",
             ],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -16780,6 +17902,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
                 "minecraft:polished_blackstone_brick_slab_from_polished_blackstone_stonecutting",
             ],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -16804,6 +17928,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:polished_blackstone_brick_stairs"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -16830,6 +17956,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:polished_blackstone_brick_stairs_from_blackstone_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -16858,6 +17986,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
                 "minecraft:polished_blackstone_brick_stairs_from_polished_blackstone_bricks_stonecutting",
             ],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -16886,6 +18016,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
                 "minecraft:polished_blackstone_brick_stairs_from_polished_blackstone_stonecutting",
             ],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -16910,6 +18042,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:polished_blackstone_bricks"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -16936,6 +18070,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:polished_blackstone_bricks_from_blackstone_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -16964,6 +18100,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
                 "minecraft:polished_blackstone_bricks_from_polished_blackstone_stonecutting",
             ],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -16990,6 +18128,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:polished_blackstone_from_blackstone_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -17014,6 +18154,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:polished_blackstone_slab"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -17040,6 +18182,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:polished_blackstone_slab_from_blackstone_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -17066,6 +18210,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:polished_blackstone_slab_from_polished_blackstone_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -17090,6 +18236,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:polished_blackstone_stairs"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -17116,6 +18264,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:polished_blackstone_stairs_from_blackstone_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -17144,6 +18294,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
                 "minecraft:polished_blackstone_stairs_from_polished_blackstone_stonecutting",
             ],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -17168,6 +18320,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:polished_cinnabar"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -17194,6 +18348,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:polished_cinnabar_from_cinnabar_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -17218,6 +18374,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:polished_cinnabar_slab"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -17244,6 +18402,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:polished_cinnabar_slab_from_cinnabar_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -17270,6 +18430,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:polished_cinnabar_slab_from_polished_cinnabar_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -17294,6 +18456,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:polished_cinnabar_stairs"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -17320,6 +18484,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:polished_cinnabar_stairs_from_cinnabar_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -17346,6 +18512,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:polished_cinnabar_stairs_from_polished_cinnabar_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -17370,6 +18538,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:polished_deepslate"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -17396,6 +18566,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:polished_deepslate_from_cobbled_deepslate_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -17422,6 +18594,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:polished_deepslate_from_deepslate_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -17446,6 +18620,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:polished_deepslate_slab"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -17472,6 +18648,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:polished_deepslate_slab_from_cobbled_deepslate_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -17498,6 +18676,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:polished_deepslate_slab_from_deepslate_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -17524,6 +18704,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:polished_deepslate_slab_from_polished_deepslate_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -17548,6 +18730,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:polished_deepslate_stairs"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -17574,6 +18758,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:polished_deepslate_stairs_from_cobbled_deepslate_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -17600,6 +18786,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:polished_deepslate_stairs_from_deepslate_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -17626,6 +18814,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:polished_deepslate_stairs_from_polished_deepslate_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -17650,6 +18840,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:polished_diorite"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -17676,6 +18868,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:polished_diorite_from_diorite_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -17700,6 +18894,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:polished_diorite_slab"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -17726,6 +18922,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:polished_diorite_slab_from_diorite_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -17752,6 +18950,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:polished_diorite_slab_from_polished_diorite_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -17776,6 +18976,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:polished_diorite_stairs"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -17802,6 +19004,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:polished_diorite_stairs_from_diorite_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -17828,6 +19032,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:polished_diorite_stairs_from_polished_diorite_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -17852,6 +19058,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:polished_granite"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -17878,6 +19086,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:polished_granite_from_granite_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -17902,6 +19112,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:polished_granite_slab"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -17928,6 +19140,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:polished_granite_slab_from_granite_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -17954,6 +19168,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:polished_granite_slab_from_polished_granite_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -17978,6 +19194,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:polished_granite_stairs"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -18004,6 +19222,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:polished_granite_stairs_from_granite_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -18030,6 +19250,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:polished_granite_stairs_from_polished_granite_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -18054,6 +19276,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:polished_sulfur"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -18080,6 +19304,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:polished_sulfur_from_sulfur_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -18104,6 +19330,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:polished_sulfur_slab"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -18130,6 +19358,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:polished_sulfur_slab_from_polished_sulfur_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -18156,6 +19386,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:polished_sulfur_slab_from_sulfur_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -18180,6 +19412,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:polished_sulfur_stairs"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -18206,6 +19440,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:polished_sulfur_stairs_from_polished_sulfur_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -18232,6 +19468,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:polished_sulfur_stairs_from_sulfur_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -18256,6 +19494,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:polished_tuff"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -18280,6 +19520,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:polished_tuff_from_tuff_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -18304,6 +19546,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:polished_tuff_slab"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -18330,6 +19574,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:polished_tuff_slab_from_polished_tuff_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -18356,6 +19602,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:polished_tuff_slab_from_tuff_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -18380,6 +19628,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:polished_tuff_stairs"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -18406,6 +19656,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:polished_tuff_stairs_from_polished_tuff_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -18432,6 +19684,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:polished_tuff_stairs_from_tuff_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -18456,6 +19710,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:poplar_planks"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -18480,6 +19736,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:poplar_slab"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -18504,6 +19762,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:poplar_stairs"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -18528,6 +19788,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:poplar_wood"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -18552,6 +19814,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:potent_sulfur"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -18576,6 +19840,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:prismarine"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -18600,6 +19866,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:prismarine_brick_slab"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -18626,6 +19894,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:prismarine_brick_slab_from_prismarine_bricks_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -18650,6 +19920,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:prismarine_brick_stairs"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -18676,6 +19948,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:prismarine_brick_stairs_from_prismarine_bricks_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -18700,6 +19974,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:prismarine_bricks"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -18724,6 +20000,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:prismarine_slab"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -18750,6 +20028,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:prismarine_slab_from_prismarine_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -18774,6 +20054,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:prismarine_stairs"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -18800,6 +20082,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:prismarine_stairs_from_prismarine_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -18831,6 +20115,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:purple_concrete_powder"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -18855,6 +20141,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:purple_concrete_slab"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -18881,6 +20169,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:purple_concrete_slab_from_purple_concrete_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -18905,6 +20195,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:purple_concrete_stairs"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -18931,6 +20223,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:purple_concrete_stairs_from_purple_concrete_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -18955,6 +20249,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:purple_stained_glass"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -18979,6 +20275,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:purple_terracotta"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -19003,6 +20301,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:purple_wool_slab"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -19027,6 +20327,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:purple_wool_stairs"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -19051,6 +20353,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:purpur_block"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -19075,6 +20379,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:purpur_pillar"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -19101,6 +20407,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:purpur_pillar_from_purpur_block_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -19125,6 +20433,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:purpur_slab"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -19151,6 +20461,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:purpur_slab_from_purpur_block_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -19175,6 +20487,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:purpur_stairs"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -19201,6 +20515,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:purpur_stairs_from_purpur_block_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -19225,6 +20541,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:quartz_block"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -19249,6 +20567,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:quartz_bricks"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -19275,6 +20595,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:quartz_bricks_from_quartz_block_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -19318,6 +20640,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:quartz_pillar"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -19344,6 +20668,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:quartz_pillar_from_quartz_block_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -19387,6 +20713,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:quartz_slab"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -19413,6 +20741,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:quartz_slab_from_quartz_block_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -19456,6 +20786,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:quartz_stairs"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -19482,6 +20814,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:quartz_stairs_from_quartz_block_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -19506,6 +20840,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:raw_copper_block"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -19530,6 +20866,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:raw_gold_block"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -19554,6 +20892,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:raw_iron_block"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -19585,6 +20925,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:red_concrete_powder"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -19609,6 +20951,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:red_concrete_slab"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -19635,6 +20979,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:red_concrete_slab_from_red_concrete_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -19659,6 +21005,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:red_concrete_stairs"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -19685,6 +21033,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:red_concrete_stairs_from_red_concrete_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -19709,6 +21059,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:red_nether_brick_slab"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -19735,6 +21087,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:red_nether_brick_slab_from_red_nether_bricks_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -19759,6 +21113,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:red_nether_brick_stairs"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -19785,6 +21141,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:red_nether_brick_stairs_from_red_nether_bricks_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -19809,6 +21167,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:red_nether_bricks"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -19833,6 +21193,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:red_sandstone"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -19868,6 +21230,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:red_sandstone_slab"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -19894,6 +21258,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:red_sandstone_slab_from_red_sandstone_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -19937,6 +21303,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:red_sandstone_stairs"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -19963,6 +21331,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:red_sandstone_stairs_from_red_sandstone_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -19987,6 +21357,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:red_stained_glass"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -20011,6 +21383,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:red_terracotta"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -20035,6 +21409,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:red_wool_slab"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -20059,6 +21435,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:red_wool_stairs"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -20083,6 +21461,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:resin_block"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -20107,6 +21487,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:resin_brick_slab"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -20133,6 +21515,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:resin_brick_slab_from_resin_bricks_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -20157,6 +21541,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:resin_brick_stairs"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -20183,6 +21569,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:resin_brick_stairs_from_resin_bricks_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -20207,6 +21595,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:resin_bricks"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -20231,6 +21621,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:sandstone"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -20262,6 +21654,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:sandstone_slab"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -20288,6 +21682,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:sandstone_slab_from_sandstone_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -20331,6 +21727,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:sandstone_stairs"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -20357,6 +21755,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:sandstone_stairs_from_sandstone_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -20381,6 +21781,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:sea_lantern"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -20405,6 +21807,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:smooth_basalt"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -20429,6 +21833,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:smooth_quartz"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -20453,6 +21859,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:smooth_quartz_slab"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -20479,6 +21887,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:smooth_quartz_slab_from_smooth_quartz_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -20503,6 +21913,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:smooth_quartz_stairs"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -20529,6 +21941,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:smooth_quartz_stairs_from_smooth_quartz_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -20553,6 +21967,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:smooth_red_sandstone"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -20577,6 +21993,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:smooth_red_sandstone_slab"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -20605,6 +22023,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
                 "minecraft:smooth_red_sandstone_slab_from_smooth_red_sandstone_stonecutting",
             ],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -20629,6 +22049,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:smooth_red_sandstone_stairs"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -20657,6 +22079,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
                 "minecraft:smooth_red_sandstone_stairs_from_smooth_red_sandstone_stonecutting",
             ],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -20681,6 +22105,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:smooth_sandstone"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -20705,6 +22131,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:smooth_sandstone_slab"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -20731,6 +22159,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:smooth_sandstone_slab_from_smooth_sandstone_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -20755,6 +22185,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:smooth_sandstone_stairs"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -20781,6 +22213,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:smooth_sandstone_stairs_from_smooth_sandstone_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -20805,6 +22239,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:smooth_stone"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -20829,6 +22265,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:smooth_stone_slab"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -20855,6 +22293,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:smooth_stone_slab_from_smooth_stone_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -20879,6 +22319,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:snow_block"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -20903,6 +22345,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:sponge"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -20927,6 +22371,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:spruce_planks"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -20951,6 +22397,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:spruce_slab"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -20975,6 +22423,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:spruce_stairs"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -20999,6 +22449,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:spruce_wood"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -21023,6 +22475,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:stone"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -21047,6 +22501,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:stone_brick_slab"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -21073,6 +22529,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:stone_brick_slab_from_stone_bricks_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -21099,6 +22557,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:stone_brick_slab_from_stone_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -21123,6 +22583,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:stone_brick_stairs"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -21149,6 +22611,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:stone_brick_stairs_from_stone_bricks_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -21175,6 +22639,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:stone_brick_stairs_from_stone_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -21199,6 +22665,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:stone_bricks"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -21223,6 +22691,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:stone_bricks_from_stone_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -21247,6 +22717,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:stone_slab"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -21271,6 +22743,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:stone_slab_from_stone_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -21295,6 +22769,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:stone_stairs"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -21319,6 +22795,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:stone_stairs_from_stone_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -21343,6 +22821,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:stripped_acacia_wood"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -21367,6 +22847,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:stripped_birch_wood"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -21391,6 +22873,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:stripped_cherry_wood"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -21415,6 +22899,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:stripped_crimson_hyphae"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -21439,6 +22925,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:stripped_dark_oak_wood"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -21463,6 +22951,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:stripped_jungle_wood"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -21487,6 +22977,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:stripped_mangrove_wood"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -21511,6 +23003,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:stripped_oak_wood"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -21535,6 +23029,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:stripped_pale_oak_wood"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -21559,6 +23055,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:stripped_poplar_wood"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -21583,6 +23081,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:stripped_spruce_wood"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -21607,6 +23107,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:stripped_warped_hyphae"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -21631,6 +23133,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:sulfur_brick_slab"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -21657,6 +23161,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:sulfur_brick_slab_from_polished_sulfur_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -21683,6 +23189,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:sulfur_brick_slab_from_sulfur_bricks_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -21709,6 +23217,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:sulfur_brick_slab_from_sulfur_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -21733,6 +23243,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:sulfur_brick_stairs"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -21759,6 +23271,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:sulfur_brick_stairs_from_polished_sulfur_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -21785,6 +23299,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:sulfur_brick_stairs_from_sulfur_bricks_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -21811,6 +23327,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:sulfur_brick_stairs_from_sulfur_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -21835,6 +23353,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:sulfur_bricks"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -21861,6 +23381,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:sulfur_bricks_from_polished_sulfur_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -21887,6 +23409,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:sulfur_bricks_from_sulfur_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -21911,6 +23435,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:sulfur_from_sulfur_spikes"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -21935,6 +23461,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:sulfur_slab"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -21959,6 +23487,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:sulfur_slab_from_sulfur_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -21983,6 +23513,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:sulfur_stairs"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -22009,6 +23541,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:sulfur_stairs_from_sulfur_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -22033,6 +23567,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:terracotta"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -22057,6 +23593,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:tinted_glass"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -22081,6 +23619,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:tuff_brick_slab"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -22107,6 +23647,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:tuff_brick_slab_from_polished_tuff_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -22133,6 +23675,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:tuff_brick_slab_from_tuff_bricks_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -22159,6 +23703,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:tuff_brick_slab_from_tuff_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -22183,6 +23729,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:tuff_brick_stairs"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -22209,6 +23757,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:tuff_brick_stairs_from_polished_tuff_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -22235,6 +23785,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:tuff_brick_stairs_from_tuff_bricks_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -22261,6 +23813,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:tuff_brick_stairs_from_tuff_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -22285,6 +23839,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:tuff_bricks"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -22311,6 +23867,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:tuff_bricks_from_polished_tuff_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -22335,6 +23893,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:tuff_bricks_from_tuff_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -22359,6 +23919,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:tuff_slab"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -22383,6 +23945,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:tuff_slab_from_tuff_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -22407,6 +23971,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:tuff_stairs"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -22431,6 +23997,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:tuff_stairs_from_tuff_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -22455,6 +24023,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:warped_hyphae"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -22479,6 +24049,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:warped_planks"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -22503,6 +24075,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:warped_slab"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -22527,6 +24101,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:warped_stairs"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -22551,6 +24127,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:waxed_chiseled_copper"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -22575,6 +24153,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:waxed_chiseled_copper_from_honeycomb"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -22601,6 +24181,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:waxed_chiseled_copper_from_waxed_copper_block_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -22627,6 +24209,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:waxed_chiseled_copper_from_waxed_cut_copper_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -22651,6 +24235,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:waxed_copper_bars_from_honeycomb"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -22675,6 +24261,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:waxed_copper_block_from_honeycomb"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -22699,6 +24287,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:waxed_copper_chain_from_honeycomb"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -22723,6 +24313,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:waxed_copper_chest_from_honeycomb"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -22749,6 +24341,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:waxed_copper_golem_statue_from_honeycomb"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -22773,6 +24367,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:waxed_copper_grate"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -22797,6 +24393,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:waxed_copper_grate_from_honeycomb"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -22823,6 +24421,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:waxed_copper_grate_from_waxed_copper_block_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -22847,6 +24447,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:waxed_copper_lantern_from_honeycomb"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -22871,6 +24473,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:waxed_cut_copper"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -22895,6 +24499,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:waxed_cut_copper_from_honeycomb"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -22921,6 +24527,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:waxed_cut_copper_from_waxed_copper_block_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -22945,6 +24553,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:waxed_cut_copper_slab"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -22969,6 +24579,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:waxed_cut_copper_slab_from_honeycomb"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -22995,6 +24607,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:waxed_cut_copper_slab_from_waxed_copper_block_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -23021,6 +24635,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:waxed_cut_copper_slab_from_waxed_cut_copper_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -23045,6 +24661,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:waxed_cut_copper_stairs"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -23071,6 +24689,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:waxed_cut_copper_stairs_from_honeycomb"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -23097,6 +24717,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:waxed_cut_copper_stairs_from_waxed_copper_block_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -23123,6 +24745,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:waxed_cut_copper_stairs_from_waxed_cut_copper_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -23147,6 +24771,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:waxed_exposed_chiseled_copper"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -23173,6 +24799,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:waxed_exposed_chiseled_copper_from_honeycomb"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -23201,6 +24829,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
                 "minecraft:waxed_exposed_chiseled_copper_from_waxed_exposed_copper_stonecutting",
             ],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -23229,6 +24859,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
                 "minecraft:waxed_exposed_chiseled_copper_from_waxed_exposed_cut_copper_stonecutting",
             ],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -23255,6 +24887,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:waxed_exposed_copper_bars_from_honeycomb"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -23281,6 +24915,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:waxed_exposed_copper_chain_from_honeycomb"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -23307,6 +24943,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:waxed_exposed_copper_chest_from_honeycomb"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -23331,6 +24969,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:waxed_exposed_copper_from_honeycomb"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -23357,6 +24997,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:waxed_exposed_copper_golem_statue_from_honeycomb"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -23381,6 +25023,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:waxed_exposed_copper_grate"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -23407,6 +25051,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:waxed_exposed_copper_grate_from_honeycomb"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -23435,6 +25081,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
                 "minecraft:waxed_exposed_copper_grate_from_waxed_exposed_copper_stonecutting",
             ],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -23461,6 +25109,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:waxed_exposed_copper_lantern_from_honeycomb"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -23485,6 +25135,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:waxed_exposed_cut_copper"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -23511,6 +25163,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:waxed_exposed_cut_copper_from_honeycomb"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -23537,6 +25191,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:waxed_exposed_cut_copper_from_waxed_exposed_copper_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -23561,6 +25217,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:waxed_exposed_cut_copper_slab"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -23587,6 +25245,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:waxed_exposed_cut_copper_slab_from_honeycomb"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -23615,6 +25275,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
                 "minecraft:waxed_exposed_cut_copper_slab_from_waxed_exposed_copper_stonecutting",
             ],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -23643,6 +25305,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
                 "minecraft:waxed_exposed_cut_copper_slab_from_waxed_exposed_cut_copper_stonecutting",
             ],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -23667,6 +25331,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:waxed_exposed_cut_copper_stairs"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -23693,6 +25359,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:waxed_exposed_cut_copper_stairs_from_honeycomb"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -23721,6 +25389,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
                 "minecraft:waxed_exposed_cut_copper_stairs_from_waxed_exposed_copper_stonecutting",
             ],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -23749,6 +25419,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
                 "minecraft:waxed_exposed_cut_copper_stairs_from_waxed_exposed_cut_copper_stonecutting",
             ],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -23775,6 +25447,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:waxed_exposed_lightning_rod_from_honeycomb"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -23799,6 +25473,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:waxed_lightning_rod_from_honeycomb"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -23823,6 +25499,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:waxed_oxidized_chiseled_copper"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -23849,6 +25527,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:waxed_oxidized_chiseled_copper_from_honeycomb"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -23877,6 +25557,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
                 "minecraft:waxed_oxidized_chiseled_copper_from_waxed_oxidized_copper_stonecutting",
             ],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -23905,6 +25587,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
                 "minecraft:waxed_oxidized_chiseled_copper_from_waxed_oxidized_cut_copper_stonecutting",
             ],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -23931,6 +25615,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:waxed_oxidized_copper_bars_from_honeycomb"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -23957,6 +25643,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:waxed_oxidized_copper_chain_from_honeycomb"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -23983,6 +25671,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:waxed_oxidized_copper_chest_from_honeycomb"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -24007,6 +25697,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:waxed_oxidized_copper_from_honeycomb"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -24033,6 +25725,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:waxed_oxidized_copper_golem_statue_from_honeycomb"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -24057,6 +25751,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:waxed_oxidized_copper_grate"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -24083,6 +25779,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:waxed_oxidized_copper_grate_from_honeycomb"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -24111,6 +25809,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
                 "minecraft:waxed_oxidized_copper_grate_from_waxed_oxidized_copper_stonecutting",
             ],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -24137,6 +25837,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:waxed_oxidized_copper_lantern_from_honeycomb"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -24161,6 +25863,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:waxed_oxidized_cut_copper"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -24187,6 +25891,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:waxed_oxidized_cut_copper_from_honeycomb"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -24215,6 +25921,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
                 "minecraft:waxed_oxidized_cut_copper_from_waxed_oxidized_copper_stonecutting",
             ],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -24239,6 +25947,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:waxed_oxidized_cut_copper_slab"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -24265,6 +25975,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:waxed_oxidized_cut_copper_slab_from_honeycomb"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -24293,6 +26005,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
                 "minecraft:waxed_oxidized_cut_copper_slab_from_waxed_oxidized_copper_stonecutting",
             ],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -24321,6 +26035,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
                 "minecraft:waxed_oxidized_cut_copper_slab_from_waxed_oxidized_cut_copper_stonecutting",
             ],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -24345,6 +26061,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:waxed_oxidized_cut_copper_stairs"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -24371,6 +26089,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:waxed_oxidized_cut_copper_stairs_from_honeycomb"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -24399,6 +26119,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
                 "minecraft:waxed_oxidized_cut_copper_stairs_from_waxed_oxidized_copper_stonecutting",
             ],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -24427,6 +26149,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
                 "minecraft:waxed_oxidized_cut_copper_stairs_from_waxed_oxidized_cut_copper_stonecutting",
             ],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -24453,6 +26177,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:waxed_oxidized_lightning_rod_from_honeycomb"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -24477,6 +26203,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:waxed_weathered_chiseled_copper"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -24503,6 +26231,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:waxed_weathered_chiseled_copper_from_honeycomb"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -24531,6 +26261,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
                 "minecraft:waxed_weathered_chiseled_copper_from_waxed_weathered_copper_stonecutting",
             ],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -24559,6 +26291,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
                 "minecraft:waxed_weathered_chiseled_copper_from_waxed_weathered_cut_copper_stonecutting",
             ],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -24585,6 +26319,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:waxed_weathered_copper_bars_from_honeycomb"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -24611,6 +26347,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:waxed_weathered_copper_chain_from_honeycomb"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -24637,6 +26375,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:waxed_weathered_copper_chest_from_honeycomb"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -24661,6 +26401,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:waxed_weathered_copper_from_honeycomb"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -24687,6 +26429,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:waxed_weathered_copper_golem_statue_from_honeycomb"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -24711,6 +26455,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:waxed_weathered_copper_grate"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -24737,6 +26483,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:waxed_weathered_copper_grate_from_honeycomb"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -24765,6 +26513,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
                 "minecraft:waxed_weathered_copper_grate_from_waxed_weathered_copper_stonecutting",
             ],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -24791,6 +26541,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:waxed_weathered_copper_lantern_from_honeycomb"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -24815,6 +26567,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:waxed_weathered_cut_copper"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -24841,6 +26595,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:waxed_weathered_cut_copper_from_honeycomb"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -24869,6 +26625,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
                 "minecraft:waxed_weathered_cut_copper_from_waxed_weathered_copper_stonecutting",
             ],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -24893,6 +26651,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:waxed_weathered_cut_copper_slab"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -24919,6 +26679,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:waxed_weathered_cut_copper_slab_from_honeycomb"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -24947,6 +26709,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
                 "minecraft:waxed_weathered_cut_copper_slab_from_waxed_weathered_copper_stonecutting",
             ],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -24975,6 +26739,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
                 "minecraft:waxed_weathered_cut_copper_slab_from_waxed_weathered_cut_copper_stonecutting",
             ],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -24999,6 +26765,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:waxed_weathered_cut_copper_stairs"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -25025,6 +26793,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:waxed_weathered_cut_copper_stairs_from_honeycomb"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -25053,6 +26823,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
                 "minecraft:waxed_weathered_cut_copper_stairs_from_waxed_weathered_copper_stonecutting",
             ],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -25081,6 +26853,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
                 "minecraft:waxed_weathered_cut_copper_stairs_from_waxed_weathered_cut_copper_stonecutting",
             ],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -25107,6 +26881,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:waxed_weathered_lightning_rod_from_honeycomb"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -25131,6 +26907,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:weathered_chiseled_copper"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -25157,6 +26935,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:weathered_chiseled_copper_from_weathered_copper_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -25185,6 +26965,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
                 "minecraft:weathered_chiseled_copper_from_weathered_cut_copper_stonecutting",
             ],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -25209,6 +26991,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:weathered_copper_grate"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -25235,6 +27019,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:weathered_copper_grate_from_weathered_copper_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -25259,6 +27045,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:weathered_cut_copper"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -25285,6 +27073,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:weathered_cut_copper_from_weathered_copper_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -25309,6 +27099,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:weathered_cut_copper_slab"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -25335,6 +27127,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:weathered_cut_copper_slab_from_weathered_copper_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -25363,6 +27157,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
                 "minecraft:weathered_cut_copper_slab_from_weathered_cut_copper_stonecutting",
             ],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -25387,6 +27183,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:weathered_cut_copper_stairs"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -25413,6 +27211,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:weathered_cut_copper_stairs_from_weathered_copper_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -25441,6 +27241,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
                 "minecraft:weathered_cut_copper_stairs_from_weathered_cut_copper_stonecutting",
             ],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -25472,6 +27274,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:white_concrete_powder"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -25496,6 +27300,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:white_concrete_slab"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -25522,6 +27328,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:white_concrete_slab_from_white_concrete_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -25546,6 +27354,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:white_concrete_stairs"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -25572,6 +27382,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:white_concrete_stairs_from_white_concrete_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -25596,6 +27408,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:white_stained_glass"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -25620,6 +27434,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:white_terracotta"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -25644,6 +27460,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:white_wool_from_string"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -25668,6 +27486,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:white_wool_slab"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -25692,6 +27512,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:white_wool_stairs"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -25723,6 +27545,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:yellow_concrete_powder"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -25747,6 +27571,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:yellow_concrete_slab"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -25773,6 +27599,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:yellow_concrete_slab_from_yellow_concrete_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -25797,6 +27625,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:yellow_concrete_stairs"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -25823,6 +27653,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:yellow_concrete_stairs_from_yellow_concrete_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -25847,6 +27679,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:yellow_stained_glass"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -25871,6 +27705,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:yellow_terracotta"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -25895,6 +27731,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:yellow_wool_slab"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -25919,6 +27757,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:yellow_wool_stairs"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -25950,6 +27790,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:arrow"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -25974,6 +27816,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:black_harness"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -25998,6 +27842,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:blue_harness"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -26022,6 +27868,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:bow"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -26046,6 +27894,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:brown_harness"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -26070,6 +27920,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:copper_boots"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -26094,6 +27946,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:copper_chestplate"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -26118,6 +27972,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:copper_helmet"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -26142,6 +27998,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:copper_leggings"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -26166,6 +28024,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:copper_spear"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -26190,6 +28050,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:copper_sword"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -26233,6 +28095,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:crossbow"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -26257,6 +28121,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:cyan_harness"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -26281,6 +28147,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:diamond_boots"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -26305,6 +28173,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:diamond_chestplate"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -26329,6 +28199,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:diamond_helmet"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -26353,6 +28225,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:diamond_leggings"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -26377,6 +28251,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:diamond_spear"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -26401,6 +28277,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:diamond_sword"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -26425,6 +28303,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:dye_black_harness"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -26449,6 +28329,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:dye_blue_harness"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -26473,6 +28355,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:dye_brown_harness"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -26497,6 +28381,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:dye_cyan_harness"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -26521,6 +28407,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:dye_gray_harness"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -26545,6 +28433,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:dye_green_harness"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -26569,6 +28459,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:dye_light_blue_harness"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -26593,6 +28485,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:dye_light_gray_harness"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -26617,6 +28511,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:dye_lime_harness"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -26641,6 +28537,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:dye_magenta_harness"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -26665,6 +28563,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:dye_orange_harness"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -26689,6 +28589,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:dye_pink_harness"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -26713,6 +28615,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:dye_purple_harness"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -26737,6 +28641,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:dye_red_harness"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -26761,6 +28667,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:dye_white_harness"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -26785,6 +28693,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:dye_yellow_harness"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -26809,6 +28719,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:golden_boots"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -26833,6 +28745,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:golden_chestplate"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -26857,6 +28771,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:golden_helmet"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -26881,6 +28797,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:golden_leggings"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -26905,6 +28823,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:golden_spear"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -26929,6 +28849,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:golden_sword"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -26953,6 +28875,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:gray_harness"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -26977,6 +28901,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:green_harness"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -27001,6 +28927,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:iron_boots"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -27025,6 +28953,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:iron_chestplate"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -27049,6 +28979,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:iron_helmet"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -27073,6 +29005,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:iron_leggings"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -27097,6 +29031,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:iron_spear"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -27121,6 +29057,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:iron_sword"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -27145,6 +29083,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:leather_boots"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -27169,6 +29109,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:leather_chestplate"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -27193,6 +29135,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:leather_helmet"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -27217,6 +29161,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:leather_leggings"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -27241,6 +29187,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:light_blue_harness"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -27265,6 +29213,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:light_gray_harness"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -27289,6 +29239,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:lime_harness"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -27320,6 +29272,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:mace"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -27344,6 +29298,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:magenta_harness"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -27368,6 +29324,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:netherite_boots_smithing"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -27392,6 +29350,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:netherite_chestplate_smithing"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -27416,6 +29376,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:netherite_helmet_smithing"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -27440,6 +29402,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:netherite_horse_armor_smithing"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -27464,6 +29428,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:netherite_leggings_smithing"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -27488,6 +29454,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:netherite_nautilus_armor_smithing"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -27512,6 +29480,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:netherite_spear_smithing"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -27536,6 +29506,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:netherite_sword_smithing"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -27560,6 +29532,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:orange_harness"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -27584,6 +29558,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:pink_harness"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -27608,6 +29584,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:purple_harness"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -27632,6 +29610,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:red_harness"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -27656,6 +29636,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:saddle"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -27680,6 +29662,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:shield"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -27704,6 +29688,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:spectral_arrow"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -27728,6 +29714,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:stone_spear"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -27752,6 +29740,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:stone_sword"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -27776,6 +29766,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:turtle_helmet"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -27800,6 +29792,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:white_harness"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -27824,6 +29818,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:wolf_armor"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -27848,6 +29844,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:wooden_spear"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -27872,6 +29870,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:wooden_sword"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -27896,6 +29896,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:yellow_harness"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -27920,6 +29922,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:acacia_fence"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -27944,6 +29948,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:acacia_hanging_sign"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -27968,6 +29974,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:acacia_shelf"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -27992,6 +30000,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:acacia_sign"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -28016,6 +30026,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:andesite_wall"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -28042,6 +30054,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:andesite_wall_from_andesite_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -28066,6 +30080,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:anvil"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -28090,6 +30106,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:armor_stand"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -28114,6 +30132,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:bamboo_fence"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -28138,6 +30158,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:bamboo_hanging_sign"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -28162,6 +30184,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:bamboo_mosaic"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -28186,6 +30210,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:bamboo_shelf"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -28210,6 +30236,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:bamboo_sign"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -28241,6 +30269,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:barrel"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -28265,6 +30295,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:beehive"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -28289,6 +30321,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:birch_fence"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -28313,6 +30347,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:birch_hanging_sign"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -28337,6 +30373,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:birch_shelf"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -28361,6 +30399,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:birch_sign"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -28385,6 +30425,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:black_banner"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -28409,6 +30451,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:black_bed"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -28433,6 +30477,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:black_candle"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -28457,6 +30503,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:black_carpet"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -28481,6 +30529,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:black_cushion"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -28505,6 +30555,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:black_glazed_terracotta"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -28529,6 +30581,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:black_shulker_box"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -28553,6 +30607,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:black_stained_glass_pane"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -28586,6 +30642,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:black_stained_glass_pane_from_glass_pane"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -28610,6 +30668,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:blackstone_wall"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -28636,6 +30696,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:blackstone_wall_from_blackstone_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -28660,6 +30722,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:blast_furnace"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -28684,6 +30748,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:blue_banner"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -28708,6 +30774,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:blue_bed"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -28732,6 +30800,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:blue_candle"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -28756,6 +30826,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:blue_carpet"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -28780,6 +30852,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:blue_cushion"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -28804,6 +30878,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:blue_glazed_terracotta"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -28828,6 +30904,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:blue_shulker_box"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -28852,6 +30930,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:blue_stained_glass_pane"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -28885,6 +30965,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:blue_stained_glass_pane_from_glass_pane"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -28909,6 +30991,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:brick_wall"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -28933,6 +31017,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:brick_wall_from_bricks_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -28957,6 +31043,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:brown_banner"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -28981,6 +31069,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:brown_bed"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -29005,6 +31095,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:brown_candle"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -29029,6 +31121,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:brown_carpet"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -29053,6 +31147,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:brown_cushion"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -29077,6 +31173,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:brown_glazed_terracotta"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -29101,6 +31199,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:brown_shulker_box"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -29125,6 +31225,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:brown_stained_glass_pane"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -29158,6 +31260,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:brown_stained_glass_pane_from_glass_pane"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -29189,6 +31293,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:campfire"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -29220,6 +31326,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:candle"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -29244,6 +31352,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:cartography_table"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -29268,6 +31378,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:cherry_fence"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -29292,6 +31404,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:cherry_hanging_sign"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -29316,6 +31430,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:cherry_shelf"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -29340,6 +31456,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:cherry_sign"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -29364,6 +31482,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:chest"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -29388,6 +31508,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:cinnabar_brick_wall"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -29414,6 +31536,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:cinnabar_brick_wall_from_cinnabar_bricks_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -29440,6 +31564,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:cinnabar_brick_wall_from_cinnabar_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -29466,6 +31592,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:cinnabar_brick_wall_from_polished_cinnabar_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -29490,6 +31618,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:cinnabar_wall"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -29516,6 +31646,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:cinnabar_wall_from_cinnabar_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -29540,6 +31672,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:cobbled_deepslate_wall"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -29566,6 +31700,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:cobbled_deepslate_wall_from_cobbled_deepslate_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -29592,6 +31728,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:cobbled_deepslate_wall_from_deepslate_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -29616,6 +31754,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:cobblestone_wall"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -29642,6 +31782,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:cobblestone_wall_from_cobblestone_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -29668,6 +31810,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:cobblestone_wall_from_stone_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -29692,6 +31836,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:composter"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -29716,6 +31862,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:copper_bars"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -29747,6 +31895,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:copper_chain"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -29771,6 +31921,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:copper_chest"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -29795,6 +31947,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:copper_lantern"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -29819,6 +31973,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:copper_torch"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -29840,6 +31996,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:crafting_table"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -29864,6 +32022,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:crimson_fence"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -29888,6 +32048,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:crimson_hanging_sign"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -29912,6 +32074,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:crimson_shelf"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -29936,6 +32100,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:crimson_sign"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -29960,6 +32126,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:cyan_banner"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -29984,6 +32152,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:cyan_bed"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -30008,6 +32178,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:cyan_candle"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -30032,6 +32204,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:cyan_carpet"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -30056,6 +32230,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:cyan_cushion"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -30080,6 +32256,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:cyan_glazed_terracotta"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -30104,6 +32282,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:cyan_shulker_box"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -30128,6 +32308,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:cyan_stained_glass_pane"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -30161,6 +32343,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:cyan_stained_glass_pane_from_glass_pane"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -30185,6 +32369,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:dark_oak_fence"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -30209,6 +32395,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:dark_oak_hanging_sign"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -30233,6 +32421,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:dark_oak_shelf"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -30257,6 +32447,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:dark_oak_sign"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -30281,6 +32473,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:decorated_pot_simple"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -30305,6 +32499,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:deepslate_brick_wall"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -30331,6 +32527,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:deepslate_brick_wall_from_cobbled_deepslate_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -30357,6 +32555,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:deepslate_brick_wall_from_deepslate_bricks_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -30383,6 +32583,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:deepslate_brick_wall_from_deepslate_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -30409,6 +32611,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:deepslate_brick_wall_from_polished_deepslate_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -30433,6 +32637,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:deepslate_tile_wall"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -30459,6 +32665,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:deepslate_tile_wall_from_cobbled_deepslate_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -30485,6 +32693,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:deepslate_tile_wall_from_deepslate_bricks_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -30511,6 +32721,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:deepslate_tile_wall_from_deepslate_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -30537,6 +32749,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:deepslate_tile_wall_from_deepslate_tiles_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -30563,6 +32777,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:deepslate_tile_wall_from_polished_deepslate_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -30587,6 +32803,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:diorite_wall"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -30613,6 +32831,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:diorite_wall_from_diorite_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -30637,6 +32857,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:dye_black_bed"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -30661,6 +32883,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:dye_black_carpet"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -30685,6 +32909,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:dye_black_cushion"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -30709,6 +32935,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:dye_blue_bed"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -30733,6 +32961,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:dye_blue_carpet"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -30757,6 +32987,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:dye_blue_cushion"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -30781,6 +33013,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:dye_brown_bed"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -30805,6 +33039,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:dye_brown_carpet"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -30829,6 +33065,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:dye_brown_cushion"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -30853,6 +33091,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:dye_cyan_bed"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -30877,6 +33117,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:dye_cyan_carpet"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -30901,6 +33143,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:dye_cyan_cushion"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -30925,6 +33169,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:dye_gray_bed"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -30949,6 +33195,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:dye_gray_carpet"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -30973,6 +33221,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:dye_gray_cushion"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -30997,6 +33247,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:dye_green_bed"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -31021,6 +33273,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:dye_green_carpet"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -31045,6 +33299,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:dye_green_cushion"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -31069,6 +33325,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:dye_light_blue_bed"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -31093,6 +33351,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:dye_light_blue_carpet"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -31117,6 +33377,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:dye_light_blue_cushion"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -31141,6 +33403,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:dye_light_gray_bed"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -31165,6 +33429,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:dye_light_gray_carpet"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -31189,6 +33455,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:dye_light_gray_cushion"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -31213,6 +33481,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:dye_lime_bed"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -31237,6 +33507,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:dye_lime_carpet"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -31261,6 +33533,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:dye_lime_cushion"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -31285,6 +33559,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:dye_magenta_bed"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -31309,6 +33585,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:dye_magenta_carpet"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -31333,6 +33611,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:dye_magenta_cushion"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -31357,6 +33637,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:dye_orange_bed"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -31381,6 +33663,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:dye_orange_carpet"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -31405,6 +33689,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:dye_orange_cushion"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -31429,6 +33715,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:dye_pink_bed"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -31453,6 +33741,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:dye_pink_carpet"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -31477,6 +33767,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:dye_pink_cushion"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -31501,6 +33793,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:dye_purple_bed"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -31525,6 +33819,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:dye_purple_carpet"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -31549,6 +33845,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:dye_purple_cushion"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -31573,6 +33871,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:dye_red_bed"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -31597,6 +33897,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:dye_red_carpet"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -31621,6 +33923,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:dye_red_cushion"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -31645,6 +33949,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:dye_white_bed"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -31669,6 +33975,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:dye_white_carpet"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -31693,6 +34001,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:dye_white_cushion"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -31717,6 +34027,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:dye_yellow_bed"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -31741,6 +34053,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:dye_yellow_carpet"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -31765,6 +34079,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:dye_yellow_cushion"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -31789,6 +34105,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:enchanting_table"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -31813,6 +34131,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:end_crystal"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -31837,6 +34157,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:end_rod"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -31861,6 +34183,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:end_stone_brick_wall"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -31887,6 +34211,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:end_stone_brick_wall_from_end_stone_bricks_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -31913,6 +34239,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:end_stone_brick_wall_from_end_stone_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -31937,6 +34265,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:ender_chest"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -31961,6 +34291,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:fletching_table"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -31985,6 +34317,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:flower_pot"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -32009,6 +34343,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:furnace"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -32033,6 +34369,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:glass_pane"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -32064,6 +34402,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:glow_item_frame"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -32095,6 +34435,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:golden_dandelion"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -32119,6 +34461,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:granite_wall"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -32145,6 +34489,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:granite_wall_from_granite_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -32169,6 +34515,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:gray_banner"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -32193,6 +34541,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:gray_bed"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -32217,6 +34567,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:gray_candle"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -32241,6 +34593,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:gray_carpet"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -32265,6 +34619,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:gray_cushion"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -32289,6 +34645,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:gray_glazed_terracotta"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -32313,6 +34671,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:gray_shulker_box"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -32337,6 +34697,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:gray_stained_glass_pane"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -32370,6 +34732,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:gray_stained_glass_pane_from_glass_pane"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -32394,6 +34758,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:green_banner"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -32418,6 +34784,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:green_bed"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -32442,6 +34810,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:green_candle"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -32466,6 +34836,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:green_carpet"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -32490,6 +34862,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:green_cushion"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -32514,6 +34888,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:green_glazed_terracotta"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -32538,6 +34914,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:green_shulker_box"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -32562,6 +34940,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:green_stained_glass_pane"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -32595,6 +34975,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:green_stained_glass_pane_from_glass_pane"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -32619,6 +35001,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:grindstone"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -32643,6 +35027,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:honeycomb_block"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -32667,6 +35053,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:iron_bars"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -32698,6 +35086,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:iron_chain"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -32722,6 +35112,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:item_frame"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -32746,6 +35138,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:jukebox"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -32770,6 +35164,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:jungle_fence"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -32794,6 +35190,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:jungle_hanging_sign"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -32818,6 +35216,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:jungle_shelf"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -32842,6 +35242,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:jungle_sign"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -32866,6 +35268,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:ladder"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -32897,6 +35301,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:lantern"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -32921,6 +35327,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:light_blue_banner"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -32945,6 +35353,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:light_blue_bed"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -32969,6 +35379,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:light_blue_candle"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -32993,6 +35405,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:light_blue_carpet"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -33017,6 +35431,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:light_blue_cushion"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -33041,6 +35457,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:light_blue_glazed_terracotta"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -33065,6 +35483,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:light_blue_shulker_box"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -33089,6 +35509,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:light_blue_stained_glass_pane"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -33122,6 +35544,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:light_blue_stained_glass_pane_from_glass_pane"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -33146,6 +35570,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:light_gray_banner"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -33170,6 +35596,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:light_gray_bed"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -33194,6 +35622,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:light_gray_candle"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -33218,6 +35648,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:light_gray_carpet"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -33242,6 +35674,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:light_gray_cushion"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -33266,6 +35700,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:light_gray_glazed_terracotta"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -33290,6 +35726,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:light_gray_shulker_box"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -33314,6 +35752,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:light_gray_stained_glass_pane"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -33347,6 +35787,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:light_gray_stained_glass_pane_from_glass_pane"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -33371,6 +35813,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:lime_banner"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -33395,6 +35839,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:lime_bed"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -33419,6 +35865,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:lime_candle"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -33443,6 +35891,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:lime_carpet"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -33467,6 +35917,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:lime_cushion"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -33491,6 +35943,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:lime_glazed_terracotta"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -33515,6 +35969,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:lime_shulker_box"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -33539,6 +35995,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:lime_stained_glass_pane"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -33572,6 +36030,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:lime_stained_glass_pane_from_glass_pane"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -33603,6 +36063,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:lodestone"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -33627,6 +36089,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:loom"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -33651,6 +36115,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:magenta_banner"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -33675,6 +36141,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:magenta_bed"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -33699,6 +36167,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:magenta_candle"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -33723,6 +36193,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:magenta_carpet"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -33747,6 +36219,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:magenta_cushion"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -33771,6 +36245,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:magenta_glazed_terracotta"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -33795,6 +36271,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:magenta_shulker_box"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -33819,6 +36297,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:magenta_stained_glass_pane"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -33852,6 +36332,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:magenta_stained_glass_pane_from_glass_pane"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -33876,6 +36358,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:mangrove_fence"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -33900,6 +36384,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:mangrove_hanging_sign"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -33924,6 +36410,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:mangrove_shelf"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -33948,6 +36436,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:mangrove_sign"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -33972,6 +36462,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:moss_carpet"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -33996,6 +36488,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:mossy_cobblestone_wall"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -34022,6 +36516,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:mossy_cobblestone_wall_from_mossy_cobblestone_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -34046,6 +36542,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:mossy_stone_brick_wall"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -34072,6 +36570,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:mossy_stone_brick_wall_from_mossy_stone_bricks_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -34096,6 +36596,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:mud_brick_wall"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -34122,6 +36624,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:mud_brick_wall_from_mud_bricks_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -34146,6 +36650,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:nether_brick_fence"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -34170,6 +36676,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:nether_brick_wall"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -34196,6 +36704,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:nether_brick_wall_from_nether_bricks_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -34220,6 +36730,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:oak_fence"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -34244,6 +36756,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:oak_hanging_sign"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -34268,6 +36782,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:oak_shelf"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -34292,6 +36808,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:oak_sign"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -34316,6 +36834,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:orange_banner"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -34340,6 +36860,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:orange_bed"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -34364,6 +36886,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:orange_candle"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -34388,6 +36912,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:orange_carpet"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -34412,6 +36938,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:orange_cushion"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -34436,6 +36964,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:orange_glazed_terracotta"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -34460,6 +36990,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:orange_shulker_box"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -34484,6 +37016,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:orange_stained_glass_pane"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -34517,6 +37051,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:orange_stained_glass_pane_from_glass_pane"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -34541,6 +37077,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:painting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -34565,6 +37103,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:pale_moss_carpet"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -34589,6 +37129,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:pale_oak_fence"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -34613,6 +37155,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:pale_oak_hanging_sign"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -34637,6 +37181,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:pale_oak_shelf"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -34661,6 +37207,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:pale_oak_sign"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -34685,6 +37233,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:pink_banner"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -34709,6 +37259,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:pink_bed"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -34733,6 +37285,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:pink_candle"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -34757,6 +37311,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:pink_carpet"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -34781,6 +37337,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:pink_cushion"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -34805,6 +37363,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:pink_glazed_terracotta"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -34829,6 +37389,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:pink_shulker_box"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -34853,6 +37415,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:pink_stained_glass_pane"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -34886,6 +37450,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:pink_stained_glass_pane_from_glass_pane"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -34910,6 +37476,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:polished_blackstone_brick_wall"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -34936,6 +37504,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:polished_blackstone_brick_wall_from_blackstone_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -34964,6 +37534,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
                 "minecraft:polished_blackstone_brick_wall_from_polished_blackstone_bricks_stonecutting",
             ],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -34992,6 +37564,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
                 "minecraft:polished_blackstone_brick_wall_from_polished_blackstone_stonecutting",
             ],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -35016,6 +37590,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:polished_blackstone_wall"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -35042,6 +37618,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:polished_blackstone_wall_from_blackstone_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -35068,6 +37646,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:polished_blackstone_wall_from_polished_blackstone_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -35092,6 +37672,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:polished_cinnabar_wall"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -35118,6 +37700,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:polished_cinnabar_wall_from_cinnabar_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -35144,6 +37728,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:polished_cinnabar_wall_from_polished_cinnabar_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -35168,6 +37754,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:polished_deepslate_wall"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -35194,6 +37782,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:polished_deepslate_wall_from_cobbled_deepslate_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -35220,6 +37810,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:polished_deepslate_wall_from_deepslate_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -35246,6 +37838,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:polished_deepslate_wall_from_polished_deepslate_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -35270,6 +37864,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:polished_sulfur_wall"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -35296,6 +37892,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:polished_sulfur_wall_from_polished_sulfur_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -35322,6 +37920,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:polished_sulfur_wall_from_sulfur_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -35346,6 +37946,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:polished_tuff_wall"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -35372,6 +37974,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:polished_tuff_wall_from_polished_tuff_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -35398,6 +38002,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:polished_tuff_wall_from_tuff_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -35422,6 +38028,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:poplar_fence"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -35446,6 +38054,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:poplar_hanging_sign"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -35470,6 +38080,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:poplar_shelf"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -35494,6 +38106,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:poplar_sign"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -35518,6 +38132,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:prismarine_wall"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -35544,6 +38160,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:prismarine_wall_from_prismarine_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -35568,6 +38186,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:purple_banner"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -35592,6 +38212,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:purple_bed"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -35616,6 +38238,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:purple_candle"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -35640,6 +38264,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:purple_carpet"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -35664,6 +38290,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:purple_cushion"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -35688,6 +38316,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:purple_glazed_terracotta"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -35712,6 +38342,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:purple_shulker_box"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -35736,6 +38368,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:purple_stained_glass_pane"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -35769,6 +38403,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:purple_stained_glass_pane_from_glass_pane"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -35793,6 +38429,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:red_banner"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -35817,6 +38455,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:red_bed"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -35841,6 +38481,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:red_candle"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -35865,6 +38507,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:red_carpet"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -35889,6 +38533,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:red_cushion"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -35913,6 +38559,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:red_glazed_terracotta"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -35937,6 +38585,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:red_nether_brick_wall"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -35963,6 +38613,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:red_nether_brick_wall_from_red_nether_bricks_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -35987,6 +38639,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:red_sandstone_wall"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -36013,6 +38667,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:red_sandstone_wall_from_red_sandstone_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -36037,6 +38693,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:red_shulker_box"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -36061,6 +38719,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:red_stained_glass_pane"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -36094,6 +38754,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:red_stained_glass_pane_from_glass_pane"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -36118,6 +38780,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:resin_brick_wall"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -36144,6 +38808,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:resin_brick_wall_from_resin_bricks_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -36168,6 +38834,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:respawn_anchor"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -36192,6 +38860,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:sandstone_wall"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -36218,6 +38888,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:sandstone_wall_from_sandstone_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -36242,6 +38914,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:scaffolding"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -36266,6 +38940,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:shulker_box"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -36290,6 +38966,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:smithing_table"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -36314,6 +38992,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:smoker"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -36338,6 +39018,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:snow"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -36362,6 +39044,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:soul_campfire"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -36386,6 +39070,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:soul_lantern"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -36410,6 +39096,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:soul_torch"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -36434,6 +39122,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:spruce_fence"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -36458,6 +39148,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:spruce_hanging_sign"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -36482,6 +39174,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:spruce_shelf"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -36506,6 +39200,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:spruce_sign"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -36530,6 +39226,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:stone_brick_wall"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -36556,6 +39254,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:stone_brick_wall_from_stone_bricks_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -36582,6 +39282,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:stone_brick_wall_from_stone_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -36606,6 +39308,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:stonecutter"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -36637,6 +39341,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:straw_bed"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -36661,6 +39367,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:sulfur_brick_wall"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -36687,6 +39395,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:sulfur_brick_wall_from_polished_sulfur_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -36713,6 +39423,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:sulfur_brick_wall_from_sulfur_bricks_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -36739,6 +39451,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:sulfur_brick_wall_from_sulfur_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -36763,6 +39477,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:sulfur_wall"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -36787,6 +39503,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:sulfur_wall_from_sulfur_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -36811,6 +39529,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:torch"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -36835,6 +39555,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:tuff_brick_wall"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -36861,6 +39583,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:tuff_brick_wall_from_polished_tuff_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -36887,6 +39611,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:tuff_brick_wall_from_tuff_bricks_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -36913,6 +39639,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:tuff_brick_wall_from_tuff_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -36937,6 +39665,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:tuff_wall"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -36961,6 +39691,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:tuff_wall_from_tuff_stonecutting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -36985,6 +39717,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:warped_fence"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -37009,6 +39743,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:warped_hanging_sign"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -37033,6 +39769,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:warped_shelf"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -37057,6 +39795,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:warped_sign"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -37081,6 +39821,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:white_banner"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -37105,6 +39847,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:white_bed"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -37129,6 +39873,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:white_candle"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -37153,6 +39899,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:white_carpet"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -37177,6 +39925,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:white_cushion"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -37201,6 +39951,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:white_glazed_terracotta"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -37225,6 +39977,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:white_shulker_box"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -37249,6 +40003,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:white_stained_glass_pane"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -37282,6 +40038,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:white_stained_glass_pane_from_glass_pane"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -37306,6 +40064,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:yellow_banner"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -37330,6 +40090,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:yellow_bed"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -37354,6 +40116,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:yellow_candle"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -37378,6 +40142,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:yellow_carpet"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -37402,6 +40168,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:yellow_cushion"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -37426,6 +40194,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:yellow_glazed_terracotta"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -37450,6 +40220,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:yellow_shulker_box"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -37474,6 +40246,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:yellow_stained_glass_pane"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -37507,6 +40281,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:yellow_stained_glass_pane_from_glass_pane"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -37531,6 +40307,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:baked_potato"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -37555,6 +40333,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:baked_potato_from_campfire_cooking"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -37579,6 +40359,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:baked_potato_from_smoking"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -37603,6 +40385,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:beetroot_soup"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -37627,6 +40411,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:bread"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -37651,6 +40437,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:cake"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -37675,6 +40463,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:cooked_beef"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -37699,6 +40489,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:cooked_beef_from_campfire_cooking"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -37723,6 +40515,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:cooked_beef_from_smoking"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -37747,6 +40541,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:cooked_chicken"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -37771,6 +40567,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:cooked_chicken_from_campfire_cooking"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -37795,6 +40593,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:cooked_chicken_from_smoking"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -37819,6 +40619,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:cooked_cod"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -37843,6 +40645,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:cooked_cod_from_campfire_cooking"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -37867,6 +40671,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:cooked_cod_from_smoking"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -37891,6 +40697,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:cooked_mutton"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -37915,6 +40723,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:cooked_mutton_from_campfire_cooking"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -37939,6 +40749,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:cooked_mutton_from_smoking"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -37963,6 +40775,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:cooked_porkchop"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -37987,6 +40801,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:cooked_porkchop_from_campfire_cooking"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -38011,6 +40827,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:cooked_porkchop_from_smoking"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -38035,6 +40853,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:cooked_rabbit"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -38059,6 +40879,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:cooked_rabbit_from_campfire_cooking"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -38083,6 +40905,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:cooked_rabbit_from_smoking"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -38107,6 +40931,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:cooked_salmon"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -38131,6 +40957,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:cooked_salmon_from_campfire_cooking"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -38155,6 +40983,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:cooked_salmon_from_smoking"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -38179,6 +41009,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:cookie"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -38203,6 +41035,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:dried_kelp"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -38227,6 +41061,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:dried_kelp_from_campfire_cooking"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -38251,6 +41087,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:dried_kelp_from_smelting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -38275,6 +41113,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:dried_kelp_from_smoking"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -38299,6 +41139,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:golden_apple"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -38323,6 +41165,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:honey_bottle"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -38366,6 +41210,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:mushroom_stew"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -38397,6 +41243,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:pumpkin_pie"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -38421,6 +41269,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:rabbit_stew_from_brown_mushroom"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -38445,6 +41295,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:rabbit_stew_from_red_mushroom"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -38469,6 +41321,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:rabbit_stew_from_shelf_mushroom"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -38493,6 +41347,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:suspicious_stew_from_allium"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -38517,6 +41373,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:suspicious_stew_from_azure_bluet"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -38541,6 +41399,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:suspicious_stew_from_blue_orchid"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -38567,6 +41427,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:suspicious_stew_from_closed_eyeblossom"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -38591,6 +41453,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:suspicious_stew_from_cornflower"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -38615,6 +41479,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:suspicious_stew_from_dandelion"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -38639,6 +41505,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:suspicious_stew_from_golden_dandelion"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -38665,6 +41533,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:suspicious_stew_from_lily_of_the_valley"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -38689,6 +41559,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:suspicious_stew_from_open_eyeblossom"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -38713,6 +41585,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:suspicious_stew_from_orange_tulip"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -38737,6 +41611,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:suspicious_stew_from_oxeye_daisy"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -38761,6 +41637,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:suspicious_stew_from_pink_tulip"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -38785,6 +41663,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:suspicious_stew_from_poppy"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -38809,6 +41689,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:suspicious_stew_from_red_tulip"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -38833,6 +41715,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:suspicious_stew_from_torchflower"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -38857,6 +41741,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:suspicious_stew_from_white_tulip"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -38881,6 +41767,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:suspicious_stew_from_wither_rose"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -38905,6 +41793,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:beacon"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -38929,6 +41819,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:black_dye"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -38953,6 +41845,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:black_dye_from_wither_rose"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -38977,6 +41871,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:blue_dye"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -39001,6 +41897,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:blue_dye_from_cornflower"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -39025,6 +41923,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:bolt_armor_trim_smithing_template"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -39051,6 +41951,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:bolt_armor_trim_smithing_template_smithing_trim"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -39075,6 +41977,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:bone_meal"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -39099,6 +42003,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:bone_meal_from_bone_block"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -39123,6 +42029,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:book"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -39147,6 +42055,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:bordure_indented_banner_pattern"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -39178,6 +42088,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:bowl"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -39202,6 +42114,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:brick"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -39226,6 +42140,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:brown_dye"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -39250,6 +42166,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:bucket"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -39274,6 +42192,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:charcoal"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -39298,6 +42218,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:coal"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -39322,6 +42244,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:coal_from_blasting_coal_ore"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -39346,6 +42270,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:coal_from_blasting_deepslate_coal_ore"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -39370,6 +42296,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:coal_from_smelting_coal_ore"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -39394,6 +42322,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:coal_from_smelting_deepslate_coal_ore"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -39418,6 +42348,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:coast_armor_trim_smithing_template"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -39444,6 +42376,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:coast_armor_trim_smithing_template_smithing_trim"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -39475,6 +42409,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:conduit"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -39499,6 +42435,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:copper_ingot"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -39523,6 +42461,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:copper_ingot_from_blasting_copper_ore"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -39549,6 +42489,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:copper_ingot_from_blasting_deepslate_copper_ore"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -39573,6 +42515,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:copper_ingot_from_blasting_raw_copper"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -39597,6 +42541,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:copper_ingot_from_nuggets"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -39621,6 +42567,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:copper_ingot_from_smelting_copper_ore"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -39647,6 +42595,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:copper_ingot_from_smelting_deepslate_copper_ore"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -39671,6 +42621,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:copper_ingot_from_smelting_raw_copper"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -39695,6 +42647,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:copper_ingot_from_waxed_copper_block"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -39719,6 +42673,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:copper_nugget"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -39834,6 +42790,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:copper_nugget_from_blasting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -39949,6 +42907,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:copper_nugget_from_smelting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -39973,6 +42933,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:creaking_heart"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -39997,6 +42959,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:creeper_banner_pattern"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -40028,6 +42992,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:cyan_dye"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -40052,6 +43018,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:cyan_dye_from_pitcher_plant"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -40076,6 +43044,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:diamond"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -40102,6 +43072,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:diamond_from_blasting_deepslate_diamond_ore"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -40126,6 +43098,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:diamond_from_blasting_diamond_ore"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -40152,6 +43126,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:diamond_from_smelting_deepslate_diamond_ore"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -40176,6 +43152,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:diamond_from_smelting_diamond_ore"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -40200,6 +43178,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:dune_armor_trim_smithing_template"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -40226,6 +43206,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:dune_armor_trim_smithing_template_smithing_trim"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -40250,6 +43232,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:emerald"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -40276,6 +43260,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:emerald_from_blasting_deepslate_emerald_ore"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -40300,6 +43286,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:emerald_from_blasting_emerald_ore"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -40326,6 +43314,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:emerald_from_smelting_deepslate_emerald_ore"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -40350,6 +43340,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:emerald_from_smelting_emerald_ore"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -40374,6 +43366,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:ender_eye"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -40398,6 +43392,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:eye_armor_trim_smithing_template"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -40424,6 +43420,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:eye_armor_trim_smithing_template_smithing_trim"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -40448,6 +43446,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:field_masoned_banner_pattern"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -40472,6 +43472,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:fire_charge"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -40496,6 +43498,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:firework_rocket_simple"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -40520,6 +43524,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:flow_armor_trim_smithing_template"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -40546,6 +43552,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:flow_armor_trim_smithing_template_smithing_trim"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -40570,6 +43578,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:flower_banner_pattern"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -40596,6 +43606,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:gold_ingot_from_blasting_deepslate_gold_ore"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -40620,6 +43632,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:gold_ingot_from_blasting_gold_ore"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -40646,6 +43660,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:gold_ingot_from_blasting_nether_gold_ore"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -40670,6 +43686,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:gold_ingot_from_blasting_raw_gold"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -40694,6 +43712,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:gold_ingot_from_gold_block"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -40718,6 +43738,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:gold_ingot_from_nuggets"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -40744,6 +43766,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:gold_ingot_from_smelting_deepslate_gold_ore"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -40768,6 +43792,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:gold_ingot_from_smelting_gold_ore"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -40794,6 +43820,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:gold_ingot_from_smelting_nether_gold_ore"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -40818,6 +43846,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:gold_ingot_from_smelting_raw_gold"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -40842,6 +43872,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:gold_nugget"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -40957,6 +43989,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:gold_nugget_from_blasting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -41072,6 +44106,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:gold_nugget_from_smelting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -41103,6 +44139,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:gray_dye"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -41127,6 +44165,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:gray_dye_from_closed_eyeblossom"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -41151,6 +44191,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:green_dye"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -41175,6 +44217,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:host_armor_trim_smithing_template"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -41201,6 +44245,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:host_armor_trim_smithing_template_smithing_trim"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -41227,6 +44273,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:iron_ingot_from_blasting_deepslate_iron_ore"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -41251,6 +44299,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:iron_ingot_from_blasting_iron_ore"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -41275,6 +44325,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:iron_ingot_from_blasting_raw_iron"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -41299,6 +44351,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:iron_ingot_from_iron_block"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -41323,6 +44377,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:iron_ingot_from_nuggets"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -41349,6 +44405,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:iron_ingot_from_smelting_deepslate_iron_ore"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -41373,6 +44431,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:iron_ingot_from_smelting_iron_ore"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -41397,6 +44457,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:iron_ingot_from_smelting_raw_iron"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -41421,6 +44483,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:iron_nugget"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -41568,6 +44632,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:iron_nugget_from_blasting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -41715,6 +44781,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:iron_nugget_from_smelting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -41739,6 +44807,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:lapis_lazuli"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -41765,6 +44835,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:lapis_lazuli_from_blasting_deepslate_lapis_ore"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -41789,6 +44861,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:lapis_lazuli_from_blasting_lapis_ore"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -41815,6 +44889,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:lapis_lazuli_from_smelting_deepslate_lapis_ore"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -41839,6 +44915,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:lapis_lazuli_from_smelting_lapis_ore"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -41863,6 +44941,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:leaf_litter"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -41887,6 +44967,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:leather"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -41911,6 +44993,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:leather_boots_dyed"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -41935,6 +45019,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:leather_chestplate_dyed"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -41959,6 +45045,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:leather_helmet_dyed"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -41983,6 +45071,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:leather_horse_armor"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -42007,6 +45097,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:leather_horse_armor_dyed"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -42031,6 +45123,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:leather_leggings_dyed"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -42055,6 +45149,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:light_blue_dye_from_blue_orchid"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -42086,6 +45182,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:light_blue_dye_from_blue_white_dye"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -42110,6 +45208,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:light_gray_dye_from_azure_bluet"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -42141,6 +45241,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:light_gray_dye_from_black_white_dye"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -42172,6 +45274,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:light_gray_dye_from_gray_white_dye"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -42196,6 +45300,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:light_gray_dye_from_oxeye_daisy"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -42220,6 +45326,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:light_gray_dye_from_white_tulip"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -42251,6 +45359,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:lime_dye"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -42275,6 +45385,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:lime_dye_from_smelting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -42299,6 +45411,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:magenta_dye_from_allium"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -42342,6 +45456,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:magenta_dye_from_blue_red_pink"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -42385,6 +45501,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:magenta_dye_from_blue_red_white_dye"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -42409,6 +45527,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:magenta_dye_from_lilac"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -42440,6 +45560,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:magenta_dye_from_purple_and_pink"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -42464,6 +45586,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:map"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -42488,6 +45612,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:map_cloning"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -42512,6 +45638,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:melon_seeds"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -42536,6 +45664,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:mojang_banner_pattern"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -42560,6 +45690,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:music_disc_5"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -42584,6 +45716,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:nether_brick"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -42608,6 +45742,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:netherite_ingot"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -42632,6 +45768,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:netherite_ingot_from_netherite_block"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -42656,6 +45794,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:netherite_scrap"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -42680,6 +45820,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:netherite_scrap_from_blasting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -42704,6 +45846,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:netherite_upgrade_smithing_template"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -42728,6 +45872,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:orange_dye_from_open_eyeblossom"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -42752,6 +45898,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:orange_dye_from_orange_tulip"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -42783,6 +45931,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:orange_dye_from_red_yellow"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -42807,6 +45957,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:orange_dye_from_torchflower"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -42831,6 +45983,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:paper"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -42855,6 +46009,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:pink_dye_from_cactus_flower"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -42879,6 +46035,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:pink_dye_from_peony"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -42903,6 +46061,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:pink_dye_from_pink_petals"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -42927,6 +46087,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:pink_dye_from_pink_tulip"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -42958,6 +46120,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:pink_dye_from_red_white_dye"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -42982,6 +46146,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:popped_chorus_fruit"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -43006,6 +46172,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:pumpkin_seeds"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -43037,6 +46205,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:purple_dye"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -43061,6 +46231,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:quartz"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -43085,6 +46257,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:quartz_from_blasting"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -43109,6 +46283,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:raiser_armor_trim_smithing_template"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -43135,6 +46311,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:raiser_armor_trim_smithing_template_smithing_trim"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -43159,6 +46337,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:raw_copper"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -43183,6 +46363,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:raw_gold"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -43207,6 +46389,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:raw_iron"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -43231,6 +46415,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:red_dye_from_beetroot"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -43255,6 +46441,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:red_dye_from_poppy"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -43279,6 +46467,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:red_dye_from_rose_bush"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -43303,6 +46493,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:red_dye_from_tulip"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -43327,6 +46519,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:resin_brick"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -43351,6 +46545,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:resin_clump"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -43375,6 +46571,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:rib_armor_trim_smithing_template"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -43401,6 +46599,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:rib_armor_trim_smithing_template_smithing_trim"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -43425,6 +46625,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:sentry_armor_trim_smithing_template"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -43451,6 +46653,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:sentry_armor_trim_smithing_template_smithing_trim"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -43475,6 +46679,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:shaper_armor_trim_smithing_template"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -43501,6 +46707,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:shaper_armor_trim_smithing_template_smithing_trim"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -43525,6 +46733,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:silence_armor_trim_smithing_template"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -43551,6 +46761,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:silence_armor_trim_smithing_template_smithing_trim"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -43575,6 +46787,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:skull_banner_pattern"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -43599,6 +46813,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:slime_ball"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -43623,6 +46839,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:snout_armor_trim_smithing_template"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -43649,6 +46867,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:snout_armor_trim_smithing_template_smithing_trim"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -43673,6 +46893,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:spire_armor_trim_smithing_template"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -43699,6 +46921,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:spire_armor_trim_smithing_template_smithing_trim"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -43723,6 +46947,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:stick"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -43747,6 +46973,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:stick_from_bamboo_item"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -43771,6 +46999,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:sugar_from_honey_bottle"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -43795,6 +47025,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:sugar_from_sugar_cane"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -43819,6 +47051,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:tide_armor_trim_smithing_template"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -43845,6 +47079,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:tide_armor_trim_smithing_template_smithing_trim"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -43869,6 +47105,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:tipped_arrow"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -43893,6 +47131,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:vex_armor_trim_smithing_template"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -43919,6 +47159,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:vex_armor_trim_smithing_template_smithing_trim"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -43943,6 +47185,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:ward_armor_trim_smithing_template"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -43969,6 +47213,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:ward_armor_trim_smithing_template_smithing_trim"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -43998,6 +47244,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:wayfinder_armor_trim_smithing_template"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -44024,6 +47272,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:wayfinder_armor_trim_smithing_template_smithing_trim"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -44048,6 +47298,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:wheat"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -44072,6 +47324,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:white_dye"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -44096,6 +47350,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:white_dye_from_lily_of_the_valley"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -44120,6 +47376,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:wild_armor_trim_smithing_template"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -44146,6 +47404,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:wild_armor_trim_smithing_template_smithing_trim"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -44170,6 +47430,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:wind_charge"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -44194,6 +47456,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:wolf_armor_dyed"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -44218,6 +47482,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:writable_book"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -44242,6 +47508,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:yellow_dye_from_dandelion"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -44266,6 +47534,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:yellow_dye_from_golden_dandelion"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -44290,6 +47560,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:yellow_dye_from_sunflower"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -44314,6 +47586,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:yellow_dye_from_wildflowers"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -44338,6 +47612,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:acacia_button"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -44362,6 +47638,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:acacia_door"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -44386,6 +47664,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:acacia_fence_gate"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -44410,6 +47690,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:acacia_pressure_plate"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -44434,6 +47716,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:acacia_trapdoor"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -44458,6 +47742,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:bamboo_button"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -44482,6 +47768,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:bamboo_door"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -44506,6 +47794,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:bamboo_fence_gate"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -44530,6 +47820,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:bamboo_pressure_plate"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -44554,6 +47846,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:bamboo_trapdoor"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -44578,6 +47872,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:birch_button"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -44602,6 +47898,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:birch_door"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -44626,6 +47924,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:birch_fence_gate"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -44650,6 +47950,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:birch_pressure_plate"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -44674,6 +47976,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:birch_trapdoor"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -44698,6 +48002,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:calibrated_sculk_sensor"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -44722,6 +48028,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:cherry_button"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -44746,6 +48054,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:cherry_door"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -44770,6 +48080,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:cherry_fence_gate"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -44794,6 +48106,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:cherry_pressure_plate"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -44818,6 +48132,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:cherry_trapdoor"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -44842,6 +48158,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:comparator"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -44866,6 +48184,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:copper_bulb"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -44890,6 +48210,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:copper_door"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -44914,6 +48236,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:copper_trapdoor"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -44938,6 +48262,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:crafter"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -44962,6 +48288,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:crimson_button"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -44986,6 +48314,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:crimson_door"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -45010,6 +48340,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:crimson_fence_gate"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -45034,6 +48366,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:crimson_pressure_plate"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -45058,6 +48392,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:crimson_trapdoor"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -45082,6 +48418,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:dark_oak_button"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -45106,6 +48444,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:dark_oak_door"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -45130,6 +48470,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:dark_oak_fence_gate"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -45154,6 +48496,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:dark_oak_pressure_plate"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -45178,6 +48522,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:dark_oak_trapdoor"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -45202,6 +48548,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:daylight_detector"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -45226,6 +48574,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:dispenser"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -45250,6 +48600,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:dropper"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -45274,6 +48626,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:exposed_copper_bulb"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -45298,6 +48652,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:heavy_weighted_pressure_plate"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -45322,6 +48678,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:honey_block"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -45346,6 +48704,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:hopper"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -45370,6 +48730,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:iron_door"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -45394,6 +48756,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:iron_trapdoor"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -45418,6 +48782,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:jungle_button"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -45442,6 +48808,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:jungle_door"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -45466,6 +48834,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:jungle_fence_gate"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -45490,6 +48860,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:jungle_pressure_plate"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -45514,6 +48886,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:jungle_trapdoor"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -45538,6 +48912,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:lectern"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -45562,6 +48938,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:lever"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -45586,6 +48964,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:light_weighted_pressure_plate"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -45610,6 +48990,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:lightning_rod"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -45634,6 +49016,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:mangrove_button"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -45658,6 +49042,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:mangrove_door"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -45682,6 +49068,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:mangrove_fence_gate"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -45706,6 +49094,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:mangrove_pressure_plate"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -45730,6 +49120,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:mangrove_trapdoor"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -45754,6 +49146,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:note_block"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -45778,6 +49172,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:oak_button"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -45802,6 +49198,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:oak_door"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -45826,6 +49224,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:oak_fence_gate"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -45850,6 +49250,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:oak_pressure_plate"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -45874,6 +49276,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:oak_trapdoor"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -45898,6 +49302,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:observer"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -45922,6 +49328,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:oxidized_copper_bulb"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -45946,6 +49354,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:pale_oak_button"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -45970,6 +49380,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:pale_oak_door"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -45994,6 +49406,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:pale_oak_fence_gate"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -46018,6 +49432,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:pale_oak_pressure_plate"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -46042,6 +49458,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:pale_oak_trapdoor"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -46066,6 +49484,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:piston"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -46090,6 +49510,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:polished_blackstone_button"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -46114,6 +49536,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:polished_blackstone_pressure_plate"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -46138,6 +49562,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:poplar_button"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -46162,6 +49588,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:poplar_door"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -46186,6 +49614,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:poplar_fence_gate"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -46210,6 +49640,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:poplar_pressure_plate"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -46234,6 +49666,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:poplar_trapdoor"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -46258,6 +49692,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:redstone"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -46282,6 +49718,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:redstone_block"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -46308,6 +49746,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:redstone_from_blasting_deepslate_redstone_ore"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -46332,6 +49772,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:redstone_from_blasting_redstone_ore"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -46358,6 +49800,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:redstone_from_smelting_deepslate_redstone_ore"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -46382,6 +49826,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:redstone_from_smelting_redstone_ore"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -46406,6 +49852,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:redstone_lamp"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -46430,6 +49878,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:redstone_torch"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -46454,6 +49904,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:repeater"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -46478,6 +49930,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:slime_block"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -46502,6 +49956,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:spruce_button"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -46526,6 +49982,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:spruce_door"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -46550,6 +50008,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:spruce_fence_gate"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -46574,6 +50034,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:spruce_pressure_plate"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -46598,6 +50060,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:spruce_trapdoor"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -46622,6 +50086,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:sticky_piston"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -46646,6 +50112,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:stone_button"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -46670,6 +50138,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:stone_pressure_plate"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -46701,6 +50171,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:target"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -46725,6 +50197,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:tnt"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -46749,6 +50223,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:trapped_chest"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -46773,6 +50249,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:tripwire_hook"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -46797,6 +50275,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:warped_button"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -46821,6 +50301,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:warped_door"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -46845,6 +50327,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:warped_fence_gate"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -46869,6 +50353,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:warped_pressure_plate"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -46893,6 +50379,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:warped_trapdoor"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -46917,6 +50405,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:waxed_copper_bulb"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -46941,6 +50431,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:waxed_copper_bulb_from_honeycomb"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -46965,6 +50457,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:waxed_copper_door_from_honeycomb"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -46989,6 +50483,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:waxed_copper_trapdoor_from_honeycomb"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -47013,6 +50509,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:waxed_exposed_copper_bulb"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -47039,6 +50537,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:waxed_exposed_copper_bulb_from_honeycomb"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -47065,6 +50565,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:waxed_exposed_copper_door_from_honeycomb"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -47091,6 +50593,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:waxed_exposed_copper_trapdoor_from_honeycomb"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -47115,6 +50619,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:waxed_oxidized_copper_bulb"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -47141,6 +50647,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:waxed_oxidized_copper_bulb_from_honeycomb"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -47167,6 +50675,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:waxed_oxidized_copper_door_from_honeycomb"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -47193,6 +50703,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:waxed_oxidized_copper_trapdoor_from_honeycomb"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -47217,6 +50729,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:waxed_weathered_copper_bulb"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -47243,6 +50757,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:waxed_weathered_copper_bulb_from_honeycomb"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -47269,6 +50785,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:waxed_weathered_copper_door_from_honeycomb"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -47295,6 +50813,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:waxed_weathered_copper_trapdoor_from_honeycomb"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -47319,6 +50839,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:weathered_copper_bulb"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -47334,6 +50856,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &[],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -47358,6 +50882,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:black_bundle"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -47382,6 +50908,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:blue_bundle"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -47406,6 +50934,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:brown_bundle"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -47430,6 +50960,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:brush"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -47454,6 +50986,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:bundle"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -47478,6 +51012,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:clock"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -47502,6 +51038,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:compass"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -47526,6 +51064,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:copper_axe"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -47550,6 +51090,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:copper_hoe"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -47574,6 +51116,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:copper_pickaxe"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -47598,6 +51142,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:copper_shovel"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -47622,6 +51168,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:cyan_bundle"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -47646,6 +51194,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:diamond_axe"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -47670,6 +51220,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:diamond_hoe"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -47694,6 +51246,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:diamond_pickaxe"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -47718,6 +51272,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:diamond_shovel"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -47742,6 +51298,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:fishing_rod"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -47773,6 +51331,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:flint_and_steel"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -47797,6 +51357,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:golden_axe"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -47821,6 +51383,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:golden_hoe"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -47845,6 +51409,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:golden_pickaxe"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -47869,6 +51435,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:golden_shovel"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -47893,6 +51461,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:gray_bundle"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -47917,6 +51487,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:green_bundle"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -47941,6 +51513,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:iron_axe"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -47965,6 +51539,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:iron_hoe"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -47989,6 +51565,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:iron_pickaxe"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -48013,6 +51591,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:iron_shovel"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -48037,6 +51617,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:lead"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -48061,6 +51643,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:light_blue_bundle"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -48085,6 +51669,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:light_gray_bundle"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -48109,6 +51695,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:lime_bundle"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -48133,6 +51721,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:magenta_bundle"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -48176,6 +51766,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:name_tag"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -48200,6 +51792,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:netherite_axe_smithing"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -48224,6 +51818,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:netherite_hoe_smithing"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -48248,6 +51844,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:netherite_pickaxe_smithing"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -48272,6 +51870,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:netherite_shovel_smithing"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -48296,6 +51896,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:orange_bundle"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -48320,6 +51922,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:pink_bundle"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -48344,6 +51948,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:purple_bundle"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -48368,6 +51974,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:recovery_compass"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -48392,6 +52000,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:red_bundle"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -48416,6 +52026,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:shears"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -48440,6 +52052,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:spyglass"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -48464,6 +52078,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:stone_axe"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -48488,6 +52104,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:stone_hoe"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -48512,6 +52130,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:stone_pickaxe"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -48536,6 +52156,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:stone_shovel"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -48560,6 +52182,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:white_bundle"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -48584,6 +52208,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:wooden_axe"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -48608,6 +52234,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:wooden_hoe"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -48632,6 +52260,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:wooden_pickaxe"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -48656,6 +52286,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:wooden_shovel"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -48680,6 +52312,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:yellow_bundle"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -48704,6 +52338,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:acacia_boat"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -48728,6 +52364,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:acacia_chest_boat"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -48752,6 +52390,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:activator_rail"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -48776,6 +52416,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:bamboo_chest_raft"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -48800,6 +52442,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:bamboo_raft"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -48824,6 +52468,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:birch_boat"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -48848,6 +52494,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:birch_chest_boat"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -48872,6 +52520,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:carrot_on_a_stick"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -48896,6 +52546,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:cherry_boat"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -48920,6 +52572,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:cherry_chest_boat"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -48944,6 +52598,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:chest_minecart"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -48968,6 +52624,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:dark_oak_boat"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -48992,6 +52650,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:dark_oak_chest_boat"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -49016,6 +52676,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:detector_rail"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -49040,6 +52702,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:furnace_minecart"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -49064,6 +52728,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:hopper_minecart"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -49088,6 +52754,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:jungle_boat"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -49112,6 +52780,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:jungle_chest_boat"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -49136,6 +52806,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:mangrove_boat"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -49160,6 +52832,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:mangrove_chest_boat"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -49184,6 +52858,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:minecart"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -49208,6 +52884,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:oak_boat"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -49232,6 +52910,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:oak_chest_boat"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -49256,6 +52936,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:pale_oak_boat"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -49280,6 +52962,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:pale_oak_chest_boat"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -49304,6 +52988,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:poplar_boat"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -49328,6 +53014,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:poplar_chest_boat"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -49352,6 +53040,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:powered_rail"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -49376,6 +53066,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:rail"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -49400,6 +53092,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:spruce_boat"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -49424,6 +53118,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:spruce_chest_boat"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -49448,6 +53144,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:tnt_minecart"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -49472,6 +53170,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &["minecraft:warped_fungus_on_a_stick"],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: false,
     },
@@ -49501,6 +53201,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &[],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: true,
     },
@@ -49532,6 +53234,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &[],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: true,
     },
@@ -49561,6 +53265,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &[],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: true,
     },
@@ -49590,6 +53296,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &[],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: true,
     },
@@ -49619,6 +53327,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &[],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: true,
     },
@@ -49650,6 +53360,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &[],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: true,
     },
@@ -49679,6 +53391,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &[],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: true,
     },
@@ -49708,6 +53422,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &[],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: true,
     },
@@ -49737,6 +53453,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &[],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: true,
     },
@@ -49766,6 +53484,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &[],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: true,
     },
@@ -49795,6 +53515,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &[],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: true,
     },
@@ -49852,6 +53574,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &[],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: true,
     },
@@ -49881,6 +53605,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &[],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: true,
     },
@@ -49938,6 +53664,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &[],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: true,
     },
@@ -49967,6 +53695,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &[],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: true,
     },
@@ -49996,6 +53726,8 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         rewards: Rewards {
             recipes: &[],
             experience: 0,
+            loot: &[],
+            function: None,
         },
         telemetry: true,
     },

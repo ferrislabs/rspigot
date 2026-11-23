@@ -202,6 +202,17 @@ pub fn parse(file: &PackFile, depth: f32, row: f32) -> Result<Advancement, DataE
                 .collect()
         })
         .unwrap_or_default();
+    let loot: Vec<&'static str> = rewards
+        .and_then(|rewards| rewards.get("loot"))
+        .and_then(Value::as_array)
+        .map(|tables| {
+            tables
+                .iter()
+                .filter_map(Value::as_str)
+                .map(leak_str)
+                .collect()
+        })
+        .unwrap_or_default();
     let experience = rewards
         .and_then(|rewards| rewards.get("experience"))
         .and_then(Value::as_i64)
@@ -218,6 +229,11 @@ pub fn parse(file: &PackFile, depth: f32, row: f32) -> Result<Advancement, DataE
         rewards: Rewards {
             recipes: leak_slice(recipes),
             experience: i32::try_from(experience).unwrap_or(0),
+            loot: leak_slice(loot),
+            function: rewards
+                .and_then(|rewards| rewards.get("function"))
+                .and_then(Value::as_str)
+                .map(leak_str),
         },
         telemetry: false,
     })

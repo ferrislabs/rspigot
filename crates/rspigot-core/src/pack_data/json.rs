@@ -1,16 +1,18 @@
 use rspigot_data::loot::{
-    BlockPredicate, Condition, DamageSourcePredicate, EnchantmentPredicate, EntityFlags,
-    EntityPredicate, EntityTarget, FloatProvider, IntProvider, IntRange, ItemPredicate,
-    LevelBasedValue, NumberProvider, TagPredicate,
+    Aggregate, AttributeValue, Binary, BlockPredicate, Condition, FloatExpr, FloatProvider,
+    IntExpr, IntProvider, IntRange, LevelBasedValue, NumberProvider, ScoreHolder, Unary,
 };
 use rspigot_data::registries;
 use rspigot_data::tags::HolderSet;
 use rspigot_domain::Identifier;
 use serde_json::{Map, Value};
 
+use super::predicates::{
+    block_predicate, damage_predicate, entity_predicate, item_predicate, target,
+};
+
 const BLOCK: &str = "minecraft:block";
 const ITEM: &str = "minecraft:item";
-const ENTITY_TYPE: &str = "minecraft:entity_type";
 
 #[derive(Debug, thiserror::Error)]
 pub enum DataError {
@@ -77,21 +79,35 @@ pub(super) fn required<'a>(map: &'a Map<String, Value>, key: &str) -> Parsed<&'a
     string_field(map, key)
 }
 
+fn constant(value: &Value) -> &Value {
+    match value {
+        Value::Object(map)
+            if map
+                .get("type")
+                .and_then(Value::as_str)
+                .is_some_and(|kind| kind == "minecraft:constant" || kind == "constant") =>
+        {
+            map.get("value").unwrap_or(value)
+        }
+        other => other,
+    }
+}
+
 fn number(value: &Value) -> Parsed<f64> {
-    match value.as_f64() {
+    match constant(value).as_f64() {
         Some(number) => Ok(number),
         None => invalid(format!("expected a number, found {value}")),
     }
 }
 
-fn whole(value: &Value) -> Parsed<i32> {
-    match value.as_i64().and_then(|n| i32::try_from(n).ok()) {
+pub(super) fn whole(value: &Value) -> Parsed<i32> {
+    match constant(value).as_i64().and_then(|n| i32::try_from(n).ok()) {
         Some(number) => Ok(number),
         None => invalid(format!("expected an integer, found {value}")),
     }
 }
 
-fn flag(value: &Value) -> Parsed<bool> {
+pub(super) fn flag(value: &Value) -> Parsed<bool> {
     match value.as_bool() {
         Some(flag) => Ok(flag),
         None => invalid(format!("expected a boolean, found {value}")),
@@ -137,75 +153,378 @@ pub(super) fn holder_set(registry: &str, value: &Value) -> Parsed<HolderSet> {
     }
 }
 
-pub(super) fn int_provider(value: &Value) -> Parsed<IntProvider> {
+fn simple_int(value: &Value) -> Option<IntProvider> {
     match value {
-        Value::Number(_) => Ok(IntProvider::Constant(whole(value)?)),
+        Value::Number(_) => whole(value).ok().map(IntProvider::Constant),
+        Value::Object(map) => match provider_kind(map).ok()?.as_str() {
+            "constant" => whole(map.get("value")?).ok().map(IntProvider::Constant),
+            "uniform" => Some(IntProvider::Uniform {
+                min: whole(map.get("min")?).ok()?,
+                max: whole(map.get("max")?).ok()?,
+            }),
+            "binomial" => Some(IntProvider::Binomial {
+                n: whole(map.get("n")?).ok()?,
+                p: number(map.get("p")?).ok()? as f32,
+            }),
+            _ => None,
+        },
+        _ => None,
+    }
+}
+
+fn simple_float(value: &Value) -> Option<FloatProvider> {
+    match value {
+        Value::Number(_) => number(value)
+            .ok()
+            .map(|n| FloatProvider::Constant(n as f32)),
+        Value::Object(map) => match provider_kind(map).ok()?.as_str() {
+            "constant" => number(map.get("value")?)
+                .ok()
+                .map(|n| FloatProvider::Constant(n as f32)),
+            "uniform" => Some(FloatProvider::Uniform {
+                min: number(map.get("min")?).ok()? as f32,
+                max: number(map.get("max")?).ok()? as f32,
+            }),
+            _ => None,
+        },
+        _ => None,
+    }
+}
+
+fn provider_kind(map: &Map<String, Value>) -> Parsed<String> {
+    match map.get("type") {
+        Some(Value::String(kind)) => Ok(kind.strip_prefix("minecraft:").unwrap_or(kind).to_owned()),
+        Some(other) => invalid(format!("bad provider type {other}")),
+        None if map.contains_key("min") => Ok("uniform".to_owned()),
+        None => invalid("missing \"type\""),
+    }
+}
+
+fn input_list<T>(
+    map: &Map<String, Value>,
+    key: &str,
+    parse: impl Fn(&Value) -> Parsed<T>,
+) -> Parsed<&'static [T]> {
+    let items = match required(map, key)? {
+        Value::Array(items) => items.iter().map(&parse).collect::<Parsed<Vec<T>>>()?,
+        single => vec![parse(single)?],
+    };
+    Ok(leak_slice(items))
+}
+
+fn aggregate(kind: &str) -> Option<Aggregate> {
+    Some(match kind {
+        "add" => Aggregate::Sum,
+        "mul" => Aggregate::Product,
+        "avg" => Aggregate::Average,
+        "min" => Aggregate::Minimum,
+        "max" => Aggregate::Maximum,
+        "length" => Aggregate::Length,
+        _ => return None,
+    })
+}
+
+fn unary(kind: &str) -> Option<Unary> {
+    Some(match kind {
+        "abs" => Unary::Absolute,
+        "negate" => Unary::Negate,
+        "ceil" => Unary::Ceiling,
+        "floor" => Unary::Floor,
+        "round" => Unary::Round,
+        "truncate" => Unary::Truncate,
+        "sin" => Unary::Sine,
+        "cos" => Unary::Cosine,
+        "sqrt" => Unary::SquareRoot,
+        _ => return None,
+    })
+}
+
+fn binary(kind: &str) -> Option<Binary> {
+    Some(match kind {
+        "sub" => Binary::Difference,
+        "div" => Binary::Quotient,
+        "floor_div" => Binary::FloorQuotient,
+        "mod" => Binary::Modulus,
+        "floor_mod" => Binary::FloorModulus,
+        _ => return None,
+    })
+}
+
+fn weights<T>(
+    map: &Map<String, Value>,
+    parse: impl Fn(&Value) -> Parsed<T>,
+) -> Parsed<&'static [(T, i32)]> {
+    let Value::Array(list) = required(map, "distribution")? else {
+        return invalid("\"distribution\" must be a list");
+    };
+    let mut entries = Vec::with_capacity(list.len());
+    for entry in list {
+        let entry = object(entry)?;
+        entries.push((
+            parse(required(entry, "data")?)?,
+            whole(required(entry, "weight")?)?,
+        ));
+    }
+    Ok(leak_slice(entries))
+}
+
+fn cases<T>(
+    map: &Map<String, Value>,
+    parse: impl Fn(&Value) -> Parsed<T>,
+) -> Parsed<&'static [(Condition, T)]> {
+    let Value::Array(list) = required(map, "cases")? else {
+        return invalid("\"cases\" must be a list");
+    };
+    let mut parsed = Vec::with_capacity(list.len());
+    for case in list {
+        let case = object(case)?;
+        parsed.push((
+            condition(required(case, "condition")?)?,
+            parse(required(case, "value")?)?,
+        ));
+    }
+    Ok(leak_slice(parsed))
+}
+
+fn score_holder(value: &Value) -> Parsed<ScoreHolder> {
+    let map = object(value)?;
+    match kind_of(map, "type")?.as_str() {
+        "minecraft:context" => Ok(ScoreHolder::Context(target(required(map, "target")?)?)),
+        "minecraft:fixed" => match required(map, "name")?.as_str() {
+            Some(holder) => Ok(ScoreHolder::Fixed(leak_text(holder.to_owned()))),
+            None => invalid("score holder name must be a string"),
+        },
+        other => unsupported(format!("score holder {other}")),
+    }
+}
+
+fn storage_pair(map: &Map<String, Value>) -> Parsed<(&'static str, &'static str)> {
+    let path = match required(map, "path")?.as_str() {
+        Some(path) if rspigot_nbt::NbtPath::parse(path).is_ok() => path,
+        _ => return invalid("bad storage path"),
+    };
+    Ok((
+        leak_text(name(required(map, "storage")?)?),
+        leak_text(path.to_owned()),
+    ))
+}
+
+fn attribute_name(map: &Map<String, Value>) -> Parsed<&'static str> {
+    let text = name(required(map, "attribute")?)?;
+    registry_id("minecraft:environment_attribute", &text)?;
+    Ok(leak_text(text))
+}
+
+fn zero_int() -> &'static IntExpr {
+    leak(IntExpr::Constant(0))
+}
+
+fn zero_float() -> &'static FloatExpr {
+    leak(FloatExpr::Constant(0.0))
+}
+
+fn int_child(map: &Map<String, Value>, key: &str) -> Parsed<&'static IntExpr> {
+    int_expr(required(map, key)?).map(leak)
+}
+
+fn float_child(map: &Map<String, Value>, key: &str) -> Parsed<&'static FloatExpr> {
+    float_expr(required(map, key)?).map(leak)
+}
+
+pub(super) fn int_expr(value: &Value) -> Parsed<IntExpr> {
+    match value {
+        Value::Number(_) => Ok(IntExpr::Constant(whole(value)?)),
+        Value::String(_) => Ok(IntExpr::Reference(leak_text(name(value)?))),
         Value::Object(map) => {
-            let kind =
-                map.get("type")
-                    .and_then(Value::as_str)
-                    .unwrap_or(if map.contains_key("min") {
-                        "minecraft:uniform"
-                    } else {
-                        ""
-                    });
-            match kind {
-                "minecraft:constant" | "constant" => {
-                    Ok(IntProvider::Constant(whole(required(map, "value")?)?))
+            let kind = provider_kind(map)?;
+            if let Some(op) = aggregate(&kind).filter(|op| *op != Aggregate::Length) {
+                return Ok(IntExpr::Aggregate {
+                    op,
+                    inputs: input_list(map, "inputs", int_expr)?,
+                });
+            }
+            if let Some(op) = binary(&kind) {
+                return Ok(IntExpr::Binary {
+                    op,
+                    left: int_child(map, "left")?,
+                    right: int_child(map, "right")?,
+                });
+            }
+            match kind.as_str() {
+                "constant" => Ok(IntExpr::Constant(whole(required(map, "value")?)?)),
+                "uniform" => Ok(IntExpr::Uniform {
+                    min: int_child(map, "min")?,
+                    max: int_child(map, "max")?,
+                }),
+                "binomial" => Ok(IntExpr::Binomial {
+                    n: int_child(map, "n")?,
+                    p: float_child(map, "p")?,
+                }),
+                "abs" | "negate" => Ok(IntExpr::Unary {
+                    op: unary(&kind).unwrap_or(Unary::Absolute),
+                    input: int_child(map, "input")?,
+                }),
+                "pow" => Ok(IntExpr::Power {
+                    base: int_child(map, "base")?,
+                    exponent: int_child(map, "exponent")?,
+                }),
+                "from_float" => Ok(IntExpr::FromFloat(float_child(map, "input")?)),
+                "conditional" => Ok(IntExpr::Conditional {
+                    condition: leak(condition(required(map, "condition")?)?),
+                    on_true: int_child(map, "on_true")?,
+                    on_false: match map.get("on_false") {
+                        Some(found) => leak(int_expr(found)?),
+                        None => zero_int(),
+                    },
+                }),
+                "number_dispatcher" => Ok(IntExpr::Dispatch {
+                    cases: cases(map, int_expr)?,
+                    default: match map.get("default") {
+                        Some(found) => leak(int_expr(found)?),
+                        None => zero_int(),
+                    },
+                }),
+                "weighted_list" => Ok(IntExpr::Weighted(weights(map, int_expr)?)),
+                "score" => Ok(IntExpr::Score {
+                    holder: score_holder(required(map, "target")?)?,
+                    objective: match required(map, "score")?.as_str() {
+                        Some(objective) => leak_text(objective.to_owned()),
+                        None => return invalid("\"score\" must be a string"),
+                    },
+                    fallback: match map.get("fallback") {
+                        Some(found) => leak(int_expr(found)?),
+                        None => zero_int(),
+                    },
+                }),
+                "storage" => {
+                    let (storage, path) = storage_pair(map)?;
+                    Ok(IntExpr::Storage {
+                        storage,
+                        path,
+                        fallback: match map.get("fallback") {
+                            Some(found) => leak(int_expr(found)?),
+                            None => zero_int(),
+                        },
+                    })
                 }
-                "minecraft:uniform" | "uniform" => Ok(IntProvider::Uniform {
-                    min: whole(required(map, "min")?)?,
-                    max: whole(required(map, "max")?)?,
-                }),
-                "minecraft:binomial" | "binomial" => Ok(IntProvider::Binomial {
-                    n: whole(required(map, "n")?)?,
-                    p: number(required(map, "p")?)? as f32,
-                }),
-                other => unsupported(format!("number provider \"{other}\"")),
+                "environment_attribute" => Ok(IntExpr::Attribute(attribute_name(map)?)),
+                other => unsupported(format!("int provider \"{other}\"")),
             }
         }
         other => invalid(format!("expected a number provider, found {other}")),
+    }
+}
+
+pub(super) fn float_expr(value: &Value) -> Parsed<FloatExpr> {
+    match value {
+        Value::Number(_) => Ok(FloatExpr::Constant(number(value)? as f32)),
+        Value::String(_) => Ok(FloatExpr::Reference(leak_text(name(value)?))),
+        Value::Object(map) => {
+            let kind = provider_kind(map)?;
+            if let Some(op) = aggregate(&kind) {
+                return Ok(FloatExpr::Aggregate {
+                    op,
+                    inputs: input_list(map, "inputs", float_expr)?,
+                });
+            }
+            if let Some(op) = binary(&kind)
+                .filter(|op| matches!(op, Binary::Difference | Binary::Quotient | Binary::Modulus))
+            {
+                return Ok(FloatExpr::Binary {
+                    op,
+                    left: float_child(map, "left")?,
+                    right: float_child(map, "right")?,
+                });
+            }
+            if let Some(op) = unary(&kind) {
+                return Ok(FloatExpr::Unary {
+                    op,
+                    input: float_child(map, "input")?,
+                });
+            }
+            match kind.as_str() {
+                "constant" => Ok(FloatExpr::Constant(number(required(map, "value")?)? as f32)),
+                "uniform" => Ok(FloatExpr::Uniform {
+                    min: float_child(map, "min")?,
+                    max: float_child(map, "max")?,
+                }),
+                "pow" => Ok(FloatExpr::Power {
+                    base: float_child(map, "base")?,
+                    exponent: float_child(map, "exponent")?,
+                }),
+                "from_int" => Ok(FloatExpr::FromInt(int_child(map, "input")?)),
+                "enchantment_level" => Ok(FloatExpr::EnchantmentLevel(level_based(required(
+                    map, "amount",
+                )?)?)),
+                "conditional" => Ok(FloatExpr::Conditional {
+                    condition: leak(condition(required(map, "condition")?)?),
+                    on_true: float_child(map, "on_true")?,
+                    on_false: match map.get("on_false") {
+                        Some(found) => leak(float_expr(found)?),
+                        None => zero_float(),
+                    },
+                }),
+                "number_dispatcher" => Ok(FloatExpr::Dispatch {
+                    cases: cases(map, float_expr)?,
+                    default: match map.get("default") {
+                        Some(found) => leak(float_expr(found)?),
+                        None => zero_float(),
+                    },
+                }),
+                "weighted_list" => Ok(FloatExpr::Weighted(weights(map, float_expr)?)),
+                "storage" => {
+                    let (storage, path) = storage_pair(map)?;
+                    Ok(FloatExpr::Storage {
+                        storage,
+                        path,
+                        fallback: match map.get("fallback") {
+                            Some(found) => leak(float_expr(found)?),
+                            None => zero_float(),
+                        },
+                    })
+                }
+                "environment_attribute" => Ok(FloatExpr::Attribute(attribute_name(map)?)),
+                other => unsupported(format!("float provider \"{other}\"")),
+            }
+        }
+        other => invalid(format!("expected a number provider, found {other}")),
+    }
+}
+
+pub(super) fn int_provider(value: &Value) -> Parsed<IntProvider> {
+    match simple_int(value) {
+        Some(simple) => Ok(simple),
+        None => Ok(IntProvider::Expr(leak(int_expr(value)?))),
     }
 }
 
 pub(super) fn float_provider(value: &Value) -> Parsed<FloatProvider> {
-    match number_provider(value)? {
-        NumberProvider::Constant(value) => Ok(FloatProvider::Constant(value)),
-        NumberProvider::Uniform { min, max } => Ok(FloatProvider::Uniform { min, max }),
-        NumberProvider::Binomial { .. } => unsupported("binomial float provider"),
+    match simple_float(value) {
+        Some(simple) => Ok(simple),
+        None => Ok(FloatProvider::Expr(leak(float_expr(value)?))),
+    }
+}
+
+fn number_provider_as(value: &Value, integral: bool) -> Parsed<NumberProvider> {
+    if let Some(simple) = simple_float(value) {
+        return Ok(match simple {
+            FloatProvider::Constant(constant) => NumberProvider::Constant(constant),
+            FloatProvider::Uniform { min, max } => NumberProvider::Uniform { min, max },
+            FloatProvider::Expr(expr) => NumberProvider::Float(expr),
+        });
+    }
+    if let Some(IntProvider::Binomial { n, p }) = simple_int(value) {
+        return Ok(NumberProvider::Binomial { n, p });
+    }
+    if integral {
+        Ok(NumberProvider::Int(leak(int_expr(value)?)))
+    } else {
+        Ok(NumberProvider::Float(leak(float_expr(value)?)))
     }
 }
 
 pub(super) fn number_provider(value: &Value) -> Parsed<NumberProvider> {
-    match value {
-        Value::Number(_) => Ok(NumberProvider::Constant(number(value)? as f32)),
-        Value::Object(map) => {
-            let kind =
-                map.get("type")
-                    .and_then(Value::as_str)
-                    .unwrap_or(if map.contains_key("min") {
-                        "minecraft:uniform"
-                    } else {
-                        ""
-                    });
-            match kind {
-                "minecraft:constant" | "constant" => Ok(NumberProvider::Constant(number(required(
-                    map, "value",
-                )?)?
-                    as f32)),
-                "minecraft:uniform" | "uniform" => Ok(NumberProvider::Uniform {
-                    min: number(required(map, "min")?)? as f32,
-                    max: number(required(map, "max")?)? as f32,
-                }),
-                "minecraft:binomial" | "binomial" => Ok(NumberProvider::Binomial {
-                    n: whole(required(map, "n")?)?,
-                    p: number(required(map, "p")?)? as f32,
-                }),
-                other => unsupported(format!("number provider \"{other}\"")),
-            }
-        }
-        other => invalid(format!("expected a number provider, found {other}")),
-    }
+    number_provider_as(value, false)
 }
 
 pub(super) fn int_range(value: &Value) -> Parsed<IntRange> {
@@ -265,166 +584,6 @@ fn level_based(value: &Value) -> Parsed<LevelBasedValue> {
     }
 }
 
-fn state_pairs(value: &Value) -> Parsed<&'static [(&'static str, &'static str)]> {
-    let mut pairs = Vec::new();
-    for (key, wanted) in object(value)? {
-        let text = match wanted {
-            Value::String(text) => text.clone(),
-            Value::Bool(flag) => flag.to_string(),
-            Value::Number(number) => number.to_string(),
-            _ => return unsupported(format!("block state range for \"{key}\"")),
-        };
-        pairs.push((leak_text(key.clone()), leak_text(text)));
-    }
-    Ok(leak_slice(pairs))
-}
-
-fn block_predicate(value: &Value) -> Parsed<BlockPredicate> {
-    let map = object(value)?;
-    only_keys(map, &["blocks", "state"], "block predicate")?;
-    Ok(BlockPredicate {
-        blocks: map
-            .get("blocks")
-            .map(|blocks| holder_set(BLOCK, blocks))
-            .transpose()?,
-        state: map.get("state").map_or(Ok(&[][..]), state_pairs)?,
-    })
-}
-
-fn enchantment_predicate(value: &Value) -> Parsed<EnchantmentPredicate> {
-    let map = object(value)?;
-    only_keys(map, &["enchantments", "levels"], "enchantment predicate")?;
-    let names = match map.get("enchantments") {
-        None => None,
-        Some(Value::String(text)) if text.starts_with('#') => {
-            return unsupported("enchantment tags in an enchantment predicate");
-        }
-        Some(Value::String(_)) => Some(vec![leak_text(name(&map["enchantments"])?)]),
-        Some(Value::Array(items)) => {
-            let mut names = Vec::new();
-            for item in items {
-                names.push(leak_text(name(item)?));
-            }
-            Some(names)
-        }
-        Some(other) => return invalid(format!("bad enchantments {other}")),
-    };
-    Ok(EnchantmentPredicate {
-        enchantments: names.map(leak_slice),
-        levels: map.get("levels").map(int_range).transpose()?,
-    })
-}
-
-fn item_predicate(value: &Value) -> Parsed<ItemPredicate> {
-    let map = object(value)?;
-    only_keys(map, &["items", "predicates"], "item predicate")?;
-    let mut enchantments = Vec::new();
-    if let Some(predicates) = map.get("predicates") {
-        let predicates = object(predicates)?;
-        only_keys(
-            predicates,
-            &["minecraft:enchantments"],
-            "item sub-predicate",
-        )?;
-        if let Some(Value::Array(list)) = predicates.get("minecraft:enchantments") {
-            for entry in list {
-                enchantments.push(enchantment_predicate(entry)?);
-            }
-        }
-    }
-    Ok(ItemPredicate {
-        items: map
-            .get("items")
-            .map(|items| holder_set(ITEM, items))
-            .transpose()?,
-        enchantments: leak_slice(enchantments),
-    })
-}
-
-fn entity_predicate(value: &Value) -> Parsed<EntityPredicate> {
-    let map = object(value)?;
-    only_keys(
-        map,
-        &["type", "flags", "equipment", "vehicle"],
-        "entity predicate",
-    )?;
-    let mut flags = EntityFlags {
-        baby: None,
-        on_fire: None,
-    };
-    if let Some(found) = map.get("flags") {
-        let found = object(found)?;
-        only_keys(found, &["is_baby", "is_on_fire"], "entity flag")?;
-        flags.baby = optional_flag(found, "is_baby")?;
-        flags.on_fire = optional_flag(found, "is_on_fire")?;
-    }
-    let mainhand = match map.get("equipment") {
-        Some(equipment) => {
-            let equipment = object(equipment)?;
-            only_keys(equipment, &["mainhand"], "equipment slot")?;
-            equipment.get("mainhand").map(item_predicate).transpose()?
-        }
-        None => None,
-    };
-    Ok(EntityPredicate {
-        kind: map
-            .get("type")
-            .map(|kind| holder_set(ENTITY_TYPE, kind))
-            .transpose()?,
-        flags,
-        mainhand,
-        vehicle: map
-            .get("vehicle")
-            .map(|vehicle| entity_predicate(vehicle).map(leak))
-            .transpose()?,
-        components: &[],
-        sub: &[],
-    })
-}
-
-fn target(value: &Value) -> Parsed<EntityTarget> {
-    match value.as_str() {
-        Some("this") => Ok(EntityTarget::This),
-        Some("attacker") => Ok(EntityTarget::Attacker),
-        Some("direct_attacker") => Ok(EntityTarget::DirectAttacker),
-        Some("attacking_player") => Ok(EntityTarget::AttackingPlayer),
-        Some("target_entity") => Ok(EntityTarget::TargetEntity),
-        Some("interacting_entity") => Ok(EntityTarget::InteractingEntity),
-        _ => invalid(format!("unknown entity target {value}")),
-    }
-}
-
-fn damage_predicate(value: &Value) -> Parsed<DamageSourcePredicate> {
-    let map = object(value)?;
-    only_keys(
-        map,
-        &["tags", "source_entity", "direct_entity", "is_direct"],
-        "damage source predicate",
-    )?;
-    let mut tags = Vec::new();
-    if let Some(Value::Array(list)) = map.get("tags") {
-        for entry in list {
-            let entry = object(entry)?;
-            tags.push(TagPredicate {
-                tag: leak_text(name(required(entry, "id")?)?),
-                expected: flag(required(entry, "expected")?)?,
-            });
-        }
-    }
-    Ok(DamageSourcePredicate {
-        tags: leak_slice(tags),
-        source_entity: map
-            .get("source_entity")
-            .map(|entity| entity_predicate(entity).map(leak))
-            .transpose()?,
-        direct_entity: map
-            .get("direct_entity")
-            .map(|entity| entity_predicate(entity).map(leak))
-            .transpose()?,
-        is_direct: optional_flag(map, "is_direct")?,
-    })
-}
-
 fn terms(map: &Map<String, Value>) -> Parsed<&'static [Condition]> {
     let Some(Value::Array(list)) = map.get("terms") else {
         return invalid("missing \"terms\"");
@@ -436,12 +595,69 @@ fn terms(map: &Map<String, Value>) -> Parsed<&'static [Condition]> {
     Ok(leak_slice(parsed))
 }
 
-pub fn condition(value: &Value) -> Parsed<Condition> {
-    let map = object(value)?;
-    let kind = match map.get("condition").and_then(Value::as_str) {
-        Some(kind) => name(&Value::from(kind))?,
-        None => return invalid("missing \"condition\""),
+fn constant_chance(value: &Value) -> Parsed<f32> {
+    match number_provider(value)? {
+        NumberProvider::Constant(chance) => Ok(chance),
+        _ => unsupported("non constant chance"),
+    }
+}
+
+fn biome_names(wanted: &Value) -> Parsed<&'static [&'static str]> {
+    match wanted {
+        Value::String(text) if text.starts_with('#') => {
+            unsupported("biome tags in a location predicate")
+        }
+        Value::String(_) => Ok(leak_slice(vec![leak_text(name(wanted)?)])),
+        Value::Array(items) => {
+            let mut names = Vec::new();
+            for item in items {
+                names.push(leak_text(name(item)?));
+            }
+            Ok(leak_slice(names))
+        }
+        other => invalid(format!("bad biomes {other}")),
+    }
+}
+
+fn value_check(map: &Map<String, Value>, integral: bool) -> Parsed<Condition> {
+    let provider = |value: &Value| number_provider_as(value, integral);
+    let (min, max) = match required(map, "range")? {
+        Value::Object(range) if range.contains_key("min") || range.contains_key("max") => (
+            range.get("min").map(provider).transpose()?,
+            range.get("max").map(provider).transpose()?,
+        ),
+        other => {
+            let exact = provider(other)?;
+            (Some(exact), Some(exact))
+        }
     };
+    Ok(Condition::ValueCheck {
+        value: provider(required(map, "value")?)?,
+        min,
+        max,
+    })
+}
+
+pub(super) fn kind_of(map: &Map<String, Value>, legacy: &str) -> Parsed<String> {
+    match map.get("type").or_else(|| map.get(legacy)) {
+        Some(Value::String(kind)) => name(&Value::from(kind.as_str())),
+        _ => invalid("missing \"type\""),
+    }
+}
+
+pub fn condition(value: &Value) -> Parsed<Condition> {
+    if let Value::String(_) = value {
+        return Ok(Condition::Reference(leak_text(name(value)?)));
+    }
+    if let Value::Array(list) = value {
+        let mut parsed = Vec::with_capacity(list.len());
+        for item in list {
+            parsed.push(condition(item)?);
+        }
+        return Ok(Condition::AllOf(leak_slice(parsed)));
+    }
+    let map = object(value)?;
+    let kind = kind_of(map, "condition")?;
     match kind.as_str() {
         "minecraft:inverted" => Ok(Condition::Inverted(leak(condition(required(
             map, "term",
@@ -450,17 +666,24 @@ pub fn condition(value: &Value) -> Parsed<Condition> {
         "minecraft:any_of" => Ok(Condition::AnyOf(terms(map)?)),
         "minecraft:killed_by_player" => Ok(Condition::KilledByPlayer),
         "minecraft:survives_explosion" => Ok(Condition::SurvivesExplosion),
-        "minecraft:random_chance" => match number_provider(required(map, "chance")?)? {
-            NumberProvider::Constant(chance) => Ok(Condition::RandomChance(chance)),
-            _ => unsupported("random_chance with a non constant chance"),
+        "minecraft:random_chance" => match required(map, "chance")? {
+            Value::Object(chance)
+                if chance.get("type").and_then(Value::as_str)
+                    == Some("minecraft:enchantment_level") =>
+            {
+                Ok(Condition::RandomChanceByLevel(level_based(required(
+                    chance, "amount",
+                )?)?))
+            }
+            other => match number_provider(other)? {
+                NumberProvider::Constant(chance) => Ok(Condition::RandomChance(chance)),
+                provider => Ok(Condition::RandomChanceRolled(provider)),
+            },
         },
         "minecraft:random_chance_with_enchanted_bonus" => {
             Ok(Condition::RandomChanceWithEnchantedBonus {
                 enchantment: leak_text(name(required(map, "enchantment")?)?),
-                unenchanted_chance: match number_provider(required(map, "unenchanted_chance")?)? {
-                    NumberProvider::Constant(chance) => chance,
-                    _ => return unsupported("non constant unenchanted_chance"),
-                },
+                unenchanted_chance: constant_chance(required(map, "unenchanted_chance")?)?,
                 enchanted_chance: level_based(required(map, "enchanted_chance")?)?,
             })
         }
@@ -481,8 +704,22 @@ pub fn condition(value: &Value) -> Parsed<Condition> {
             let block = registry_id(BLOCK, &name(required(map, "block")?)?)?;
             Ok(Condition::MatchBlock(BlockPredicate {
                 blocks: Some(HolderSet::Direct(leak_slice(vec![block]))),
-                state: map.get("properties").map_or(Ok(&[][..]), state_pairs)?,
+                state: match map.get("properties") {
+                    Some(properties) => {
+                        let wrapped = serde_json::json!({ "state": properties });
+                        block_predicate(&wrapped)?.state
+                    }
+                    None => &[],
+                },
             }))
+        }
+        "minecraft:match_block" => {
+            let mut rest = map.clone();
+            rest.remove("type");
+            rest.remove("condition");
+            Ok(Condition::MatchBlock(block_predicate(&Value::Object(
+                rest,
+            ))?))
         }
         "minecraft:match_tool" => Ok(Condition::MatchTool(item_predicate(required(
             map,
@@ -491,7 +728,14 @@ pub fn condition(value: &Value) -> Parsed<Condition> {
         "minecraft:location_check" => {
             only_keys(
                 map,
-                &["condition", "offsetX", "offsetY", "offsetZ", "predicate"],
+                &[
+                    "type",
+                    "condition",
+                    "offsetX",
+                    "offsetY",
+                    "offsetZ",
+                    "predicate",
+                ],
                 "location_check",
             )?;
             let offset = |key: &str| map.get(key).map_or(Ok(0), whole);
@@ -502,20 +746,7 @@ pub fn condition(value: &Value) -> Parsed<Condition> {
                 only_keys(predicate, &["block", "biomes"], "location predicate")?;
                 block = predicate.get("block").map(block_predicate).transpose()?;
                 if let Some(wanted) = predicate.get("biomes") {
-                    biomes = match wanted {
-                        Value::String(text) if text.starts_with('#') => {
-                            return unsupported("biome tags in a location predicate");
-                        }
-                        Value::String(_) => leak_slice(vec![leak_text(name(wanted)?)]),
-                        Value::Array(items) => {
-                            let mut names = Vec::new();
-                            for item in items {
-                                names.push(leak_text(name(item)?));
-                            }
-                            leak_slice(names)
-                        }
-                        other => return invalid(format!("bad biomes {other}")),
-                    };
+                    biomes = biome_names(wanted)?;
                 }
             }
             Ok(Condition::LocationCheck {
@@ -540,6 +771,10 @@ pub fn condition(value: &Value) -> Parsed<Condition> {
         "minecraft:time_check" => {
             let (min, max) = float_bounds(required(map, "value")?)?;
             Ok(Condition::TimeCheck {
+                clock: map
+                    .get("clock")
+                    .map(|clock| name(clock).map(leak_text))
+                    .transpose()?,
                 period: map
                     .get("period")
                     .map(|period| number(period).map(|n| n as i64))
@@ -552,22 +787,22 @@ pub fn condition(value: &Value) -> Parsed<Condition> {
             raining: optional_flag(map, "raining")?,
             thundering: optional_flag(map, "thundering")?,
         }),
-        "minecraft:value_check" => {
-            let (min, max) = match required(map, "range")? {
-                Value::Number(_) => {
-                    let exact = number_provider(&map["range"])?;
-                    (Some(exact), Some(exact))
-                }
-                Value::Object(range) => (
-                    range.get("min").map(number_provider).transpose()?,
-                    range.get("max").map(number_provider).transpose()?,
-                ),
-                other => return invalid(format!("bad range {other}")),
+        "minecraft:int_value_check" => value_check(map, true),
+        "minecraft:float_value_check" => value_check(map, false),
+        "minecraft:enchantment_active_check" => match required(map, "active")?.as_bool() {
+            Some(active) => Ok(Condition::EnchantmentActive(active)),
+            None => invalid("\"active\" must be a boolean"),
+        },
+        "minecraft:environment_attribute_check" => {
+            let value = match required(map, "value")? {
+                Value::Bool(flag) => AttributeValue::Bool(*flag),
+                Value::Number(found) => AttributeValue::Float(found.as_f64().unwrap_or(0.0) as f32),
+                Value::String(text) => AttributeValue::Text(leak_text(text.clone())),
+                other => return unsupported(format!("environment attribute value {other}")),
             };
-            Ok(Condition::ValueCheck {
-                value: number_provider(required(map, "value")?)?,
-                min,
-                max,
+            Ok(Condition::EnvironmentAttributeCheck {
+                attribute: attribute_name(map)?,
+                value,
             })
         }
         "minecraft:entity_scores" => {
@@ -585,19 +820,13 @@ pub fn condition(value: &Value) -> Parsed<Condition> {
 }
 
 pub fn predicate_file(value: &Value) -> Parsed<Condition> {
-    match value {
-        Value::Array(list) => {
-            let mut parsed = Vec::with_capacity(list.len());
-            for item in list {
-                parsed.push(condition(item)?);
-            }
-            Ok(Condition::AllOf(leak_slice(parsed)))
-        }
-        other => condition(other),
-    }
+    condition(value)
 }
 
 pub(super) fn conditions(map: &Map<String, Value>) -> Parsed<Option<Condition>> {
+    if let Some(found) = map.get("condition") {
+        return condition(found).map(Some);
+    }
     let Some(Value::Array(list)) = map.get("conditions") else {
         return Ok(None);
     };

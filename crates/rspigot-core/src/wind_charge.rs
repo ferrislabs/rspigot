@@ -202,6 +202,7 @@ impl<L: ClientLink> Server<L> {
             });
         }
         let knocked = std::mem::replace(&mut self.impacts.knocked, outer).unwrap_or_default();
+        self.trigger_blocks_in_burst(center, radius);
         self.send_burst(center, radius, &knocked, sound);
     }
 

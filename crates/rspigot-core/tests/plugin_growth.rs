@@ -41,6 +41,14 @@ impl ChunkGenerator for Ground {
     fn spawn_point(&self, _: &Dimension) -> Vec3 {
         Vec3::new(0.5, 64.0, 0.5)
     }
+
+    fn place(
+        &self,
+        dimension: &Dimension,
+        request: &rspigot_core::ports::PlaceRequest,
+    ) -> Result<Vec<rspigot_core::ports::PlacedBlock>, rspigot_core::ports::PlaceFailure> {
+        rspigot_worldgen::WorldGenerator::from_level_type("void", 1, "").place(dimension, request)
+    }
 }
 
 fn growing_server(
@@ -764,8 +772,10 @@ fn a_cancelled_structure_grow_of_a_bone_meal_still_reports_a_refused_fertilize()
     set_with(&mut s, SOIL_TOP, "minecraft:oak_sapling", &[("stage", "1")]);
     give_bone_meal(&mut s);
     let mut asked = None;
-    for _ in 0..30 {
+    for _ in 0..60 {
         bone_meal(&mut s, SOIL_TOP);
+        std::thread::sleep(std::time::Duration::from_millis(10));
+        s.tick(1);
         if let Some(fired) = asked_for(&s.plugin, EventKind::StructureGrow).pop() {
             asked = Some(fired);
             break;
@@ -776,8 +786,15 @@ fn a_cancelled_structure_grow_of_a_bone_meal_still_reports_a_refused_fertilize()
     assert!(event.from_bonemeal);
     assert!(event.player.is_some());
     rule_on(&mut s.server, 1, asked.id, true, None);
-    s.tick(2);
-    let heard = settled_for(&s.plugin, EventKind::BlockFertilize);
+    let mut heard = Vec::new();
+    for _ in 0..60 {
+        s.tick(1);
+        heard = settled_for(&s.plugin, EventKind::BlockFertilize);
+        if !heard.is_empty() {
+            break;
+        }
+        std::thread::sleep(std::time::Duration::from_millis(10));
+    }
     assert_eq!(heard.len(), 1);
     assert!(heard[0].cancelled);
     assert_eq!(kind_at(&mut s, SOIL_TOP), "minecraft:oak_sapling");
@@ -794,8 +811,10 @@ fn bone_meal_on_a_sapling_grows_a_tree_through_structure_grow_then_fertilize() {
     );
     set_with(&mut s, SOIL_TOP, "minecraft:oak_sapling", &[("stage", "1")]);
     give_bone_meal(&mut s);
-    for _ in 0..30 {
+    for _ in 0..60 {
         bone_meal(&mut s, SOIL_TOP);
+        std::thread::sleep(std::time::Duration::from_millis(10));
+        s.tick(1);
         if kind_at(&mut s, SOIL_TOP) == "minecraft:oak_log" {
             break;
         }

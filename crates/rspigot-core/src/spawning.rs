@@ -518,10 +518,19 @@ impl<L: ClientLink> Server<L> {
         }
     }
 
+    fn grow_inhabited_time(&mut self, players: &[SpawnPlayer]) {
+        for chunk in spawn_candidates(players) {
+            if self.chunk_ticking(chunk) && any_player_close_for_spawning(players, chunk, None) {
+                self.world.chunks.add_inhabited_time(chunk, 1);
+            }
+        }
+    }
+
     pub(crate) fn tick_spawning(&mut self) {
         self.update_spawning();
         self.tick_village_siege();
         let players = self.spawning.players.clone();
+        self.grow_inhabited_time(&players);
         if players.is_empty() || !self.world.level.spawn_mobs {
             return;
         }

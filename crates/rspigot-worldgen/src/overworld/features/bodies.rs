@@ -263,10 +263,11 @@ impl<'a> Compiler<'a> {
     }
 
     fn placed_list(&mut self, value: Option<&Value>) -> Vec<Arc<Placed>> {
-        value
-            .and_then(Value::as_array)
-            .map(|items| items.iter().map(|item| self.placed_ref(item)).collect())
-            .unwrap_or_default()
+        match value {
+            Some(Value::Array(items)) => items.iter().map(|item| self.placed_ref(item)).collect(),
+            Some(single @ Value::Object(_)) => vec![self.placed_ref(single)],
+            _ => Vec::new(),
+        }
     }
 
     pub(crate) fn is_supported(&mut self, value: &Value) -> bool {

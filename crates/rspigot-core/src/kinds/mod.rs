@@ -85,7 +85,7 @@ pub(crate) use drowned::ambient_sound as drowned_ambient_sound;
 pub(crate) use enderman::carried_block_drops;
 pub(crate) use equine::{
     ambient_sound as equine_ambient_sound, can_use_slot as mount_can_use_slot,
-    food_tag as equine_food_tag, mount_of,
+    food_tag as equine_food_tag, is_equippable_in as mount_accepts, mount_of,
 };
 pub(crate) use fish::fish_facts_of;
 pub(crate) use goat::{GoatSound, voice as goat_voice};

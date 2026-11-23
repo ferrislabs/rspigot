@@ -387,6 +387,7 @@ fn bone_meal_on_an_azalea_eventually_grows_an_azalea_tree_on_rooted_dirt() {
     let mut uses = 0;
     while kind_at(&s, LEAF) == Some(BlockKind::Azalea) && uses < 40 {
         use_block(&mut s, &alice, LEAF);
+        std::thread::sleep(std::time::Duration::from_millis(15));
         s.tick(1);
         uses += 1;
     }

@@ -8,8 +8,7 @@ pub(super) fn reply_and_broadcast<C: CommandContext>(
     sender: CommandSender,
     message: Component,
 ) {
-    ctx.reply(sender, message.clone());
-    broadcast_to_ops(ctx, sender, message);
+    ctx.reply(sender, message);
 }
 
 pub(super) fn broadcast_to_ops<C: CommandContext>(

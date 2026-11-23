@@ -207,7 +207,7 @@ impl<L: ClientLink> Server<L> {
         let wanted = self.diode_should_turn_on(pos, state);
         let prioritize = self.should_prioritize(pos, state);
         if kind == BlockKind::Comparator {
-            let known = self.falls.redstone.outputs.get(&pos).copied().unwrap_or(0);
+            let known = self.comparator_stored(pos);
             if self.comparator_output(pos, state) != known || powered != wanted {
                 let priority = if prioritize {
                     TickPriority::ExtremelyHigh
@@ -292,7 +292,7 @@ impl<L: ClientLink> Server<L> {
 
     fn refresh_comparator(&mut self, pos: BlockPos, state: BlockStateId) {
         let output = self.comparator_output(pos, state);
-        let known = self.falls.redstone.outputs.insert(pos, output).unwrap_or(0);
+        let known = self.store_comparator(pos, output);
         if known == output && subtracts(state) {
             return;
         }

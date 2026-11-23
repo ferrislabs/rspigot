@@ -4,9 +4,11 @@ pub mod climate;
 pub mod compostable;
 pub mod enchantments;
 pub mod entities;
+pub mod environment;
 #[rustfmt::skip]
 mod generated;
 pub mod loot;
+pub mod loot_extra;
 pub mod map_colors;
 pub mod multi_noise;
 pub mod recipe_book;

@@ -7,7 +7,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[
@@ -93,7 +93,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[
@@ -174,7 +174,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[
@@ -278,7 +278,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[
@@ -382,7 +382,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[
@@ -675,7 +675,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[
@@ -797,7 +797,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -818,7 +818,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -842,7 +842,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -863,7 +863,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -884,7 +884,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -906,7 +906,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
             pools: &[
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: None,
                     modifier: &[],
                     entries: &[Entry {
@@ -945,7 +945,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                 },
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: Some(Condition::Inverted(&Condition::AnyOf(&[
                         Condition::Reference("minecraft:tool/can_shear"),
                         Condition::Reference("minecraft:tool/can_silk_touch"),
@@ -982,7 +982,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -1003,7 +1003,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -1020,7 +1020,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -1041,7 +1041,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -1058,7 +1058,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -1079,7 +1079,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -1100,7 +1100,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -1133,7 +1133,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -1154,7 +1154,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -1175,7 +1175,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -1196,7 +1196,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -1217,7 +1217,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -1238,7 +1238,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -1259,7 +1259,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -1340,7 +1340,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -1361,7 +1361,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -1378,7 +1378,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -1411,7 +1411,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -1432,7 +1432,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -1453,7 +1453,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -1474,7 +1474,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[Function { condition: None, kind: FunctionKind::ExplosionDecay }],
                 entries: &[Entry {
@@ -1501,7 +1501,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[Function { condition: None, kind: FunctionKind::ExplosionDecay }],
                 entries: &[Entry {
@@ -1528,7 +1528,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -1550,7 +1550,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
             pools: &[
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: None,
                     modifier: &[],
                     entries: &[Entry {
@@ -1589,7 +1589,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                 },
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: Some(Condition::Inverted(&Condition::AnyOf(&[
                         Condition::Reference("minecraft:tool/can_shear"),
                         Condition::Reference("minecraft:tool/can_silk_touch"),
@@ -1626,7 +1626,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -1647,7 +1647,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -1668,7 +1668,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -1689,7 +1689,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -1710,7 +1710,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -1734,7 +1734,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -1755,7 +1755,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -1776,7 +1776,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -1797,7 +1797,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -1814,7 +1814,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -1847,7 +1847,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -1868,7 +1868,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -1885,7 +1885,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -1906,7 +1906,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -1927,7 +1927,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -1948,7 +1948,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -1969,7 +1969,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -2002,7 +2002,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -2023,7 +2023,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -2044,7 +2044,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -2068,7 +2068,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -2089,7 +2089,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -2113,7 +2113,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::Reference("minecraft:tool/can_silk_touch")),
                 modifier: &[],
                 entries: &[Entry {
@@ -2146,7 +2146,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -2197,7 +2197,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
             pools: &[
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: None,
                     modifier: &[],
                     entries: &[Entry {
@@ -2230,7 +2230,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                 },
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: Some(Condition::MatchBlock(BlockPredicate {
                         blocks: Some(HolderSet::Direct(&[723])),
                         state: &[("age", "3")],
@@ -2264,7 +2264,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -2285,7 +2285,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -2306,7 +2306,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -2327,7 +2327,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -2348,7 +2348,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -2372,7 +2372,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -2393,7 +2393,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -2414,7 +2414,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -2436,7 +2436,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
             pools: &[
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: None,
                     modifier: &[],
                     entries: &[Entry {
@@ -2475,7 +2475,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                 },
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: Some(Condition::Inverted(&Condition::AnyOf(&[
                         Condition::Reference("minecraft:tool/can_shear"),
                         Condition::Reference("minecraft:tool/can_silk_touch"),
@@ -2512,7 +2512,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -2533,7 +2533,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -2550,7 +2550,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -2571,7 +2571,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -2588,7 +2588,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -2609,7 +2609,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -2630,7 +2630,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -2663,7 +2663,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -2684,7 +2684,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -2705,7 +2705,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -2726,7 +2726,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -2758,7 +2758,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -2782,7 +2782,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -2835,7 +2835,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -2856,7 +2856,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -2877,7 +2877,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -2898,7 +2898,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -2919,7 +2919,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -2952,7 +2952,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -2973,7 +2973,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -2994,7 +2994,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -3025,7 +3025,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::Reference("minecraft:tool/can_silk_touch")),
                 modifier: &[],
                 entries: &[Entry {
@@ -3046,7 +3046,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::Reference("minecraft:tool/can_silk_touch")),
                 modifier: &[],
                 entries: &[Entry {
@@ -3067,7 +3067,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -3088,7 +3088,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -3109,7 +3109,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -3142,7 +3142,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -3163,7 +3163,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -3184,7 +3184,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -3217,7 +3217,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -3238,7 +3238,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -3259,7 +3259,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -3283,7 +3283,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -3315,7 +3315,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -3339,7 +3339,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -3392,7 +3392,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -3413,7 +3413,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -3434,7 +3434,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -3455,7 +3455,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -3476,7 +3476,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -3509,7 +3509,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -3530,7 +3530,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -3551,7 +3551,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::Reference("minecraft:tool/can_silk_touch")),
                 modifier: &[],
                 entries: &[Entry {
@@ -3572,7 +3572,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -3593,7 +3593,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -3624,7 +3624,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::Reference("minecraft:tool/can_silk_touch")),
                 modifier: &[],
                 entries: &[Entry {
@@ -3645,7 +3645,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::Reference("minecraft:tool/can_silk_touch")),
                 modifier: &[],
                 entries: &[Entry {
@@ -3666,7 +3666,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -3687,7 +3687,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -3708,7 +3708,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -3741,7 +3741,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -3762,7 +3762,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -3783,7 +3783,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -3828,7 +3828,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::Reference("minecraft:tool/can_silk_touch")),
                 modifier: &[],
                 entries: &[Entry {
@@ -3849,7 +3849,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -3885,7 +3885,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::Reference("minecraft:tool/can_silk_touch")),
                 modifier: &[],
                 entries: &[Entry {
@@ -3906,7 +3906,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -3930,7 +3930,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -3963,7 +3963,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -3984,7 +3984,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -4005,7 +4005,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -4026,7 +4026,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -4058,7 +4058,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -4082,7 +4082,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -4135,7 +4135,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -4156,7 +4156,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -4177,7 +4177,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -4198,7 +4198,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -4219,7 +4219,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -4252,7 +4252,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -4273,7 +4273,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -4294,7 +4294,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -4315,7 +4315,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -4367,7 +4367,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -4398,7 +4398,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::Reference("minecraft:tool/can_silk_touch")),
                 modifier: &[],
                 entries: &[Entry {
@@ -4419,7 +4419,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::Reference("minecraft:tool/can_silk_touch")),
                 modifier: &[],
                 entries: &[Entry {
@@ -4440,7 +4440,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -4461,7 +4461,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -4482,7 +4482,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -4515,7 +4515,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -4536,7 +4536,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::Reference("minecraft:tool/can_silk_touch")),
                 modifier: &[],
                 entries: &[Entry {
@@ -4557,7 +4557,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -4593,7 +4593,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::Reference("minecraft:tool/can_silk_touch")),
                 modifier: &[],
                 entries: &[Entry {
@@ -4615,7 +4615,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::AnyOf(&[
                     Condition::Reference("minecraft:tool/can_shear"),
                     Condition::Reference("minecraft:tool/can_silk_touch"),
@@ -4639,7 +4639,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -4660,7 +4660,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -4682,7 +4682,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -4699,7 +4699,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::Reference("minecraft:tool/can_silk_touch")),
                 modifier: &[],
                 entries: &[Entry {
@@ -4720,7 +4720,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -4762,7 +4762,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -4815,7 +4815,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -4837,7 +4837,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
             pools: &[
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: None,
                     modifier: &[],
                     entries: &[Entry {
@@ -4852,7 +4852,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                 },
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: Some(Condition::MatchBlock(BlockPredicate {
                         blocks: Some(HolderSet::Direct(&[493])),
                         state: &[("age", "7")],
@@ -4886,7 +4886,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -4907,7 +4907,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -4928,7 +4928,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -4949,7 +4949,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::MatchBlock(BlockPredicate {
                     blocks: Some(HolderSet::Direct(&[1225])),
                     state: &[("berries", "true")],
@@ -4973,7 +4973,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::MatchBlock(BlockPredicate {
                     blocks: Some(HolderSet::Direct(&[1226])),
                     state: &[("berries", "true")],
@@ -4997,7 +4997,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -5018,7 +5018,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -5042,7 +5042,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -5063,7 +5063,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -5084,7 +5084,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -5106,7 +5106,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
             pools: &[
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: None,
                     modifier: &[],
                     entries: &[Entry {
@@ -5145,7 +5145,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                 },
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: Some(Condition::Inverted(&Condition::AnyOf(&[
                         Condition::Reference("minecraft:tool/can_shear"),
                         Condition::Reference("minecraft:tool/can_silk_touch"),
@@ -5182,7 +5182,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -5203,7 +5203,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -5220,7 +5220,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -5241,7 +5241,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -5258,7 +5258,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -5279,7 +5279,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -5300,7 +5300,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -5333,7 +5333,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -5354,7 +5354,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -5375,7 +5375,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -5396,7 +5396,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -5420,7 +5420,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -5441,7 +5441,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::Reference("minecraft:tool/can_silk_touch")),
                 modifier: &[],
                 entries: &[Entry {
@@ -5462,7 +5462,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -5479,7 +5479,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -5500,7 +5500,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -5521,7 +5521,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -5542,7 +5542,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -5563,7 +5563,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -5584,7 +5584,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -5605,7 +5605,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -5626,7 +5626,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -5647,7 +5647,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -5668,7 +5668,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -5685,7 +5685,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -5702,7 +5702,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -5719,7 +5719,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -5753,7 +5753,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -5783,7 +5783,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -5800,7 +5800,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -5829,7 +5829,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -5846,7 +5846,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -5863,7 +5863,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -5880,7 +5880,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -5909,7 +5909,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -5926,7 +5926,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -5943,7 +5943,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -5988,7 +5988,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -6009,7 +6009,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -6030,7 +6030,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -6075,7 +6075,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -6092,7 +6092,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -6109,7 +6109,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -6142,7 +6142,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -6163,7 +6163,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -6184,7 +6184,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -6201,7 +6201,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -6234,7 +6234,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -6255,7 +6255,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -6276,7 +6276,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -6315,7 +6315,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -6348,7 +6348,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -6370,7 +6370,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
             pools: &[
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: None,
                     modifier: &[],
                     entries: &[Entry {
@@ -6388,7 +6388,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                 },
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: Some(Condition::MatchBlock(BlockPredicate {
                         blocks: Some(HolderSet::Direct(&[999])),
                         state: &[("level", "8")],
@@ -6413,7 +6413,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -6434,7 +6434,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -6455,7 +6455,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -6476,7 +6476,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -6497,7 +6497,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -6518,7 +6518,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -6542,7 +6542,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -6566,7 +6566,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -6601,7 +6601,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -6622,7 +6622,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -6643,7 +6643,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -6695,7 +6695,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -6716,7 +6716,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -6737,7 +6737,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -6758,7 +6758,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -6779,7 +6779,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -6800,7 +6800,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -6821,7 +6821,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -6842,7 +6842,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -6863,7 +6863,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -6884,7 +6884,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -6905,7 +6905,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -6966,7 +6966,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -6990,7 +6990,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -7011,7 +7011,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -7035,7 +7035,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -7056,7 +7056,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -7077,7 +7077,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -7098,7 +7098,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -7119,7 +7119,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -7140,7 +7140,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -7176,7 +7176,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -7193,7 +7193,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -7214,7 +7214,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -7235,7 +7235,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -7256,7 +7256,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -7277,7 +7277,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -7310,7 +7310,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -7331,7 +7331,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -7352,7 +7352,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -7373,7 +7373,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -7394,7 +7394,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -7415,7 +7415,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -7448,7 +7448,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -7469,7 +7469,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -7490,7 +7490,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -7523,7 +7523,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -7544,7 +7544,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -7577,7 +7577,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -7609,7 +7609,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -7633,7 +7633,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -7686,7 +7686,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -7707,7 +7707,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -7728,7 +7728,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -7749,7 +7749,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -7770,7 +7770,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -7803,7 +7803,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -7824,7 +7824,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -7845,7 +7845,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -7876,7 +7876,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::Reference("minecraft:tool/can_silk_touch")),
                 modifier: &[],
                 entries: &[Entry {
@@ -7897,7 +7897,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::Reference("minecraft:tool/can_silk_touch")),
                 modifier: &[],
                 entries: &[Entry {
@@ -7918,7 +7918,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -7939,7 +7939,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -7960,7 +7960,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -7993,7 +7993,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -8014,7 +8014,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -8035,7 +8035,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -8056,7 +8056,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -8077,7 +8077,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -8101,7 +8101,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -8122,7 +8122,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -8143,7 +8143,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -8165,7 +8165,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
             pools: &[
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: None,
                     modifier: &[],
                     entries: &[Entry {
@@ -8204,7 +8204,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                 },
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: Some(Condition::Inverted(&Condition::AnyOf(&[
                         Condition::Reference("minecraft:tool/can_shear"),
                         Condition::Reference("minecraft:tool/can_silk_touch"),
@@ -8234,7 +8234,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                 },
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: Some(Condition::Inverted(&Condition::AnyOf(&[
                         Condition::Reference("minecraft:tool/can_shear"),
                         Condition::Reference("minecraft:tool/can_silk_touch"),
@@ -8265,7 +8265,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -8286,7 +8286,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -8303,7 +8303,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -8324,7 +8324,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -8341,7 +8341,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -8362,7 +8362,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -8383,7 +8383,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -8416,7 +8416,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -8437,7 +8437,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -8458,7 +8458,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -8479,7 +8479,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -8500,7 +8500,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -8533,7 +8533,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -8554,7 +8554,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -8575,7 +8575,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::Reference("minecraft:tool/can_silk_touch")),
                 modifier: &[],
                 entries: &[Entry {
@@ -8596,7 +8596,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -8617,7 +8617,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::Reference("minecraft:tool/can_silk_touch")),
                 modifier: &[],
                 entries: &[Entry {
@@ -8638,7 +8638,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::Reference("minecraft:tool/can_silk_touch")),
                 modifier: &[],
                 entries: &[Entry {
@@ -8659,7 +8659,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -8680,7 +8680,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::Reference("minecraft:tool/can_silk_touch")),
                 modifier: &[],
                 entries: &[Entry {
@@ -8701,7 +8701,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -8746,7 +8746,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::Reference("minecraft:tool/can_silk_touch")),
                 modifier: &[],
                 entries: &[Entry {
@@ -8767,7 +8767,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -8788,7 +8788,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::Reference("minecraft:tool/can_silk_touch")),
                 modifier: &[],
                 entries: &[Entry {
@@ -8809,7 +8809,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::Reference("minecraft:tool/can_silk_touch")),
                 modifier: &[],
                 entries: &[Entry {
@@ -8830,7 +8830,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -8851,7 +8851,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::Reference("minecraft:tool/can_silk_touch")),
                 modifier: &[],
                 entries: &[Entry {
@@ -8872,7 +8872,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::Reference("minecraft:tool/can_silk_touch")),
                 modifier: &[],
                 entries: &[Entry {
@@ -8893,7 +8893,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -8914,7 +8914,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::Reference("minecraft:tool/can_silk_touch")),
                 modifier: &[],
                 entries: &[Entry {
@@ -8935,7 +8935,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -8979,7 +8979,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -9015,7 +9015,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -9048,7 +9048,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -9069,7 +9069,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -9090,7 +9090,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -9111,7 +9111,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -9156,7 +9156,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -9208,7 +9208,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -9253,7 +9253,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -9298,7 +9298,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -9343,7 +9343,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -9388,7 +9388,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -9440,7 +9440,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -9494,7 +9494,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -9527,7 +9527,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -9548,7 +9548,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -9569,7 +9569,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -9590,7 +9590,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -9611,7 +9611,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -9632,7 +9632,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -9677,7 +9677,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -9694,7 +9694,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -9727,7 +9727,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -9748,7 +9748,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -9769,7 +9769,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -9786,7 +9786,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -9803,7 +9803,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -9827,7 +9827,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -9848,7 +9848,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -9872,7 +9872,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -9893,7 +9893,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -9914,7 +9914,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -9931,7 +9931,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -9955,7 +9955,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -9976,7 +9976,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -10021,7 +10021,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -10045,7 +10045,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -10066,7 +10066,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -10087,7 +10087,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -10120,7 +10120,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -10141,7 +10141,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -10162,7 +10162,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -10183,7 +10183,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -10228,7 +10228,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -10249,7 +10249,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -10270,7 +10270,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -10291,7 +10291,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -10312,7 +10312,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -10333,7 +10333,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -10357,7 +10357,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -10381,7 +10381,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -10416,7 +10416,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -10437,7 +10437,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -10458,7 +10458,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -10479,7 +10479,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -10500,7 +10500,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -10533,7 +10533,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -10554,7 +10554,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -10575,7 +10575,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -10592,7 +10592,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -10640,7 +10640,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::Reference("minecraft:tool/can_silk_touch")),
                 modifier: &[],
                 entries: &[Entry {
@@ -10661,7 +10661,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -10697,7 +10697,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::Reference("minecraft:tool/can_silk_touch")),
                 modifier: &[],
                 entries: &[Entry {
@@ -10718,7 +10718,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -10739,7 +10739,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -10760,7 +10760,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -10781,7 +10781,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -10803,7 +10803,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
             pools: &[
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: None,
                     modifier: &[],
                     entries: &[Entry {
@@ -10842,7 +10842,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                 },
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: Some(Condition::Inverted(&Condition::AnyOf(&[
                         Condition::Reference("minecraft:tool/can_shear"),
                         Condition::Reference("minecraft:tool/can_silk_touch"),
@@ -10881,7 +10881,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -10905,7 +10905,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -10965,7 +10965,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::Reference("minecraft:tool/can_silk_touch")),
                 modifier: &[],
                 entries: &[Entry {
@@ -10986,7 +10986,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::Reference("minecraft:tool/can_silk_touch")),
                 modifier: &[],
                 entries: &[Entry {
@@ -11007,7 +11007,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -11097,7 +11097,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -11158,7 +11158,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -11179,7 +11179,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -11224,7 +11224,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -11245,7 +11245,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -11262,7 +11262,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -11295,7 +11295,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -11316,7 +11316,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -11337,7 +11337,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -11373,7 +11373,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -11427,7 +11427,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -11459,7 +11459,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -11483,7 +11483,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -11536,7 +11536,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -11557,7 +11557,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -11578,7 +11578,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -11599,7 +11599,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -11620,7 +11620,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -11653,7 +11653,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -11674,7 +11674,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -11695,7 +11695,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -11726,7 +11726,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::Reference("minecraft:tool/can_silk_touch")),
                 modifier: &[],
                 entries: &[Entry {
@@ -11747,7 +11747,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::Reference("minecraft:tool/can_silk_touch")),
                 modifier: &[],
                 entries: &[Entry {
@@ -11768,7 +11768,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -11789,7 +11789,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -11810,7 +11810,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -11843,7 +11843,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -11864,7 +11864,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -11896,7 +11896,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -11920,7 +11920,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -11973,7 +11973,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -11994,7 +11994,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -12015,7 +12015,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -12036,7 +12036,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -12057,7 +12057,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -12090,7 +12090,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -12111,7 +12111,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -12132,7 +12132,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -12163,7 +12163,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::Reference("minecraft:tool/can_silk_touch")),
                 modifier: &[],
                 entries: &[Entry {
@@ -12184,7 +12184,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::Reference("minecraft:tool/can_silk_touch")),
                 modifier: &[],
                 entries: &[Entry {
@@ -12205,7 +12205,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -12226,7 +12226,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -12247,7 +12247,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -12280,7 +12280,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -12301,7 +12301,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -12322,7 +12322,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::Reference("minecraft:tool/can_shear")),
                 modifier: &[],
                 entries: &[Entry {
@@ -12343,7 +12343,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -12364,7 +12364,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -12385,7 +12385,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -12406,7 +12406,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -12427,7 +12427,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -12448,7 +12448,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -12472,7 +12472,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::Reference("minecraft:tool/can_silk_touch")),
                 modifier: &[],
                 entries: &[Entry {
@@ -12493,7 +12493,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -12529,7 +12529,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::Reference("minecraft:tool/can_silk_touch")),
                 modifier: &[],
                 entries: &[Entry {
@@ -12550,7 +12550,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::Reference("minecraft:tool/can_silk_touch")),
                 modifier: &[],
                 entries: &[Entry {
@@ -12571,7 +12571,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::Reference("minecraft:tool/can_silk_touch")),
                 modifier: &[],
                 entries: &[Entry {
@@ -12592,7 +12592,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::Reference("minecraft:tool/can_silk_touch")),
                 modifier: &[],
                 entries: &[Entry {
@@ -12609,7 +12609,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::Reference("minecraft:tool/can_silk_touch")),
                 modifier: &[],
                 entries: &[Entry {
@@ -12630,7 +12630,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::Reference("minecraft:tool/can_silk_touch")),
                 modifier: &[],
                 entries: &[Entry {
@@ -12647,7 +12647,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::Reference("minecraft:tool/can_silk_touch")),
                 modifier: &[],
                 entries: &[Entry {
@@ -12668,7 +12668,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::Reference("minecraft:tool/can_silk_touch")),
                 modifier: &[],
                 entries: &[Entry {
@@ -12685,7 +12685,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::Reference("minecraft:tool/can_silk_touch")),
                 modifier: &[],
                 entries: &[Entry {
@@ -12706,7 +12706,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -12727,7 +12727,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -12748,7 +12748,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -12769,7 +12769,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -12793,7 +12793,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -12838,7 +12838,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -12859,7 +12859,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -12880,7 +12880,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -12901,7 +12901,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -12922,7 +12922,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -12946,7 +12946,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -12967,7 +12967,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -12988,7 +12988,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -13010,7 +13010,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
             pools: &[
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: None,
                     modifier: &[],
                     entries: &[Entry {
@@ -13049,7 +13049,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                 },
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: Some(Condition::Inverted(&Condition::AnyOf(&[
                         Condition::Reference("minecraft:tool/can_shear"),
                         Condition::Reference("minecraft:tool/can_silk_touch"),
@@ -13086,7 +13086,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -13107,7 +13107,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -13124,7 +13124,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -13145,7 +13145,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -13162,7 +13162,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -13183,7 +13183,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -13204,7 +13204,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -13237,7 +13237,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -13258,7 +13258,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -13279,7 +13279,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -13300,7 +13300,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -13321,7 +13321,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -13342,7 +13342,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -13363,7 +13363,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -13384,7 +13384,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -13405,7 +13405,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -13457,7 +13457,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::Reference("minecraft:tool/can_silk_touch")),
                 modifier: &[],
                 entries: &[Entry {
@@ -13479,7 +13479,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
             pools: &[
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: Some(Condition::AllOf(&[
                         Condition::MatchBlock(BlockPredicate {
                             blocks: Some(HolderSet::Direct(&[616])),
@@ -13531,7 +13531,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                 },
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: Some(Condition::AllOf(&[
                         Condition::MatchBlock(BlockPredicate {
                             blocks: Some(HolderSet::Direct(&[616])),
@@ -13590,7 +13590,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -13611,7 +13611,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -13674,7 +13674,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -13695,7 +13695,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -13716,7 +13716,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -13748,7 +13748,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -13772,7 +13772,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -13825,7 +13825,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -13846,7 +13846,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -13867,7 +13867,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -13888,7 +13888,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -13909,7 +13909,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -13942,7 +13942,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -13963,7 +13963,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -13984,7 +13984,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -14015,7 +14015,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::Reference("minecraft:tool/can_silk_touch")),
                 modifier: &[],
                 entries: &[Entry {
@@ -14036,7 +14036,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::Reference("minecraft:tool/can_silk_touch")),
                 modifier: &[],
                 entries: &[Entry {
@@ -14057,7 +14057,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -14078,7 +14078,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -14099,7 +14099,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -14132,7 +14132,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -14153,7 +14153,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -14185,7 +14185,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -14209,7 +14209,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -14262,7 +14262,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -14283,7 +14283,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -14304,7 +14304,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -14325,7 +14325,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -14346,7 +14346,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -14379,7 +14379,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -14400,7 +14400,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -14421,7 +14421,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -14452,7 +14452,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::Reference("minecraft:tool/can_silk_touch")),
                 modifier: &[],
                 entries: &[Entry {
@@ -14473,7 +14473,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::Reference("minecraft:tool/can_silk_touch")),
                 modifier: &[],
                 entries: &[Entry {
@@ -14494,7 +14494,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -14515,7 +14515,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -14536,7 +14536,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -14569,7 +14569,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -14590,7 +14590,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -14611,7 +14611,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -14632,7 +14632,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -14656,7 +14656,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -14677,7 +14677,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -14698,7 +14698,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -14730,7 +14730,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -14754,7 +14754,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -14807,7 +14807,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -14828,7 +14828,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -14849,7 +14849,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -14870,7 +14870,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -14891,7 +14891,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -14924,7 +14924,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -14945,7 +14945,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -14966,7 +14966,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -14997,7 +14997,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::Reference("minecraft:tool/can_silk_touch")),
                 modifier: &[],
                 entries: &[Entry {
@@ -15018,7 +15018,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::Reference("minecraft:tool/can_silk_touch")),
                 modifier: &[],
                 entries: &[Entry {
@@ -15039,7 +15039,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -15060,7 +15060,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -15081,7 +15081,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -15114,7 +15114,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -15135,7 +15135,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -15156,7 +15156,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -15177,7 +15177,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -15209,7 +15209,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -15233,7 +15233,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -15286,7 +15286,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -15307,7 +15307,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -15328,7 +15328,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -15349,7 +15349,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -15370,7 +15370,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -15403,7 +15403,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -15424,7 +15424,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -15445,7 +15445,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -15476,7 +15476,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::Reference("minecraft:tool/can_silk_touch")),
                 modifier: &[],
                 entries: &[Entry {
@@ -15497,7 +15497,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::Reference("minecraft:tool/can_silk_touch")),
                 modifier: &[],
                 entries: &[Entry {
@@ -15518,7 +15518,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -15539,7 +15539,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -15560,7 +15560,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -15593,7 +15593,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -15614,7 +15614,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -15635,7 +15635,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -15656,7 +15656,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -15680,7 +15680,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -15701,7 +15701,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -15722,7 +15722,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -15743,7 +15743,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -15794,7 +15794,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -15815,7 +15815,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -15832,7 +15832,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -15853,7 +15853,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::MatchBlock(BlockPredicate {
                     blocks: Some(HolderSet::Direct(&[34])),
                     state: &[("age", "4")],
@@ -15873,7 +15873,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -15894,7 +15894,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -15915,7 +15915,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -15936,7 +15936,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -15969,7 +15969,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -15990,7 +15990,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -16011,7 +16011,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -16032,7 +16032,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::Reference("minecraft:tool/can_silk_touch")),
                 modifier: &[],
                 entries: &[Entry {
@@ -16053,7 +16053,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -16114,7 +16114,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[Function { condition: None, kind: FunctionKind::ExplosionDecay }],
                 entries: &[Entry {
@@ -16216,7 +16216,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -16237,7 +16237,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -16258,7 +16258,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -16279,7 +16279,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -16312,7 +16312,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -16333,7 +16333,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -16354,7 +16354,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -16387,7 +16387,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -16408,7 +16408,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -16429,7 +16429,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -16450,7 +16450,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -16467,7 +16467,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -16500,7 +16500,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -16521,7 +16521,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -16542,7 +16542,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -16563,7 +16563,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -16584,7 +16584,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::Reference("minecraft:tool/can_silk_touch")),
                 modifier: &[],
                 entries: &[Entry {
@@ -16605,7 +16605,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -16641,7 +16641,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -16662,7 +16662,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -16695,7 +16695,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -16716,7 +16716,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -16737,7 +16737,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -16758,7 +16758,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -16811,7 +16811,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -16856,7 +16856,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::Reference("minecraft:tool/can_shear")),
                 modifier: &[],
                 entries: &[Entry {
@@ -16877,7 +16877,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[Function { condition: None, kind: FunctionKind::ExplosionDecay }],
                 entries: &[Entry {
@@ -16919,7 +16919,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -16940,7 +16940,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -16961,7 +16961,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -16982,7 +16982,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -17003,7 +17003,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -17024,7 +17024,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -17048,7 +17048,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -17069,7 +17069,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -17090,7 +17090,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -17112,7 +17112,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
             pools: &[
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: None,
                     modifier: &[],
                     entries: &[Entry {
@@ -17151,7 +17151,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                 },
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: Some(Condition::Inverted(&Condition::AnyOf(&[
                         Condition::Reference("minecraft:tool/can_shear"),
                         Condition::Reference("minecraft:tool/can_silk_touch"),
@@ -17181,7 +17181,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                 },
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: Some(Condition::Inverted(&Condition::AnyOf(&[
                         Condition::Reference("minecraft:tool/can_shear"),
                         Condition::Reference("minecraft:tool/can_silk_touch"),
@@ -17212,7 +17212,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -17233,7 +17233,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -17250,7 +17250,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -17271,7 +17271,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -17288,7 +17288,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -17309,7 +17309,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -17330,7 +17330,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -17363,7 +17363,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -17384,7 +17384,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -17405,7 +17405,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -17426,7 +17426,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -17447,7 +17447,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -17468,7 +17468,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -17489,7 +17489,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -17510,7 +17510,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -17542,7 +17542,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -17566,7 +17566,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -17619,7 +17619,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -17640,7 +17640,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -17661,7 +17661,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -17682,7 +17682,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -17703,7 +17703,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -17736,7 +17736,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -17757,7 +17757,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -17779,7 +17779,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
             pools: &[
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: None,
                     modifier: &[],
                     entries: &[Entry {
@@ -17818,7 +17818,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                 },
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: Some(Condition::Inverted(&Condition::AnyOf(&[
                         Condition::Reference("minecraft:tool/can_shear"),
                         Condition::Reference("minecraft:tool/can_silk_touch"),
@@ -17855,7 +17855,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -17886,7 +17886,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::Reference("minecraft:tool/can_silk_touch")),
                 modifier: &[],
                 entries: &[Entry {
@@ -17907,7 +17907,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::Reference("minecraft:tool/can_silk_touch")),
                 modifier: &[],
                 entries: &[Entry {
@@ -17928,7 +17928,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -17949,7 +17949,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -17970,7 +17970,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -17991,7 +17991,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -18024,7 +18024,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -18045,7 +18045,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -18066,7 +18066,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -18087,7 +18087,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -18108,7 +18108,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -18129,7 +18129,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -18150,7 +18150,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -18171,7 +18171,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -18195,7 +18195,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -18219,7 +18219,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -18254,7 +18254,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -18275,7 +18275,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -18296,7 +18296,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -18317,7 +18317,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -18338,7 +18338,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -18371,7 +18371,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -18392,7 +18392,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -18413,7 +18413,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::Reference("minecraft:tool/can_silk_touch")),
                 modifier: &[],
                 entries: &[Entry {
@@ -18434,7 +18434,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -18455,7 +18455,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::AnyOf(&[
                     Condition::Reference("minecraft:tool/can_shear"),
                     Condition::Reference("minecraft:tool/can_silk_touch"),
@@ -18479,7 +18479,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -18500,7 +18500,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -18524,7 +18524,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -18545,7 +18545,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -18569,7 +18569,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -18590,7 +18590,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -18611,7 +18611,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -18633,7 +18633,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
             pools: &[
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: None,
                     modifier: &[],
                     entries: &[Entry {
@@ -18672,7 +18672,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                 },
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: Some(Condition::Inverted(&Condition::AnyOf(&[
                         Condition::Reference("minecraft:tool/can_shear"),
                         Condition::Reference("minecraft:tool/can_silk_touch"),
@@ -18709,7 +18709,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -18730,7 +18730,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -18747,7 +18747,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -18768,7 +18768,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -18785,7 +18785,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -18806,7 +18806,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -18827,7 +18827,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -18860,7 +18860,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -18881,7 +18881,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -18902,7 +18902,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -18923,7 +18923,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -18944,7 +18944,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -18968,7 +18968,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -19001,7 +19001,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -19025,7 +19025,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -19057,7 +19057,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -19081,7 +19081,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -19134,7 +19134,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -19155,7 +19155,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -19176,7 +19176,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -19197,7 +19197,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -19218,7 +19218,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -19251,7 +19251,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -19272,7 +19272,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -19293,7 +19293,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -19356,7 +19356,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -19387,7 +19387,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::Reference("minecraft:tool/can_silk_touch")),
                 modifier: &[],
                 entries: &[Entry {
@@ -19408,7 +19408,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::Reference("minecraft:tool/can_silk_touch")),
                 modifier: &[],
                 entries: &[Entry {
@@ -19429,7 +19429,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -19450,7 +19450,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -19471,7 +19471,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -19492,7 +19492,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -19525,7 +19525,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -19546,7 +19546,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -19567,7 +19567,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -19705,7 +19705,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -19729,7 +19729,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -19759,7 +19759,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -19795,7 +19795,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -19816,7 +19816,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -19833,7 +19833,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -19866,7 +19866,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -19887,7 +19887,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -19908,7 +19908,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -19929,7 +19929,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -19962,7 +19962,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -19983,7 +19983,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -20004,7 +20004,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -20025,7 +20025,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -20046,7 +20046,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -20067,7 +20067,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -20100,7 +20100,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -20121,7 +20121,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -20142,7 +20142,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -20159,7 +20159,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -20188,7 +20188,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -20205,7 +20205,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -20222,7 +20222,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -20239,7 +20239,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -20272,7 +20272,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -20293,7 +20293,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -20314,7 +20314,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -20331,7 +20331,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -20364,7 +20364,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -20385,7 +20385,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -20402,7 +20402,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -20435,7 +20435,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -20456,7 +20456,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -20473,7 +20473,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -20502,7 +20502,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -20519,7 +20519,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -20536,7 +20536,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -20553,7 +20553,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -20582,7 +20582,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -20599,7 +20599,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -20616,7 +20616,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -20637,7 +20637,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -20661,7 +20661,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -20682,7 +20682,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -20703,7 +20703,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -20724,7 +20724,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -20745,7 +20745,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -20762,7 +20762,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -20783,7 +20783,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -20800,7 +20800,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -20821,7 +20821,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -20842,7 +20842,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -20875,7 +20875,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -20896,7 +20896,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -20917,7 +20917,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -20938,7 +20938,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -20960,7 +20960,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
             pools: &[
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: None,
                     modifier: &[],
                     entries: &[Entry {
@@ -20975,7 +20975,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                 },
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: Some(Condition::MatchBlock(BlockPredicate {
                         blocks: Some(HolderSet::Direct(&[494])),
                         state: &[("age", "7")],
@@ -21002,7 +21002,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                 },
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: Some(Condition::MatchBlock(BlockPredicate {
                         blocks: Some(HolderSet::Direct(&[494])),
                         state: &[("age", "7")],
@@ -21027,7 +21027,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -21045,7 +21045,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
             pools: &[
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: Some(Condition::SurvivesExplosion),
                     modifier: &[],
                     entries: &[Entry {
@@ -21060,7 +21060,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                 },
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: Some(Condition::SurvivesExplosion),
                     modifier: &[],
                     entries: &[Entry {
@@ -21083,7 +21083,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
             pools: &[
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: Some(Condition::SurvivesExplosion),
                     modifier: &[],
                     entries: &[Entry {
@@ -21098,7 +21098,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                 },
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: Some(Condition::SurvivesExplosion),
                     modifier: &[],
                     entries: &[Entry {
@@ -21121,7 +21121,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
             pools: &[
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: Some(Condition::SurvivesExplosion),
                     modifier: &[],
                     entries: &[Entry {
@@ -21136,7 +21136,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                 },
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: Some(Condition::SurvivesExplosion),
                     modifier: &[],
                     entries: &[Entry {
@@ -21159,7 +21159,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
             pools: &[
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: Some(Condition::SurvivesExplosion),
                     modifier: &[],
                     entries: &[Entry {
@@ -21174,7 +21174,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                 },
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: Some(Condition::SurvivesExplosion),
                     modifier: &[],
                     entries: &[Entry {
@@ -21197,7 +21197,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
             pools: &[
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: Some(Condition::SurvivesExplosion),
                     modifier: &[],
                     entries: &[Entry {
@@ -21212,7 +21212,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                 },
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: Some(Condition::SurvivesExplosion),
                     modifier: &[],
                     entries: &[Entry {
@@ -21235,7 +21235,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
             pools: &[
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: Some(Condition::SurvivesExplosion),
                     modifier: &[],
                     entries: &[Entry {
@@ -21250,7 +21250,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                 },
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: Some(Condition::SurvivesExplosion),
                     modifier: &[],
                     entries: &[Entry {
@@ -21273,7 +21273,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
             pools: &[
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: Some(Condition::SurvivesExplosion),
                     modifier: &[],
                     entries: &[Entry {
@@ -21288,7 +21288,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                 },
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: Some(Condition::SurvivesExplosion),
                     modifier: &[],
                     entries: &[Entry {
@@ -21311,7 +21311,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
             pools: &[
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: Some(Condition::SurvivesExplosion),
                     modifier: &[],
                     entries: &[Entry {
@@ -21326,7 +21326,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                 },
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: Some(Condition::SurvivesExplosion),
                     modifier: &[],
                     entries: &[Entry {
@@ -21349,7 +21349,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
             pools: &[
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: Some(Condition::SurvivesExplosion),
                     modifier: &[],
                     entries: &[Entry {
@@ -21364,7 +21364,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                 },
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: Some(Condition::SurvivesExplosion),
                     modifier: &[],
                     entries: &[Entry {
@@ -21387,7 +21387,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
             pools: &[
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: Some(Condition::SurvivesExplosion),
                     modifier: &[],
                     entries: &[Entry {
@@ -21402,7 +21402,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                 },
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: Some(Condition::SurvivesExplosion),
                     modifier: &[],
                     entries: &[Entry {
@@ -21425,7 +21425,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
             pools: &[
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: Some(Condition::SurvivesExplosion),
                     modifier: &[],
                     entries: &[Entry {
@@ -21440,7 +21440,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                 },
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: Some(Condition::SurvivesExplosion),
                     modifier: &[],
                     entries: &[Entry {
@@ -21463,7 +21463,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
             pools: &[
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: Some(Condition::SurvivesExplosion),
                     modifier: &[],
                     entries: &[Entry {
@@ -21478,7 +21478,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                 },
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: Some(Condition::SurvivesExplosion),
                     modifier: &[],
                     entries: &[Entry {
@@ -21501,7 +21501,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
             pools: &[
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: Some(Condition::SurvivesExplosion),
                     modifier: &[],
                     entries: &[Entry {
@@ -21516,7 +21516,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                 },
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: Some(Condition::SurvivesExplosion),
                     modifier: &[],
                     entries: &[Entry {
@@ -21539,7 +21539,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
             pools: &[
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: Some(Condition::SurvivesExplosion),
                     modifier: &[],
                     entries: &[Entry {
@@ -21554,7 +21554,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                 },
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: Some(Condition::SurvivesExplosion),
                     modifier: &[],
                     entries: &[Entry {
@@ -21577,7 +21577,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
             pools: &[
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: Some(Condition::SurvivesExplosion),
                     modifier: &[],
                     entries: &[Entry {
@@ -21592,7 +21592,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                 },
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: Some(Condition::SurvivesExplosion),
                     modifier: &[],
                     entries: &[Entry {
@@ -21615,7 +21615,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
             pools: &[
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: Some(Condition::SurvivesExplosion),
                     modifier: &[],
                     entries: &[Entry {
@@ -21630,7 +21630,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                 },
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: Some(Condition::SurvivesExplosion),
                     modifier: &[],
                     entries: &[Entry {
@@ -21653,7 +21653,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
             pools: &[
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: Some(Condition::SurvivesExplosion),
                     modifier: &[],
                     entries: &[Entry {
@@ -21668,7 +21668,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                 },
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: Some(Condition::SurvivesExplosion),
                     modifier: &[],
                     entries: &[Entry {
@@ -21691,7 +21691,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
             pools: &[
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: Some(Condition::SurvivesExplosion),
                     modifier: &[],
                     entries: &[Entry {
@@ -21706,7 +21706,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                 },
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: Some(Condition::SurvivesExplosion),
                     modifier: &[],
                     entries: &[Entry {
@@ -21729,7 +21729,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
             pools: &[
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: Some(Condition::SurvivesExplosion),
                     modifier: &[],
                     entries: &[Entry {
@@ -21744,7 +21744,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                 },
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: Some(Condition::SurvivesExplosion),
                     modifier: &[],
                     entries: &[Entry {
@@ -21767,7 +21767,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
             pools: &[
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: Some(Condition::SurvivesExplosion),
                     modifier: &[],
                     entries: &[Entry {
@@ -21782,7 +21782,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                 },
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: Some(Condition::SurvivesExplosion),
                     modifier: &[],
                     entries: &[Entry {
@@ -21805,7 +21805,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
             pools: &[
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: Some(Condition::SurvivesExplosion),
                     modifier: &[],
                     entries: &[Entry {
@@ -21820,7 +21820,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                 },
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: Some(Condition::SurvivesExplosion),
                     modifier: &[],
                     entries: &[Entry {
@@ -21843,7 +21843,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
             pools: &[
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: Some(Condition::SurvivesExplosion),
                     modifier: &[],
                     entries: &[Entry {
@@ -21858,7 +21858,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                 },
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: Some(Condition::SurvivesExplosion),
                     modifier: &[],
                     entries: &[Entry {
@@ -21881,7 +21881,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
             pools: &[
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: Some(Condition::SurvivesExplosion),
                     modifier: &[],
                     entries: &[Entry {
@@ -21896,7 +21896,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                 },
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: Some(Condition::SurvivesExplosion),
                     modifier: &[],
                     entries: &[Entry {
@@ -21919,7 +21919,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
             pools: &[
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: Some(Condition::SurvivesExplosion),
                     modifier: &[],
                     entries: &[Entry {
@@ -21934,7 +21934,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                 },
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: Some(Condition::SurvivesExplosion),
                     modifier: &[],
                     entries: &[Entry {
@@ -21957,7 +21957,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
             pools: &[
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: Some(Condition::SurvivesExplosion),
                     modifier: &[],
                     entries: &[Entry {
@@ -21972,7 +21972,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                 },
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: Some(Condition::SurvivesExplosion),
                     modifier: &[],
                     entries: &[Entry {
@@ -21995,7 +21995,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
             pools: &[
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: Some(Condition::SurvivesExplosion),
                     modifier: &[],
                     entries: &[Entry {
@@ -22010,7 +22010,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                 },
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: Some(Condition::SurvivesExplosion),
                     modifier: &[],
                     entries: &[Entry {
@@ -22033,7 +22033,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
             pools: &[
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: Some(Condition::SurvivesExplosion),
                     modifier: &[],
                     entries: &[Entry {
@@ -22048,7 +22048,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                 },
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: Some(Condition::SurvivesExplosion),
                     modifier: &[],
                     entries: &[Entry {
@@ -22071,7 +22071,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
             pools: &[
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: Some(Condition::SurvivesExplosion),
                     modifier: &[],
                     entries: &[Entry {
@@ -22086,7 +22086,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                 },
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: Some(Condition::SurvivesExplosion),
                     modifier: &[],
                     entries: &[Entry {
@@ -22109,7 +22109,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
             pools: &[
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: Some(Condition::SurvivesExplosion),
                     modifier: &[],
                     entries: &[Entry {
@@ -22124,7 +22124,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                 },
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: Some(Condition::SurvivesExplosion),
                     modifier: &[],
                     entries: &[Entry {
@@ -22147,7 +22147,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
             pools: &[
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: Some(Condition::SurvivesExplosion),
                     modifier: &[],
                     entries: &[Entry {
@@ -22162,7 +22162,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                 },
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: Some(Condition::SurvivesExplosion),
                     modifier: &[],
                     entries: &[Entry {
@@ -22185,7 +22185,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
             pools: &[
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: Some(Condition::SurvivesExplosion),
                     modifier: &[],
                     entries: &[Entry {
@@ -22200,7 +22200,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                 },
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: Some(Condition::SurvivesExplosion),
                     modifier: &[],
                     entries: &[Entry {
@@ -22223,7 +22223,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
             pools: &[
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: Some(Condition::SurvivesExplosion),
                     modifier: &[],
                     entries: &[Entry {
@@ -22238,7 +22238,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                 },
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: Some(Condition::SurvivesExplosion),
                     modifier: &[],
                     entries: &[Entry {
@@ -22261,7 +22261,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
             pools: &[
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: Some(Condition::SurvivesExplosion),
                     modifier: &[],
                     entries: &[Entry {
@@ -22276,7 +22276,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                 },
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: Some(Condition::SurvivesExplosion),
                     modifier: &[],
                     entries: &[Entry {
@@ -22299,7 +22299,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
             pools: &[
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: Some(Condition::SurvivesExplosion),
                     modifier: &[],
                     entries: &[Entry {
@@ -22314,7 +22314,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                 },
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: Some(Condition::SurvivesExplosion),
                     modifier: &[],
                     entries: &[Entry {
@@ -22337,7 +22337,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
             pools: &[
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: Some(Condition::SurvivesExplosion),
                     modifier: &[],
                     entries: &[Entry {
@@ -22352,7 +22352,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                 },
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: Some(Condition::SurvivesExplosion),
                     modifier: &[],
                     entries: &[Entry {
@@ -22375,7 +22375,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
             pools: &[
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: Some(Condition::SurvivesExplosion),
                     modifier: &[],
                     entries: &[Entry {
@@ -22390,7 +22390,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                 },
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: Some(Condition::SurvivesExplosion),
                     modifier: &[],
                     entries: &[Entry {
@@ -22413,7 +22413,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
             pools: &[
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: Some(Condition::SurvivesExplosion),
                     modifier: &[],
                     entries: &[Entry {
@@ -22428,7 +22428,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                 },
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: Some(Condition::SurvivesExplosion),
                     modifier: &[],
                     entries: &[Entry {
@@ -22451,7 +22451,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
             pools: &[
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: Some(Condition::SurvivesExplosion),
                     modifier: &[],
                     entries: &[Entry {
@@ -22466,7 +22466,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                 },
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: Some(Condition::SurvivesExplosion),
                     modifier: &[],
                     entries: &[Entry {
@@ -22489,7 +22489,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
             pools: &[
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: Some(Condition::SurvivesExplosion),
                     modifier: &[],
                     entries: &[Entry {
@@ -22504,7 +22504,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                 },
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: Some(Condition::SurvivesExplosion),
                     modifier: &[],
                     entries: &[Entry {
@@ -22527,7 +22527,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -22548,7 +22548,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -22569,7 +22569,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -22590,7 +22590,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -22623,7 +22623,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -22644,7 +22644,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -22665,7 +22665,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -22698,7 +22698,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -22719,7 +22719,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -22740,7 +22740,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -22761,7 +22761,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[Function { condition: None, kind: FunctionKind::ExplosionDecay }],
                 entries: &[Entry {
@@ -22863,7 +22863,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -22895,7 +22895,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -22919,7 +22919,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -22972,7 +22972,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -22993,7 +22993,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -23014,7 +23014,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -23035,7 +23035,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -23056,7 +23056,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -23089,7 +23089,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -23110,7 +23110,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -23131,7 +23131,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -23162,7 +23162,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::Reference("minecraft:tool/can_silk_touch")),
                 modifier: &[],
                 entries: &[Entry {
@@ -23183,7 +23183,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::Reference("minecraft:tool/can_silk_touch")),
                 modifier: &[],
                 entries: &[Entry {
@@ -23204,7 +23204,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -23225,7 +23225,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -23246,7 +23246,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -23279,7 +23279,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -23300,7 +23300,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -23321,7 +23321,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -23342,7 +23342,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -23375,7 +23375,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -23396,7 +23396,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -23417,7 +23417,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -23438,7 +23438,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -23459,7 +23459,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -23492,7 +23492,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -23513,7 +23513,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -23534,7 +23534,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -23555,7 +23555,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -23576,7 +23576,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -23597,7 +23597,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -23629,7 +23629,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -23653,7 +23653,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -23706,7 +23706,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -23727,7 +23727,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -23748,7 +23748,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -23769,7 +23769,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -23790,7 +23790,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -23823,7 +23823,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -23844,7 +23844,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -23865,7 +23865,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -23886,7 +23886,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -23938,7 +23938,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -23971,7 +23971,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -23992,7 +23992,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -24013,7 +24013,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -24035,7 +24035,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
             pools: &[
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: None,
                     modifier: &[],
                     entries: &[Entry {
@@ -24074,7 +24074,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                 },
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: Some(Condition::Inverted(&Condition::AnyOf(&[
                         Condition::Reference("minecraft:tool/can_shear"),
                         Condition::Reference("minecraft:tool/can_silk_touch"),
@@ -24111,7 +24111,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -24128,7 +24128,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -24149,7 +24149,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -24182,7 +24182,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -24203,7 +24203,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -24224,7 +24224,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -24245,7 +24245,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -24276,7 +24276,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::Reference("minecraft:tool/can_silk_touch")),
                 modifier: &[],
                 entries: &[Entry {
@@ -24297,7 +24297,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::Reference("minecraft:tool/can_silk_touch")),
                 modifier: &[],
                 entries: &[Entry {
@@ -24318,7 +24318,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -24339,7 +24339,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -24360,7 +24360,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -24381,7 +24381,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -24414,7 +24414,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -24435,7 +24435,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -24456,7 +24456,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -24477,7 +24477,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -24531,7 +24531,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -24552,7 +24552,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -24574,7 +24574,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -24595,7 +24595,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -24616,7 +24616,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -24649,7 +24649,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -24670,7 +24670,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -24691,7 +24691,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -24712,7 +24712,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -24802,7 +24802,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -24823,7 +24823,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -24840,7 +24840,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -24864,7 +24864,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -24881,7 +24881,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -24902,7 +24902,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -24935,7 +24935,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -24956,7 +24956,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -24977,7 +24977,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -24998,7 +24998,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::Reference("minecraft:tool/can_silk_touch")),
                 modifier: &[],
                 entries: &[Entry {
@@ -25019,7 +25019,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::Reference("minecraft:tool/can_silk_touch")),
                 modifier: &[],
                 entries: &[Entry {
@@ -25040,7 +25040,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::Reference("minecraft:tool/can_silk_touch")),
                 modifier: &[],
                 entries: &[Entry {
@@ -25061,7 +25061,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::Reference("minecraft:tool/can_silk_touch")),
                 modifier: &[],
                 entries: &[Entry {
@@ -25082,7 +25082,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -25172,7 +25172,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -25233,7 +25233,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -25286,7 +25286,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::Reference("minecraft:tool/can_shear")),
                 modifier: &[],
                 entries: &[Entry {
@@ -25307,7 +25307,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -25340,7 +25340,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::AnyOf(&[
                     Condition::Reference("minecraft:tool/can_shear"),
                     Condition::Reference("minecraft:tool/can_silk_touch"),
@@ -25364,7 +25364,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -25411,7 +25411,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -25432,7 +25432,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -25463,7 +25463,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -25487,7 +25487,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -25508,7 +25508,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::Reference("minecraft:tool/can_silk_touch")),
                 modifier: &[],
                 entries: &[Entry {
@@ -25529,7 +25529,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::Reference("minecraft:tool/can_shear")),
                 modifier: &[],
                 entries: &[Entry {
@@ -25550,7 +25550,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -25571,7 +25571,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -25595,7 +25595,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -25616,7 +25616,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -25637,7 +25637,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -25670,7 +25670,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -25691,7 +25691,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -25712,7 +25712,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -25745,7 +25745,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -25766,7 +25766,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -25787,7 +25787,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -25820,7 +25820,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -25841,7 +25841,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -25862,7 +25862,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -25895,7 +25895,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -25916,7 +25916,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::EntityProperties {
                     target: EntityTarget::This,
                     predicate: Some(&EntityPredicate {
@@ -26235,7 +26235,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -26280,7 +26280,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -26323,7 +26323,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -26344,7 +26344,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -26365,7 +26365,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -26386,7 +26386,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -26408,7 +26408,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -26429,7 +26429,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -26450,7 +26450,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -26471,7 +26471,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -26495,7 +26495,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -26516,7 +26516,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -26537,7 +26537,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -26559,7 +26559,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
             pools: &[
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: None,
                     modifier: &[],
                     entries: &[Entry {
@@ -26598,7 +26598,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                 },
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: Some(Condition::Inverted(&Condition::AnyOf(&[
                         Condition::Reference("minecraft:tool/can_shear"),
                         Condition::Reference("minecraft:tool/can_silk_touch"),
@@ -26635,7 +26635,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -26656,7 +26656,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -26673,7 +26673,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -26694,7 +26694,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -26711,7 +26711,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -26732,7 +26732,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -26753,7 +26753,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -26786,7 +26786,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -26807,7 +26807,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -26828,7 +26828,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -26849,7 +26849,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -26870,7 +26870,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -26906,7 +26906,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -26939,7 +26939,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -26960,7 +26960,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -26981,7 +26981,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -27002,7 +27002,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -27023,7 +27023,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -27044,7 +27044,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -27077,7 +27077,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -27098,7 +27098,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -27119,7 +27119,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -27143,7 +27143,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -27164,7 +27164,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -27185,7 +27185,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -27206,7 +27206,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -27227,7 +27227,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -27248,7 +27248,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -27269,7 +27269,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -27290,7 +27290,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -27311,7 +27311,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -27332,7 +27332,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -27353,7 +27353,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -27374,7 +27374,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -27395,7 +27395,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -27416,7 +27416,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -27437,7 +27437,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -27458,7 +27458,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -27479,7 +27479,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -27500,7 +27500,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -27521,7 +27521,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -27542,7 +27542,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -27563,7 +27563,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -27584,7 +27584,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -27605,7 +27605,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -27626,7 +27626,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -27647,7 +27647,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -27668,7 +27668,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -27689,7 +27689,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -27706,7 +27706,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -27735,7 +27735,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -27752,7 +27752,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -27769,7 +27769,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -27786,7 +27786,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -27815,7 +27815,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -27836,7 +27836,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -27853,7 +27853,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -27870,7 +27870,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -27897,7 +27897,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
             pools: &[
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: Some(Condition::MatchBlock(BlockPredicate {
                         blocks: Some(HolderSet::Direct(&[951])),
                         state: &[("age", "3")],
@@ -27930,7 +27930,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                 },
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: Some(Condition::MatchBlock(BlockPredicate {
                         blocks: Some(HolderSet::Direct(&[951])),
                         state: &[("age", "2")],
@@ -27970,7 +27970,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::AnyOf(&[
                     Condition::Reference("minecraft:tool/can_shear"),
                     Condition::Reference("minecraft:tool/can_silk_touch"),
@@ -27995,7 +27995,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
             pools: &[
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: Some(Condition::AllOf(&[
                         Condition::MatchBlock(BlockPredicate {
                             blocks: Some(HolderSet::Direct(&[615])),
@@ -28047,7 +28047,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                 },
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: Some(Condition::AllOf(&[
                         Condition::MatchBlock(BlockPredicate {
                             blocks: Some(HolderSet::Direct(&[615])),
@@ -28106,7 +28106,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::Reference("minecraft:tool/can_shear")),
                 modifier: &[],
                 entries: &[Entry {
@@ -28133,7 +28133,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -28154,7 +28154,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -28175,7 +28175,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -28196,7 +28196,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -28220,7 +28220,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -28241,7 +28241,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -28262,7 +28262,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -28283,7 +28283,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -28308,7 +28308,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -28329,7 +28329,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -28350,7 +28350,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::Reference("minecraft:tool/can_silk_touch")),
                 modifier: &[],
                 entries: &[Entry {
@@ -28371,7 +28371,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -28407,7 +28407,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::Reference("minecraft:tool/can_silk_touch")),
                 modifier: &[],
                 entries: &[Entry {
@@ -28428,7 +28428,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -28445,7 +28445,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -28474,7 +28474,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -28491,7 +28491,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -28508,7 +28508,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -28525,7 +28525,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -28554,7 +28554,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -28571,7 +28571,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -28588,7 +28588,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::Reference("minecraft:tool/can_silk_touch")),
                 modifier: &[],
                 entries: &[Entry {
@@ -28609,7 +28609,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -28651,7 +28651,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -28694,7 +28694,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -28715,7 +28715,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::Reference("minecraft:tool/can_shear")),
                 modifier: &[],
                 entries: &[Entry {
@@ -28736,7 +28736,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -28757,7 +28757,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -28781,7 +28781,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -28802,7 +28802,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -28823,7 +28823,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -28844,7 +28844,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -28865,7 +28865,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -28886,7 +28886,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -28922,7 +28922,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -28939,7 +28939,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -28960,7 +28960,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -28981,7 +28981,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -29002,7 +29002,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -29023,7 +29023,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -29056,7 +29056,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -29077,7 +29077,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -29098,7 +29098,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -29119,7 +29119,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -29140,7 +29140,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -29161,7 +29161,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -29182,7 +29182,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -29203,7 +29203,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -29224,7 +29224,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -29245,7 +29245,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -29266,7 +29266,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -29290,7 +29290,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -29314,7 +29314,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -29349,7 +29349,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -29370,7 +29370,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -29391,7 +29391,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -29412,7 +29412,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -29433,7 +29433,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -29466,7 +29466,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -29487,7 +29487,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -29508,7 +29508,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -29529,7 +29529,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -29550,7 +29550,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -29571,7 +29571,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -29592,7 +29592,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -29616,7 +29616,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -29640,7 +29640,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -29675,7 +29675,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -29696,7 +29696,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -29717,7 +29717,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -29738,7 +29738,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -29759,7 +29759,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -29792,7 +29792,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -29813,7 +29813,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -29834,7 +29834,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -29855,7 +29855,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -29876,7 +29876,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -29897,7 +29897,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -29918,7 +29918,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -29939,7 +29939,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -29960,7 +29960,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -29984,7 +29984,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -30008,7 +30008,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -30043,7 +30043,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -30064,7 +30064,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -30085,7 +30085,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -30106,7 +30106,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -30127,7 +30127,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -30160,7 +30160,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -30181,7 +30181,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -30202,7 +30202,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -30223,7 +30223,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -30244,7 +30244,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -30265,7 +30265,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -30286,7 +30286,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -30307,7 +30307,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -30331,7 +30331,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -30355,7 +30355,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -30390,7 +30390,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -30411,7 +30411,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -30432,7 +30432,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -30453,7 +30453,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -30474,7 +30474,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -30507,7 +30507,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -30528,7 +30528,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -30549,7 +30549,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -30570,7 +30570,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -30591,7 +30591,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -30612,7 +30612,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -30633,7 +30633,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -30654,7 +30654,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -30678,7 +30678,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -30702,7 +30702,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -30737,7 +30737,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -30758,7 +30758,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -30779,7 +30779,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -30800,7 +30800,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -30821,7 +30821,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -30854,7 +30854,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -30875,7 +30875,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -30896,7 +30896,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -30938,7 +30938,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -30980,7 +30980,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -31002,7 +31002,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
             pools: &[
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: None,
                     modifier: &[],
                     entries: &[Entry {
@@ -31035,7 +31035,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                 },
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: Some(Condition::MatchBlock(BlockPredicate {
                         blocks: Some(HolderSet::Direct(&[251])),
                         state: &[("age", "7")],
@@ -31069,7 +31069,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -31101,7 +31101,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -31125,7 +31125,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -31178,7 +31178,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -31199,7 +31199,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -31220,7 +31220,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -31241,7 +31241,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -31262,7 +31262,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -31295,7 +31295,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -31316,7 +31316,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -31337,7 +31337,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -31368,7 +31368,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::Reference("minecraft:tool/can_silk_touch")),
                 modifier: &[],
                 entries: &[Entry {
@@ -31389,7 +31389,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::Reference("minecraft:tool/can_silk_touch")),
                 modifier: &[],
                 entries: &[Entry {
@@ -31410,7 +31410,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -31431,7 +31431,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -31452,7 +31452,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -31473,7 +31473,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -31506,7 +31506,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -31527,7 +31527,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -31590,7 +31590,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -31611,7 +31611,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -31635,7 +31635,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -31667,7 +31667,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -31691,7 +31691,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -31744,7 +31744,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -31765,7 +31765,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -31786,7 +31786,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -31807,7 +31807,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -31828,7 +31828,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -31861,7 +31861,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -31882,7 +31882,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -31904,7 +31904,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
             pools: &[
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: None,
                     modifier: &[],
                     entries: &[Entry {
@@ -31943,7 +31943,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                 },
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: Some(Condition::Inverted(&Condition::AnyOf(&[
                         Condition::Reference("minecraft:tool/can_shear"),
                         Condition::Reference("minecraft:tool/can_silk_touch"),
@@ -31980,7 +31980,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -32011,7 +32011,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::Reference("minecraft:tool/can_silk_touch")),
                 modifier: &[],
                 entries: &[Entry {
@@ -32032,7 +32032,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::Reference("minecraft:tool/can_silk_touch")),
                 modifier: &[],
                 entries: &[Entry {
@@ -32053,7 +32053,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -32074,7 +32074,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -32095,7 +32095,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -32128,7 +32128,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::SurvivesExplosion),
                 modifier: &[],
                 entries: &[Entry {
@@ -32149,7 +32149,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -32173,7 +32173,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -32194,7 +32194,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -32215,7 +32215,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -32236,7 +32236,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -32349,7 +32349,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -32370,7 +32370,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -32391,7 +32391,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -32413,7 +32413,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
             pools: &[
                 Pool {
                     rolls: IntProvider::Uniform { min: 4, max: 6 },
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: None,
                     modifier: &[],
                     entries: &[
@@ -32661,7 +32661,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                 },
                 Pool {
                     rolls: IntProvider::Constant(2),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: None,
                     modifier: &[],
                     entries: &[
@@ -32819,7 +32819,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                 },
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: None,
                     modifier: &[],
                     entries: &[
@@ -32835,6 +32835,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                                     kind: FunctionKind::SetName {
                                         name: "{\"translate\":\"filled_map.bamboo_camp_map\"}",
                                         target: NameTarget::ItemName,
+                                        entity: None,
                                     },
                                 },
                                 Function {
@@ -32867,6 +32868,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                                     kind: FunctionKind::SetName {
                                         name: "{\"translate\":\"filled_map.cherry_grove_camp_map\"}",
                                         target: NameTarget::ItemName,
+                                        entity: None,
                                     },
                                 },
                                 Function {
@@ -32899,6 +32901,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                                     kind: FunctionKind::SetName {
                                         name: "{\"translate\":\"filled_map.birch_forest_camp_map\"}",
                                         target: NameTarget::ItemName,
+                                        entity: None,
                                     },
                                 },
                                 Function {
@@ -32931,6 +32934,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                                     kind: FunctionKind::SetName {
                                         name: "{\"translate\":\"filled_map.dappled_forest_camp_map\"}",
                                         target: NameTarget::ItemName,
+                                        entity: None,
                                     },
                                 },
                                 Function {
@@ -32963,6 +32967,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                                     kind: FunctionKind::SetName {
                                         name: "{\"translate\":\"filled_map.flower_forest_camp_map\"}",
                                         target: NameTarget::ItemName,
+                                        entity: None,
                                     },
                                 },
                                 Function {
@@ -32995,6 +33000,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                                     kind: FunctionKind::SetName {
                                         name: "{\"translate\":\"filled_map.pale_garden_camp_map\"}",
                                         target: NameTarget::ItemName,
+                                        entity: None,
                                     },
                                 },
                                 Function {
@@ -33027,6 +33033,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                                     kind: FunctionKind::SetName {
                                         name: "{\"translate\":\"filled_map.swamp_camp_map\"}",
                                         target: NameTarget::ItemName,
+                                        entity: None,
                                     },
                                 },
                                 Function {
@@ -33059,6 +33066,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                                     kind: FunctionKind::SetName {
                                         name: "{\"translate\":\"filled_map.windswept_forest_camp_map\"}",
                                         target: NameTarget::ItemName,
+                                        entity: None,
                                     },
                                 },
                                 Function {
@@ -33091,7 +33099,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
             pools: &[
                 Pool {
                     rolls: IntProvider::Constant(2),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: None,
                     modifier: &[],
                     entries: &[
@@ -33198,7 +33206,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                 },
                 Pool {
                     rolls: IntProvider::Uniform { min: 4, max: 6 },
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: None,
                     modifier: &[],
                     entries: &[
@@ -33266,7 +33274,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                 },
                 Pool {
                     rolls: IntProvider::Uniform { min: 0, max: 1 },
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: None,
                     modifier: &[],
                     entries: &[
@@ -33334,7 +33342,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                 },
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: None,
                     modifier: &[],
                     entries: &[
@@ -33497,7 +33505,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
             pools: &[
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: None,
                     modifier: &[],
                     entries: &[
@@ -33565,7 +33573,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                 },
                 Pool {
                     rolls: IntProvider::Uniform { min: 2, max: 4 },
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: None,
                     modifier: &[],
                     entries: &[
@@ -33738,7 +33746,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                 },
                 Pool {
                     rolls: IntProvider::Constant(3),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: None,
                     modifier: &[],
                     entries: &[
@@ -33842,7 +33850,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
             pools: &[
                 Pool {
                     rolls: IntProvider::Uniform { min: 5, max: 10 },
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: None,
                     modifier: &[],
                     entries: &[
@@ -34259,7 +34267,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                 },
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: None,
                     modifier: &[],
                     entries: &[
@@ -34301,7 +34309,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Uniform { min: 4, max: 10 },
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[
@@ -34406,7 +34414,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
             pools: &[
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: None,
                     modifier: &[],
                     entries: &[Entry {
@@ -34427,7 +34435,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                 },
                 Pool {
                     rolls: IntProvider::Uniform { min: 1, max: 2 },
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: None,
                     modifier: &[],
                     entries: &[
@@ -34684,7 +34692,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                 },
                 Pool {
                     rolls: IntProvider::Uniform { min: 2, max: 4 },
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: None,
                     modifier: &[],
                     entries: &[
@@ -34767,7 +34775,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                 },
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: None,
                     modifier: &[],
                     entries: &[
@@ -34793,7 +34801,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                 },
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: None,
                     modifier: &[],
                     entries: &[
@@ -34827,7 +34835,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
             pools: &[
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: None,
                     modifier: &[],
                     entries: &[
@@ -34995,7 +35003,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                 },
                 Pool {
                     rolls: IntProvider::Uniform { min: 3, max: 4 },
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: None,
                     modifier: &[],
                     entries: &[
@@ -35222,7 +35230,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                 },
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: None,
                     modifier: &[],
                     entries: &[
@@ -35248,7 +35256,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                 },
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: None,
                     modifier: &[],
                     entries: &[
@@ -35282,7 +35290,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
             pools: &[
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: None,
                     modifier: &[],
                     entries: &[
@@ -35473,7 +35481,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                 },
                 Pool {
                     rolls: IntProvider::Constant(2),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: None,
                     modifier: &[],
                     entries: &[
@@ -35725,7 +35733,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                 },
                 Pool {
                     rolls: IntProvider::Uniform { min: 3, max: 4 },
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: None,
                     modifier: &[],
                     entries: &[
@@ -35883,7 +35891,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                 },
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: None,
                     modifier: &[],
                     entries: &[
@@ -35909,7 +35917,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                 },
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: None,
                     modifier: &[],
                     entries: &[
@@ -35943,7 +35951,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
             pools: &[
                 Pool {
                     rolls: IntProvider::Constant(3),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: None,
                     modifier: &[],
                     entries: &[
@@ -36239,7 +36247,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                 },
                 Pool {
                     rolls: IntProvider::Uniform { min: 3, max: 4 },
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: None,
                     modifier: &[],
                     entries: &[
@@ -36382,7 +36390,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                 },
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: None,
                     modifier: &[],
                     entries: &[
@@ -36408,7 +36416,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                 },
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: None,
                     modifier: &[],
                     entries: &[Entry {
@@ -36431,7 +36439,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
             pools: &[
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: None,
                     modifier: &[],
                     entries: &[Entry {
@@ -36446,7 +36454,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                 },
                 Pool {
                     rolls: IntProvider::Uniform { min: 5, max: 8 },
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: None,
                     modifier: &[],
                     entries: &[
@@ -36499,7 +36507,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                 },
                 Pool {
                     rolls: IntProvider::Uniform { min: 1, max: 3 },
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: None,
                     modifier: &[],
                     entries: &[
@@ -36552,7 +36560,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                 },
                 Pool {
                     rolls: IntProvider::Uniform { min: 0, max: 1 },
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: None,
                     modifier: &[],
                     entries: &[
@@ -36587,7 +36595,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                 },
                 Pool {
                     rolls: IntProvider::Constant(2),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: None,
                     modifier: &[],
                     entries: &[
@@ -36625,7 +36633,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                 },
                 Pool {
                     rolls: IntProvider::Uniform { min: 0, max: 2 },
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: None,
                     modifier: &[Function {
                         condition: None,
@@ -36643,7 +36651,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                 },
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: None,
                     modifier: &[],
                     entries: &[
@@ -36728,7 +36736,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
             pools: &[
                 Pool {
                     rolls: IntProvider::Uniform { min: 2, max: 4 },
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: None,
                     modifier: &[],
                     entries: &[
@@ -36934,7 +36942,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                 },
                 Pool {
                     rolls: IntProvider::Constant(4),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: None,
                     modifier: &[],
                     entries: &[
@@ -37017,7 +37025,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                 },
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: None,
                     modifier: &[],
                     entries: &[
@@ -37057,7 +37065,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
             pools: &[
                 Pool {
                     rolls: IntProvider::Uniform { min: 2, max: 6 },
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: None,
                     modifier: &[],
                     entries: &[
@@ -37410,7 +37418,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                 },
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: None,
                     modifier: &[],
                     entries: &[
@@ -37444,7 +37452,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
             pools: &[
                 Pool {
                     rolls: IntProvider::Uniform { min: 2, max: 8 },
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: None,
                     modifier: &[],
                     entries: &[
@@ -37539,7 +37547,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                 },
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: None,
                     modifier: &[],
                     entries: &[Entry {
@@ -37562,7 +37570,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
             pools: &[
                 Pool {
                     rolls: IntProvider::Uniform { min: 2, max: 6 },
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: None,
                     modifier: &[],
                     entries: &[
@@ -37741,7 +37749,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                 },
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: None,
                     modifier: &[],
                     entries: &[
@@ -37780,7 +37788,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Uniform { min: 1, max: 2 },
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -37808,7 +37816,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
             pools: &[
                 Pool {
                     rolls: IntProvider::Uniform { min: 2, max: 4 },
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: None,
                     modifier: &[],
                     entries: &[
@@ -37963,7 +37971,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                 },
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: None,
                     modifier: &[],
                     entries: &[
@@ -37997,7 +38005,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
             pools: &[
                 Pool {
                     rolls: IntProvider::Uniform { min: 0, max: 1 },
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: None,
                     modifier: &[],
                     entries: &[Entry {
@@ -38012,7 +38020,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                 },
                 Pool {
                     rolls: IntProvider::Uniform { min: 2, max: 3 },
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: None,
                     modifier: &[],
                     entries: &[
@@ -38065,7 +38073,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                 },
                 Pool {
                     rolls: IntProvider::Uniform { min: 1, max: 3 },
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: None,
                     modifier: &[],
                     entries: &[Entry {
@@ -38086,7 +38094,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                 },
                 Pool {
                     rolls: IntProvider::Uniform { min: 2, max: 3 },
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: None,
                     modifier: &[],
                     entries: &[
@@ -38178,7 +38186,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                 },
                 Pool {
                     rolls: IntProvider::Uniform { min: 0, max: 1 },
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: None,
                     modifier: &[Function {
                         condition: None,
@@ -38196,7 +38204,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                 },
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: None,
                     modifier: &[],
                     entries: &[
@@ -38236,7 +38244,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
             pools: &[
                 Pool {
                     rolls: IntProvider::Uniform { min: 4, max: 8 },
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: None,
                     modifier: &[],
                     entries: &[
@@ -38571,7 +38579,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                 },
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: None,
                     modifier: &[],
                     entries: &[
@@ -38611,7 +38619,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
             pools: &[
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: None,
                     modifier: &[],
                     entries: &[Entry {
@@ -38638,7 +38646,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                 },
                 Pool {
                     rolls: IntProvider::Constant(3),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: None,
                     modifier: &[],
                     entries: &[
@@ -38718,7 +38726,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                 },
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: None,
                     modifier: &[],
                     entries: &[
@@ -38750,7 +38758,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                 },
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: None,
                     modifier: &[],
                     entries: &[
@@ -38835,7 +38843,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
             pools: &[
                 Pool {
                     rolls: IntProvider::Uniform { min: 3, max: 10 },
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: None,
                     modifier: &[],
                     entries: &[
@@ -39114,7 +39122,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                 },
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: None,
                     modifier: &[],
                     entries: &[
@@ -39146,7 +39154,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                 },
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: None,
                     modifier: &[],
                     entries: &[
@@ -39231,7 +39239,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
             pools: &[
                 Pool {
                     rolls: IntProvider::Uniform { min: 3, max: 6 },
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: None,
                     modifier: &[],
                     entries: &[
@@ -39302,7 +39310,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                 },
                 Pool {
                     rolls: IntProvider::Uniform { min: 2, max: 5 },
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: None,
                     modifier: &[],
                     entries: &[
@@ -39355,7 +39363,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                 },
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: None,
                     modifier: &[],
                     entries: &[
@@ -39387,7 +39395,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                 },
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: None,
                     modifier: &[],
                     entries: &[
@@ -39472,7 +39480,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
             pools: &[
                 Pool {
                     rolls: IntProvider::Uniform { min: 1, max: 3 },
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: None,
                     modifier: &[],
                     entries: &[
@@ -39600,7 +39608,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                 },
                 Pool {
                     rolls: IntProvider::Uniform { min: 1, max: 4 },
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: None,
                     modifier: &[],
                     entries: &[
@@ -39746,7 +39754,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                 },
                 Pool {
                     rolls: IntProvider::Constant(3),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: None,
                     modifier: &[],
                     entries: &[
@@ -39822,7 +39830,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
             pools: &[
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: None,
                     modifier: &[],
                     entries: &[
@@ -39848,7 +39856,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                 },
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: None,
                     modifier: &[],
                     entries: &[
@@ -39874,7 +39882,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                 },
                 Pool {
                     rolls: IntProvider::Constant(3),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: None,
                     modifier: &[],
                     entries: &[
@@ -39927,7 +39935,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                 },
                 Pool {
                     rolls: IntProvider::Constant(4),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: None,
                     modifier: &[],
                     entries: &[
@@ -40078,7 +40086,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
             pools: &[
                 Pool {
                     rolls: IntProvider::Uniform { min: 2, max: 3 },
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: None,
                     modifier: &[],
                     entries: &[
@@ -40323,7 +40331,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                 },
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: None,
                     modifier: &[],
                     entries: &[
@@ -40356,7 +40364,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Uniform { min: 1, max: 4 },
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[
@@ -40485,7 +40493,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
             pools: &[
                 Pool {
                     rolls: IntProvider::Uniform { min: 2, max: 10 },
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: None,
                     modifier: &[],
                     entries: &[
@@ -40556,7 +40564,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                 },
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: None,
                     modifier: &[],
                     entries: &[Entry {
@@ -40578,7 +40586,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Uniform { min: 1, max: 3 },
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[
@@ -40776,7 +40784,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Uniform { min: 2, max: 3 },
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[
@@ -40865,7 +40873,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Uniform { min: 1, max: 3 },
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[
@@ -41017,7 +41025,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Uniform { min: 1, max: 3 },
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[
@@ -41219,7 +41227,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
             pools: &[
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: None,
                     modifier: &[],
                     entries: &[
@@ -41245,7 +41253,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                 },
                 Pool {
                     rolls: IntProvider::Uniform { min: 1, max: 3 },
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: None,
                     modifier: &[],
                     entries: &[Entry {
@@ -41260,7 +41268,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                 },
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: Some(Condition::RandomChance(0.25)),
                     modifier: &[],
                     entries: &[Entry {
@@ -41282,7 +41290,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[
@@ -41447,7 +41455,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
             pools: &[
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: None,
                     modifier: &[],
                     entries: &[
@@ -41473,7 +41481,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                 },
                 Pool {
                     rolls: IntProvider::Uniform { min: 1, max: 3 },
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: None,
                     modifier: &[],
                     entries: &[Entry {
@@ -41488,7 +41496,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                 },
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: Some(Condition::RandomChance(0.75)),
                     modifier: &[],
                     entries: &[Entry {
@@ -41510,7 +41518,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[
@@ -41614,7 +41622,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[
@@ -41760,7 +41768,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[
@@ -41819,7 +41827,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[
@@ -42011,7 +42019,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[
@@ -42070,7 +42078,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Uniform { min: 3, max: 5 },
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[
@@ -42328,7 +42336,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
             pools: &[
                 Pool {
                     rolls: IntProvider::Uniform { min: 2, max: 8 },
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: None,
                     modifier: &[],
                     entries: &[
@@ -42399,7 +42407,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                 },
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: None,
                     modifier: &[],
                     entries: &[
@@ -42485,7 +42493,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                 },
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: None,
                     modifier: &[],
                     entries: &[
@@ -42570,7 +42578,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
             pools: &[
                 Pool {
                     rolls: IntProvider::Uniform { min: 2, max: 8 },
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: None,
                     modifier: &[],
                     entries: &[
@@ -42644,7 +42652,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                 },
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: None,
                     modifier: &[],
                     entries: &[
@@ -42706,7 +42714,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                 },
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: None,
                     modifier: &[],
                     entries: &[
@@ -42790,7 +42798,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Uniform { min: 1, max: 5 },
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[
@@ -42852,7 +42860,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Uniform { min: 1, max: 5 },
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[
@@ -42951,7 +42959,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
             pools: &[
                 Pool {
                     rolls: IntProvider::Uniform { min: 1, max: 5 },
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: None,
                     modifier: &[],
                     entries: &[
@@ -43028,7 +43036,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                 },
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: None,
                     modifier: &[],
                     entries: &[
@@ -43068,7 +43076,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
             pools: &[
                 Pool {
                     rolls: IntProvider::Uniform { min: 3, max: 8 },
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: None,
                     modifier: &[],
                     entries: &[
@@ -43178,7 +43186,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                 },
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: None,
                     modifier: &[],
                     entries: &[
@@ -43217,7 +43225,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Uniform { min: 1, max: 5 },
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[
@@ -43330,7 +43338,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Uniform { min: 1, max: 5 },
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[
@@ -43428,7 +43436,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Uniform { min: 1, max: 5 },
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[
@@ -43527,7 +43535,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
             pools: &[
                 Pool {
                     rolls: IntProvider::Uniform { min: 3, max: 8 },
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: None,
                     modifier: &[],
                     entries: &[
@@ -43661,7 +43669,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                 },
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: None,
                     modifier: &[],
                     entries: &[
@@ -43701,7 +43709,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
             pools: &[
                 Pool {
                     rolls: IntProvider::Uniform { min: 3, max: 8 },
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: None,
                     modifier: &[],
                     entries: &[
@@ -43835,7 +43843,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                 },
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: None,
                     modifier: &[],
                     entries: &[
@@ -43874,7 +43882,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Uniform { min: 1, max: 5 },
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[
@@ -43997,7 +44005,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
             pools: &[
                 Pool {
                     rolls: IntProvider::Uniform { min: 3, max: 8 },
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: None,
                     modifier: &[],
                     entries: &[
@@ -44131,7 +44139,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                 },
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: None,
                     modifier: &[],
                     entries: &[
@@ -44171,7 +44179,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
             pools: &[
                 Pool {
                     rolls: IntProvider::Uniform { min: 3, max: 8 },
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: None,
                     modifier: &[],
                     entries: &[
@@ -44335,7 +44343,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                 },
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: None,
                     modifier: &[],
                     entries: &[
@@ -44375,7 +44383,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
             pools: &[
                 Pool {
                     rolls: IntProvider::Uniform { min: 1, max: 5 },
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: None,
                     modifier: &[],
                     entries: &[
@@ -44473,7 +44481,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                 },
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: None,
                     modifier: &[],
                     entries: &[
@@ -44512,7 +44520,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Uniform { min: 3, max: 8 },
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[
@@ -44616,7 +44624,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Uniform { min: 3, max: 8 },
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[
@@ -44739,7 +44747,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
             pools: &[
                 Pool {
                     rolls: IntProvider::Uniform { min: 3, max: 8 },
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: None,
                     modifier: &[],
                     entries: &[
@@ -44969,7 +44977,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                 },
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: None,
                     modifier: &[],
                     entries: &[
@@ -45009,7 +45017,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
             pools: &[
                 Pool {
                     rolls: IntProvider::Uniform { min: 1, max: 3 },
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: None,
                     modifier: &[],
                     entries: &[
@@ -45104,7 +45112,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                 },
                 Pool {
                     rolls: IntProvider::Uniform { min: 1, max: 4 },
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: None,
                     modifier: &[],
                     entries: &[
@@ -45265,7 +45273,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                 },
                 Pool {
                     rolls: IntProvider::Constant(3),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: None,
                     modifier: &[],
                     entries: &[
@@ -45333,7 +45341,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                 },
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: None,
                     modifier: &[],
                     entries: &[
@@ -45372,7 +45380,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::KilledByPlayer),
                 modifier: &[],
                 entries: &[Entry {
@@ -45410,7 +45418,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
             pools: &[
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: None,
                     modifier: &[],
                     entries: &[Entry {
@@ -45441,7 +45449,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                 },
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: None,
                     modifier: &[],
                     entries: &[Entry {
@@ -45472,7 +45480,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                 },
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: Some(Condition::KilledByPlayer),
                     modifier: &[],
                     entries: &[Entry {
@@ -45514,7 +45522,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::KilledByPlayer),
                 modifier: &[],
                 entries: &[Entry {
@@ -45552,7 +45560,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -45589,7 +45597,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -45617,7 +45625,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
             pools: &[
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: None,
                     modifier: &[],
                     entries: &[Entry {
@@ -45648,7 +45656,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                 },
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: Some(Condition::KilledByPlayer),
                     modifier: &[],
                     entries: &[Entry {
@@ -45687,7 +45695,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
             pools: &[
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: None,
                     modifier: &[],
                     entries: &[Entry {
@@ -45718,7 +45726,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                 },
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: None,
                     modifier: &[],
                     entries: &[Entry {
@@ -45783,7 +45791,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
             pools: &[
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: None,
                     modifier: &[],
                     entries: &[Entry {
@@ -45830,7 +45838,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                 },
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: Some(Condition::RandomChance(0.05)),
                     modifier: &[],
                     entries: &[Entry {
@@ -45852,7 +45860,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -45890,7 +45898,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
             pools: &[
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: None,
                     modifier: &[],
                     entries: &[Entry {
@@ -45921,7 +45929,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                 },
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: None,
                     modifier: &[],
                     entries: &[Entry {
@@ -45994,7 +46002,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
             pools: &[
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: None,
                     modifier: &[],
                     entries: &[Entry {
@@ -46025,7 +46033,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                 },
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: Some(Condition::EntityProperties {
                         target: EntityTarget::Attacker,
                         predicate: Some(&EntityPredicate {
@@ -46060,7 +46068,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -46130,7 +46138,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -46168,7 +46176,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
             pools: &[
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: None,
                     modifier: &[],
                     entries: &[Entry {
@@ -46199,7 +46207,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                 },
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: Some(Condition::AllOf(&[
                         Condition::KilledByPlayer,
                         Condition::RandomChanceWithEnchantedBonus {
@@ -46232,7 +46240,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
             pools: &[
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: None,
                     modifier: &[],
                     entries: &[Entry {
@@ -46263,7 +46271,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                 },
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: None,
                     modifier: &[],
                     entries: &[
@@ -46350,7 +46358,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                 },
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: Some(Condition::KilledByPlayer),
                     modifier: &[],
                     entries: &[Entry {
@@ -46365,7 +46373,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                 },
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: Some(Condition::AllOf(&[
                         Condition::KilledByPlayer,
                         Condition::RandomChanceWithEnchantedBonus {
@@ -46422,7 +46430,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                 },
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: None,
                     modifier: &[],
                     entries: &[
@@ -46456,7 +46464,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -46495,7 +46503,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
             pools: &[
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: None,
                     modifier: &[],
                     entries: &[Entry {
@@ -46510,7 +46518,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                 },
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: Some(Condition::KilledByPlayer),
                     modifier: &[],
                     entries: &[Entry {
@@ -46551,7 +46559,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
             pools: &[
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: None,
                     modifier: &[],
                     entries: &[Entry {
@@ -46582,7 +46590,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                 },
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: None,
                     modifier: &[],
                     entries: &[Entry {
@@ -46613,7 +46621,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                 },
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: Some(Condition::AllOf(&[
                         Condition::DamageSourceProperties(&DamageSourcePredicate {
                             tags: &[TagPredicate {
@@ -46660,7 +46668,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -46699,7 +46707,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
             pools: &[
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: None,
                     modifier: &[],
                     entries: &[Entry {
@@ -46730,7 +46738,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                 },
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: None,
                     modifier: &[],
                     entries: &[
@@ -46817,7 +46825,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                 },
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: Some(Condition::AllOf(&[
                         Condition::KilledByPlayer,
                         Condition::RandomChanceWithEnchantedBonus {
@@ -46883,7 +46891,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
             pools: &[
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: None,
                     modifier: &[],
                     entries: &[Entry {
@@ -46947,7 +46955,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                 },
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: None,
                     modifier: &[],
                     entries: &[Entry {
@@ -46985,7 +46993,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -47023,7 +47031,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
             pools: &[
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: None,
                     modifier: &[],
                     entries: &[Entry {
@@ -47054,7 +47062,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                 },
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: None,
                     modifier: &[],
                     entries: &[Entry {
@@ -47102,7 +47110,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                 },
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: Some(Condition::AllOf(&[
                         Condition::KilledByPlayer,
                         Condition::RandomChanceWithEnchantedBonus {
@@ -47188,7 +47196,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
             pools: &[
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: None,
                     modifier: &[],
                     entries: &[Entry {
@@ -47209,7 +47217,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                 },
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: None,
                     modifier: &[],
                     entries: &[Entry {
@@ -47237,7 +47245,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -47274,7 +47282,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[
@@ -47423,7 +47431,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
             pools: &[
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: None,
                     modifier: &[],
                     entries: &[Entry {
@@ -47454,7 +47462,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                 },
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: None,
                     modifier: &[],
                     entries: &[Entry {
@@ -47525,7 +47533,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -47562,7 +47570,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::AllOf(&[
                     Condition::KilledByPlayer,
                     Condition::RandomChanceWithEnchantedBonus {
@@ -47594,7 +47602,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -47622,7 +47630,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
             pools: &[
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: None,
                     modifier: &[],
                     entries: &[Entry {
@@ -47653,7 +47661,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                 },
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: None,
                     modifier: &[],
                     entries: &[Entry {
@@ -47684,7 +47692,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                 },
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: Some(Condition::KilledByPlayer),
                     modifier: &[],
                     entries: &[Entry {
@@ -47726,7 +47734,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -47763,7 +47771,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::KilledByPlayer),
                 modifier: &[],
                 entries: &[Entry {
@@ -47800,7 +47808,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -47872,7 +47880,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::EntityProperties {
                     target: EntityTarget::This,
                     predicate: Some(&EntityPredicate {
@@ -47919,7 +47927,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[
@@ -48050,7 +48058,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
             pools: &[
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: None,
                     modifier: &[],
                     entries: &[Entry {
@@ -48071,7 +48079,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                 },
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: Some(Condition::RandomChance(0.05)),
                     modifier: &[],
                     entries: &[Entry {
@@ -48094,7 +48102,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
             pools: &[
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: None,
                     modifier: &[],
                     entries: &[Entry {
@@ -48125,7 +48133,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                 },
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: None,
                     modifier: &[],
                     entries: &[Entry {
@@ -48189,7 +48197,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                 },
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: Some(Condition::AllOf(&[
                         Condition::KilledByPlayer,
                         Condition::RandomChanceWithEnchantedBonus {
@@ -48221,7 +48229,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -48249,7 +48257,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
             pools: &[
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: None,
                     modifier: &[],
                     entries: &[Entry {
@@ -48296,7 +48304,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                 },
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: Some(Condition::RandomChance(0.05)),
                     modifier: &[],
                     entries: &[Entry {
@@ -48319,7 +48327,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
             pools: &[
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: None,
                     modifier: &[],
                     entries: &[Entry {
@@ -48383,7 +48391,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                 },
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: None,
                     modifier: &[],
                     entries: &[Entry {
@@ -48706,7 +48714,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -48727,7 +48735,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -48748,7 +48756,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -48769,7 +48777,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -48790,7 +48798,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -48811,7 +48819,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -48832,7 +48840,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -48853,7 +48861,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -48874,7 +48882,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -48895,7 +48903,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -48916,7 +48924,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -48937,7 +48945,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -48958,7 +48966,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -48979,7 +48987,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -49000,7 +49008,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -49021,7 +49029,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -49042,7 +49050,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::RandomChanceWithEnchantedBonus {
                     enchantment: "minecraft:looting",
                     unenchanted_chance: 0.5,
@@ -49072,7 +49080,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
             pools: &[
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: None,
                     modifier: &[],
                     entries: &[Entry {
@@ -49103,7 +49111,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                 },
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: None,
                     modifier: &[],
                     entries: &[Entry {
@@ -49141,7 +49149,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -49178,7 +49186,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::EntityProperties {
                     target: EntityTarget::This,
                     predicate: Some(&EntityPredicate {
@@ -49269,7 +49277,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -49297,7 +49305,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
             pools: &[
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: None,
                     modifier: &[],
                     entries: &[Entry {
@@ -49328,7 +49336,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                 },
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: Some(Condition::KilledByPlayer),
                     modifier: &[],
                     entries: &[Entry {
@@ -49366,7 +49374,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -49404,7 +49412,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
             pools: &[
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: None,
                     modifier: &[],
                     entries: &[Entry {
@@ -49435,7 +49443,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                 },
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: None,
                     modifier: &[],
                     entries: &[Entry {
@@ -49466,7 +49474,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                 },
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: Some(Condition::KilledByPlayer),
                     modifier: &[],
                     entries: &[Entry {
@@ -49508,7 +49516,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -49547,7 +49555,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -49585,7 +49593,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
             pools: &[
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: None,
                     modifier: &[],
                     entries: &[Entry {
@@ -49606,7 +49614,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                 },
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: Some(Condition::RandomChance(0.05)),
                     modifier: &[],
                     entries: &[Entry {
@@ -49629,7 +49637,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
             pools: &[
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: None,
                     modifier: &[],
                     entries: &[Entry {
@@ -49660,7 +49668,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                 },
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: Some(Condition::DamageSourceProperties(&DamageSourcePredicate {
                         tags: &[TagPredicate { tag: "minecraft:is_lightning", expected: true }],
                         source_entity: None,
@@ -49689,7 +49697,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::KilledByPlayer),
                 modifier: &[],
                 entries: &[Entry {
@@ -49727,7 +49735,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -49749,7 +49757,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
             pools: &[
                 Pool {
                     rolls: IntProvider::Uniform { min: 1, max: 3 },
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: None,
                     modifier: &[],
                     entries: &[
@@ -49907,7 +49915,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                 },
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: None,
                     modifier: &[],
                     entries: &[Entry {
@@ -49947,7 +49955,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
             pools: &[
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: None,
                     modifier: &[],
                     entries: &[Entry {
@@ -49978,7 +49986,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                 },
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: None,
                     modifier: &[],
                     entries: &[Entry {
@@ -50009,7 +50017,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                 },
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: Some(Condition::AllOf(&[
                         Condition::KilledByPlayer,
                         Condition::RandomChanceWithEnchantedBonus {
@@ -50042,7 +50050,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -50080,7 +50088,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
             pools: &[
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: None,
                     modifier: &[],
                     entries: &[Entry {
@@ -50111,7 +50119,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                 },
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: None,
                     modifier: &[],
                     entries: &[Entry {
@@ -50159,7 +50167,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                 },
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: Some(Condition::AllOf(&[
                         Condition::KilledByPlayer,
                         Condition::RandomChanceWithEnchantedBonus {
@@ -50236,7 +50244,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                 },
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: Some(Condition::AllOf(&[
                         Condition::KilledByPlayer,
                         Condition::EntityProperties {
@@ -50278,7 +50286,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -50315,7 +50323,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(Condition::KilledByPlayer),
                 modifier: &[],
                 entries: &[Entry {
@@ -50353,7 +50361,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
             pools: &[
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: None,
                     modifier: &[],
                     entries: &[Entry {
@@ -50384,7 +50392,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                 },
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: Some(Condition::AllOf(&[
                         Condition::KilledByPlayer,
                         Condition::RandomChanceWithEnchantedBonus {
@@ -50469,7 +50477,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
             pools: &[
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: None,
                     modifier: &[],
                     entries: &[Entry {
@@ -50500,7 +50508,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                 },
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: None,
                     modifier: &[],
                     entries: &[Entry {
@@ -50531,7 +50539,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                 },
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: Some(Condition::AllOf(&[
                         Condition::KilledByPlayer,
                         Condition::RandomChanceWithEnchantedBonus {
@@ -50563,7 +50571,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[
@@ -50605,7 +50613,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
             pools: &[
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: Some(Condition::RandomChance(0.5)),
                     modifier: &[],
                     entries: &[Entry {
@@ -50642,7 +50650,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                 },
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: Some(Condition::RandomChance(0.5)),
                     modifier: &[],
                     entries: &[Entry {
@@ -50687,7 +50695,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
             pools: &[
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: Some(Condition::RandomChance(0.5)),
                     modifier: &[],
                     entries: &[Entry {
@@ -50724,7 +50732,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                 },
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: Some(Condition::RandomChance(0.5)),
                     modifier: &[],
                     entries: &[Entry {
@@ -50769,7 +50777,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
             pools: &[
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: Some(Condition::RandomChance(0.5)),
                     modifier: &[],
                     entries: &[Entry {
@@ -50806,7 +50814,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                 },
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: Some(Condition::RandomChance(0.5)),
                     modifier: &[],
                     entries: &[Entry {
@@ -50851,7 +50859,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
             pools: &[
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: None,
                     modifier: &[],
                     entries: &[Entry {
@@ -50866,7 +50874,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                 },
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: None,
                     modifier: &[],
                     entries: &[
@@ -50930,7 +50938,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
             pools: &[
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: None,
                     modifier: &[],
                     entries: &[Entry {
@@ -50945,7 +50953,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                 },
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: None,
                     modifier: &[],
                     entries: &[
@@ -50999,7 +51007,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -51020,7 +51028,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[
@@ -51097,7 +51105,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -51175,7 +51183,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[
@@ -51228,7 +51236,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[
@@ -51278,7 +51286,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[
@@ -51438,7 +51446,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[
@@ -51542,7 +51550,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[
@@ -51592,7 +51600,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -51613,7 +51621,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[
@@ -51672,7 +51680,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[
@@ -51704,7 +51712,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[
@@ -51736,7 +51744,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[
@@ -51777,7 +51785,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[
@@ -51809,7 +51817,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[
@@ -52105,7 +52113,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -52126,7 +52134,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -52147,7 +52155,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -52168,7 +52176,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[
@@ -52326,7 +52334,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[
@@ -52376,7 +52384,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -52397,7 +52405,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[
@@ -52438,7 +52446,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[
@@ -52470,7 +52478,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[
@@ -52748,7 +52756,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[
@@ -52780,7 +52788,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -52807,7 +52815,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -52829,7 +52837,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
             pools: &[
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: None,
                     modifier: &[],
                     entries: &[Entry {
@@ -52853,7 +52861,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                 },
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: None,
                     modifier: &[],
                     entries: &[Entry {
@@ -52881,7 +52889,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -53203,7 +53211,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Uniform { min: 1, max: 3 },
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -53224,7 +53232,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Uniform { min: 1, max: 3 },
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -53245,7 +53253,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Uniform { min: 1, max: 3 },
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -53266,7 +53274,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Uniform { min: 1, max: 3 },
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -53287,7 +53295,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Uniform { min: 1, max: 3 },
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -53308,7 +53316,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Uniform { min: 1, max: 3 },
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -53329,7 +53337,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Uniform { min: 1, max: 3 },
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -53350,7 +53358,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Uniform { min: 1, max: 3 },
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -53371,7 +53379,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Uniform { min: 1, max: 3 },
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -53392,7 +53400,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Uniform { min: 1, max: 3 },
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -53413,7 +53421,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Uniform { min: 1, max: 3 },
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -53434,7 +53442,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Uniform { min: 1, max: 3 },
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -53455,7 +53463,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Uniform { min: 1, max: 3 },
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -53476,7 +53484,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Uniform { min: 1, max: 3 },
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -53497,7 +53505,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Uniform { min: 1, max: 3 },
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -53518,7 +53526,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Uniform { min: 1, max: 3 },
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -53539,7 +53547,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -53560,7 +53568,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[
@@ -53661,7 +53669,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -53682,7 +53690,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[
@@ -53784,7 +53792,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
             pools: &[
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: None,
                     modifier: &[],
                     entries: &[
@@ -53939,7 +53947,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                 },
                 Pool {
                     rolls: IntProvider::Constant(1),
-                    bonus_rolls: 0.0,
+                    bonus_rolls: FloatProvider::Constant(0.0),
                     condition: None,
                     modifier: &[],
                     entries: &[
@@ -54041,7 +54049,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {
@@ -54062,7 +54070,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
         LootTable {
             pools: &[Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: &[],
                 entries: &[Entry {

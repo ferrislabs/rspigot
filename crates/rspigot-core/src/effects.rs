@@ -227,14 +227,28 @@ impl<L: ClientLink> Server<L> {
             }
         }
         let mut expired = Vec::new();
+        let mut restored = Vec::new();
         for player in self.players.values_mut() {
             if player.vitals.is_dead() {
                 continue;
             }
             let spent = player.effects.countdown();
+            for effect in player.effects.take_restored() {
+                if let Some(current) = player.effects.get(effect).copied() {
+                    player.link.send(ClientEvent::EffectApplied {
+                        entity: player.entity_id,
+                        effect: current,
+                        blend: false,
+                    });
+                    restored.push((player.id, effect));
+                }
+            }
             if !spent.is_empty() {
                 expired.push((player.id, spent));
             }
+        }
+        for (id, effect) in restored {
+            self.sync_effect_state(id, &[effect]);
         }
         for (id, spent) in expired {
             for effect in spent {

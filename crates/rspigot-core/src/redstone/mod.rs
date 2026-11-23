@@ -1,5 +1,8 @@
 mod analog;
 mod bell;
+mod bulb;
+mod comparator_store;
+mod composter;
 mod controls;
 mod crafter;
 mod daylight;
@@ -21,6 +24,7 @@ mod storage;
 mod target;
 mod torch;
 mod touch;
+mod trigger;
 mod tripwire;
 mod wire;
 
@@ -64,7 +68,6 @@ pub(crate) enum TickPriority {
 #[derive(Debug, Default)]
 pub(crate) struct Runtime {
     pub(crate) toggles: Vec<(BlockPos, u64)>,
-    pub(crate) outputs: FxHashMap<BlockPos, i32>,
     pub(crate) moving: FxHashMap<BlockPos, piston::Moving>,
     pub(crate) events: Vec<piston::BlockEvent>,
     pub(crate) hoppers: FxHashMap<BlockPos, hopper::Clock>,
@@ -225,9 +228,17 @@ impl<L: ClientLink> Server<L> {
             Some(BlockKind::Tnt) => self.tnt_neighbor_changed(pos, source),
             Some(BlockKind::NoteBlock) => self.note_neighbor_changed(pos, state),
             Some(BlockKind::Bell) => self.bell_neighbor_changed(pos, state),
+            Some(BlockKind::StructureBlock) => self.structure_block_neighbor_changed(pos, state),
             Some(BlockKind::Crafter) => self.crafter_neighbor_changed(pos, state),
             Some(BlockKind::PoweredRail | BlockKind::ActivatorRail) => {
                 self.powered_rail_changed(pos, state);
+            }
+            Some(kind) if bulb::is_bulb(kind) => self.bulb_check(pos, state),
+            Some(kind) if crate::special_blocks::dead_coral_of(kind).is_some() => {
+                self.coral_check(pos, state);
+            }
+            Some(BlockKind::SoulSand | BlockKind::MagmaBlock | BlockKind::BubbleColumn) => {
+                self.bubble_check(pos, state);
             }
             Some(_) if openers::is_opener(state) => {
                 self.opener_neighbor_changed(pos, state);
@@ -268,6 +279,18 @@ impl<L: ClientLink> Server<L> {
         {
             self.diode_placed(pos, new);
         }
+        if new.kind().is_some_and(bulb::is_bulb) && old.kind() != new.kind() {
+            self.bulb_check(pos, new);
+        }
+        if old.kind() != new.kind() {
+            match new.kind() {
+                Some(kind) if crate::special_blocks::dead_coral_of(kind).is_some() => {
+                    self.coral_check(pos, new);
+                }
+                Some(BlockKind::SoulSand | BlockKind::MagmaBlock) => self.bubble_check(pos, new),
+                _ => {}
+            }
+        }
         if new.kind() == Some(BlockKind::Hopper) && old.kind() != new.kind() {
             self.hopper_neighbor_changed(pos, new);
         }
@@ -294,7 +317,7 @@ impl<L: ClientLink> Server<L> {
             self.tnt_neighbor_changed(pos, pos);
         }
         if old.kind() == Some(BlockKind::Comparator) && new.kind() != old.kind() {
-            self.falls.redstone.outputs.remove(&pos);
+            self.forget_comparator(pos);
         }
         if let Some(toward) = [new, old]
             .into_iter()
@@ -339,7 +362,7 @@ impl<L: ClientLink> Server<L> {
             BlockKind::MovingPiston => self.moving_tick(pos),
             _ if is_button(kind) => self.button_tick(pos, state),
             _ if is_plate(kind) => self.plate_tick(pos, state),
-            _ => return false,
+            _ => return self.special_tick(pos, state, kind),
         }
         true
     }

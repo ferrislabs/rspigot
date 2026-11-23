@@ -408,8 +408,14 @@ impl<L: ClientLink> Server<L> {
         context: GameEventContext,
     ) -> bool {
         match listener {
-            Listener::Sensor { pos: own, .. } => {
+            Listener::Sensor {
+                pos: own,
+                calibrated,
+            } => {
                 if pos == own && matches!(event, GameEvent::BlockDestroy | GameEvent::BlockPlace) {
+                    return false;
+                }
+                if calibrated && !self.calibrated_accepts(own, event) {
                     return false;
                 }
                 event.frequency() != 0

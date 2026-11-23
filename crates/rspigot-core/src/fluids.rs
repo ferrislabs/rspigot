@@ -16,6 +16,7 @@ use crate::server::Server;
 
 const WATER_DELAY: u64 = 5;
 const LAVA_DELAY: u64 = 30;
+const FAST_LAVA_DELAY: u64 = 10;
 const NO_SLOPE: i32 = 1000;
 const FALLING_LEVEL: u8 = 8;
 const FALLING_SIDE_AMOUNT: i32 = 7;
@@ -107,24 +108,26 @@ impl Liquid {
         }
     }
 
-    const fn delay(self) -> u64 {
-        match self {
-            Self::Water => WATER_DELAY,
-            Self::Lava => LAVA_DELAY,
+    const fn delay(self, fast: bool) -> u64 {
+        match (self, fast) {
+            (Self::Water, _) => WATER_DELAY,
+            (Self::Lava, false) => LAVA_DELAY,
+            (Self::Lava, true) => FAST_LAVA_DELAY,
         }
     }
 
-    const fn drop_off(self) -> i32 {
-        match self {
-            Self::Water => 1,
-            Self::Lava => 2,
+    const fn drop_off(self, fast: bool) -> i32 {
+        match (self, fast) {
+            (Self::Lava, false) => 2,
+            _ => 1,
         }
     }
 
-    const fn slope_distance(self) -> i32 {
-        match self {
-            Self::Water => 4,
-            Self::Lava => 2,
+    const fn slope_distance(self, fast: bool) -> i32 {
+        match (self, fast) {
+            (Self::Lava, false) => 2,
+            (Self::Lava, true) => 4,
+            (Self::Water, _) => 4,
         }
     }
 }
@@ -262,7 +265,7 @@ impl<L: ClientLink> Server<L> {
         let delay = if self.lava_reaction(pos, flow).is_some() {
             1
         } else {
-            flow.liquid.delay()
+            flow.liquid.delay(self.fast_lava())
         };
         self.schedule_fluid(pos, delay);
     }
@@ -345,7 +348,7 @@ impl<L: ClientLink> Server<L> {
             .unwrap_or(step.state);
         self.set_block(step.pos, state);
         if let Some(flow) = step.flow {
-            self.schedule_fluid(step.pos, flow.liquid.delay());
+            self.schedule_fluid(step.pos, flow.liquid.delay(self.fast_lava()));
             self.spread(step.pos, flow);
         }
     }
@@ -426,7 +429,7 @@ impl<L: ClientLink> Server<L> {
         if matches!(self.cell(step(pos, Face::Up)), Cell::Fluid(above) if above.liquid == liquid) {
             return Some(Flow::flowing(liquid, 8, true));
         }
-        let amount = highest - liquid.drop_off();
+        let amount = highest - liquid.drop_off(self.fast_lava());
         (amount > 0).then(|| Flow::flowing(liquid, amount, false))
     }
 
@@ -452,7 +455,7 @@ impl<L: ClientLink> Server<L> {
         let amount = if flow.is_falling() {
             FALLING_SIDE_AMOUNT
         } else {
-            flow.amount() - liquid.drop_off()
+            flow.amount() - liquid.drop_off(self.fast_lava())
         };
         if amount <= 0 {
             return;
@@ -521,7 +524,7 @@ impl<L: ClientLink> Server<L> {
             }
         }
         self.set_block(target, flow.state());
-        self.schedule_fluid(target, flow.liquid.delay());
+        self.schedule_fluid(target, flow.liquid.delay(self.fast_lava()));
     }
 
     fn can_spread_to(&self, liquid: Liquid, target: BlockPos, face: Face) -> bool {
@@ -599,10 +602,27 @@ impl<L: ClientLink> Server<L> {
             if self.is_hole(step(next, Face::Down)) {
                 return depth;
             }
-            if depth < liquid.slope_distance() {
+            if depth < liquid.slope_distance(self.fast_lava()) {
                 best = best.min(self.slope_distance(liquid, next, depth + 1, face.opposite()));
             }
         }
         best
+    }
+}
+
+#[cfg(test)]
+mod fast_lava_tests {
+    use super::*;
+
+    #[test]
+    fn lava_in_a_fast_lava_dimension_ticks_every_ten_loses_one_and_slopes_four() {
+        assert_eq!(Liquid::Lava.delay(false), 30);
+        assert_eq!(Liquid::Lava.delay(true), 10);
+        assert_eq!(Liquid::Lava.drop_off(false), 2);
+        assert_eq!(Liquid::Lava.drop_off(true), 1);
+        assert_eq!(Liquid::Lava.slope_distance(false), 2);
+        assert_eq!(Liquid::Lava.slope_distance(true), 4);
+        assert_eq!(Liquid::Water.delay(true), 5);
+        assert_eq!(Liquid::Water.drop_off(true), 1);
     }
 }

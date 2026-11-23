@@ -1033,6 +1033,8 @@ fn execute_at<C: CommandContext>(
     let rest = line
         .split_once(char::is_whitespace)
         .map_or("", |(_, r)| r.trim());
+    let outer_logging = ctx.function_state().runtime.logging;
+    ctx.function_state_mut().runtime.logging = super::admin_logging::allows_logging(&label, &args);
     let outcome = match label.as_str() {
         "help" | "?" => help(ctx, sender, rest.trim()),
         "list" => list(ctx, sender, rest.trim() == "uuids"),
@@ -1141,6 +1143,7 @@ fn execute_at<C: CommandContext>(
         "restart" | "spigot" | "timings" => super::bukkit_commands::run(ctx, sender, &label, rest),
         _ => CommandOutcome::Unknown,
     };
+    ctx.function_state_mut().runtime.logging = outer_logging;
     if outcome == CommandOutcome::Unknown {
         let text = ctx
             .unknown_command_text()

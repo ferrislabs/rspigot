@@ -1,4 +1,5 @@
 mod admin_commands;
+mod admin_logging;
 mod advancement_commands;
 mod announce;
 mod args;

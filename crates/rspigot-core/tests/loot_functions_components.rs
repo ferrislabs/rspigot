@@ -72,6 +72,7 @@ fn set_name_writes_the_chosen_name_component() {
         &[plain(FunctionKind::SetName {
             name: "{\"translate\":\"filled_map.test\"}",
             target: NameTarget::ItemName,
+            entity: None,
         })],
         &stick(),
         &context,
@@ -84,6 +85,7 @@ fn set_name_writes_the_chosen_name_component() {
         &[plain(FunctionKind::SetName {
             name: "\"Excalibur\"",
             target: NameTarget::CustomName,
+            entity: None,
         })],
         &stick(),
         &context,
@@ -109,6 +111,7 @@ fn lore_after(mode: ListMode, start: &[&str]) -> Vec<String> {
         &[plain(FunctionKind::SetLore {
             lines: &["\"x\"", "\"y\""],
             mode,
+            entity: None,
         })],
         &seed,
         &LootContext::default(),

@@ -1,17 +1,19 @@
 use std::num::NonZeroU8;
 
-use rspigot_data::loot::Function;
+use rspigot_data::loot::{Function, FunctionKind};
 use rspigot_domain::BlockPos;
 use rspigot_domain::item::ItemStack;
 use rspigot_domain::text::{Component, NamedColor};
+use rspigot_domain::text_nbt::{component_from_tag, component_to_tag};
 use rspigot_items::ItemKind;
-use rspigot_nbt::parse_tag;
+use rspigot_nbt::{Tag, parse_tag};
 
 use super::blocks::pos_at;
 use super::dispatch::{
     CommandContext, CommandOutcome, CommandSender, Target, fail, next_argument, select, usage,
 };
 use super::slots::{SlotHolder, is_single, slot_ids};
+use super::text_resolve;
 
 const MAX_COUNT: i32 = 99;
 
@@ -303,7 +305,8 @@ fn provider<C: CommandContext>(
             let stack = ctx.read_slot(holder, id).flatten();
             let stack = match (stack, functions) {
                 (Some(stack), Some(functions)) => {
-                    ctx.apply_item_modifier(sender, functions, &stack)
+                    let result = ctx.apply_item_modifier(sender, functions, &stack);
+                    resolved_text(ctx, sender, functions, result)
                 }
                 (stack, _) => stack,
             };
@@ -338,6 +341,56 @@ fn distribute<C: CommandContext>(
     changed
 }
 
+const CUSTOM_NAME: &str = "minecraft:custom_name";
+const ITEM_NAME: &str = "minecraft:item_name";
+const LORE: &str = "minecraft:lore";
+
+fn resolved_tag<C: CommandContext>(ctx: &C, sender: CommandSender, tag: &Tag) -> Option<Tag> {
+    let component = component_from_tag(tag)?;
+    let resolved = text_resolve::resolve_for_source(ctx, sender, &component).ok()?;
+    Some(component_to_tag(&resolved))
+}
+
+fn resolved_text<C: CommandContext>(
+    ctx: &C,
+    sender: CommandSender,
+    functions: &[Function],
+    stack: Option<ItemStack>,
+) -> Option<ItemStack> {
+    let mut stack = stack?;
+    if !functions.iter().any(|function| {
+        matches!(
+            function.kind,
+            FunctionKind::SetName {
+                entity: Some(_),
+                ..
+            } | FunctionKind::SetLore {
+                entity: Some(_),
+                ..
+            }
+        )
+    }) {
+        return Some(stack);
+    }
+    for key in [CUSTOM_NAME, ITEM_NAME] {
+        if let Some(resolved) = stack
+            .components
+            .get(key)
+            .and_then(|tag| resolved_tag(ctx, sender, tag))
+        {
+            stack.components.insert(key, resolved);
+        }
+    }
+    if let Some(Tag::List(lines)) = stack.components.get(LORE) {
+        let lines: Vec<Tag> = lines
+            .iter()
+            .map(|line| resolved_tag(ctx, sender, line).unwrap_or_else(|| line.clone()))
+            .collect();
+        stack.components.insert(LORE, Tag::List(lines));
+    }
+    Some(stack)
+}
+
 fn modify_slots<C: CommandContext>(
     ctx: &mut C,
     sender: CommandSender,
@@ -351,6 +404,7 @@ fn modify_slots<C: CommandContext>(
             continue;
         };
         let result = ctx.apply_item_modifier(sender, functions, &stack);
+        let result = resolved_text(ctx, sender, functions, result);
         if ctx.write_slot(holder, id, result) {
             changed += 1;
         }

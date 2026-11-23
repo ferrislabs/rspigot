@@ -1,18 +1,24 @@
-use rspigot_data::loot::{
-    BonusFormula, Entry, EntryKind, Function, FunctionKind, IntProvider, Leaf, LootTable, Output,
-    Pool,
-};
+use rspigot_data::loot::{Entry, EntryKind, FloatProvider, Leaf, LootTable, Output, Pool};
 use rspigot_data::tags::HolderSet;
 use serde_json::{Map, Value};
 
+use super::functions::functions;
 use super::json::{
-    DataError, Parsed, conditions, float_provider, int_provider, invalid, item_id, leak_slice,
-    leak_text, name, number_provider, object, only_keys, optional_flag, required, unsupported,
+    DataError, Parsed, conditions, float_provider, holder_set, int_provider, invalid, item_id,
+    leak, leak_slice, leak_text, name, object, only_keys, optional_flag, required, unsupported,
 };
+use super::slots::slot_source;
 
 pub struct TableOutcome {
     pub table: LootTable,
     pub skipped: Vec<String>,
+    pub inline: Vec<(String, LootTable)>,
+}
+
+struct Collected<'a> {
+    name: &'a str,
+    skipped: Vec<String>,
+    inline: Vec<(String, LootTable)>,
 }
 
 fn whole(value: &Value, what: &str) -> Parsed<i32> {
@@ -22,114 +28,14 @@ fn whole(value: &Value, what: &str) -> Parsed<i32> {
     }
 }
 
-fn limit(value: &Value) -> Parsed<(Option<IntProvider>, Option<IntProvider>)> {
-    match value {
-        Value::Number(_) => {
-            let exact = int_provider(value)?;
-            Ok((Some(exact), Some(exact)))
-        }
-        Value::Object(map) => Ok((
-            map.get("min").map(int_provider).transpose()?,
-            map.get("max").map(int_provider).transpose()?,
-        )),
-        other => invalid(format!("bad limit {other}")),
-    }
-}
-
-fn formula(map: &Map<String, Value>) -> Parsed<BonusFormula> {
-    let parameters = map.get("parameters").and_then(Value::as_object);
-    let parameter = |keys: &[&str]| {
-        parameters.and_then(|parameters| keys.iter().find_map(|key| parameters.get(*key)))
-    };
-    match name(required(map, "formula")?)?.as_str() {
-        "minecraft:ore_drops" => Ok(BonusFormula::OreDrops),
-        "minecraft:uniform_bonus_count" => Ok(BonusFormula::UniformBonusCount {
-            bonus_multiplier: whole(
-                parameter(&["bonusMultiplier", "bonus_multiplier"]).unwrap_or(&Value::Null),
-                "bonusMultiplier",
-            )?,
-        }),
-        "minecraft:binomial_with_bonus_count" => Ok(BonusFormula::BinomialWithBonusCount {
-            extra: whole(parameter(&["extra"]).unwrap_or(&Value::Null), "extra")?,
-            probability: parameter(&["probability"])
-                .and_then(Value::as_f64)
-                .map_or_else(|| invalid("missing probability"), |p| Ok(p as f32))?,
-        }),
-        other => unsupported(format!("bonus formula {other}")),
-    }
-}
-
-fn function(value: &Value) -> Parsed<Function> {
-    let map = object(value)?;
-    let condition = conditions(map)?;
-    let kind = match name(required(map, "function")?)?.as_str() {
-        "minecraft:set_count" => FunctionKind::SetCount {
-            count: int_provider(required(map, "count")?)?,
-            add: optional_flag(map, "add")?.unwrap_or(false),
-        },
-        "minecraft:apply_bonus" => FunctionKind::ApplyBonus {
-            enchantment: leak_text(name(required(map, "enchantment")?)?),
-            formula: formula(map)?,
-        },
-        "minecraft:limit_count" => {
-            let (min, max) = limit(required(map, "limit")?)?;
-            FunctionKind::LimitCount { min, max }
-        }
-        "minecraft:explosion_decay" => FunctionKind::ExplosionDecay,
-        "minecraft:furnace_smelt" => FunctionKind::FurnaceSmelt {
-            use_input_count: true,
-        },
-        "minecraft:enchanted_count_increase" => FunctionKind::EnchantedCountIncrease {
-            enchantment: leak_text(name(required(map, "enchantment")?)?),
-            count: float_provider(required(map, "count")?)?,
-            limit: map
-                .get("limit")
-                .map_or(Ok(0), |limit| whole(limit, "limit"))?,
-        },
-        "minecraft:set_damage" => {
-            if optional_flag(map, "add")?.unwrap_or(false) {
-                return unsupported("set_damage with add");
-            }
-            FunctionKind::SetDamage(float_provider(required(map, "damage")?)?)
-        }
-        "minecraft:set_potion" => FunctionKind::SetPotion(leak_text(name(required(map, "id")?)?)),
-        "minecraft:set_enchantments" => {
-            let mut levels = Vec::new();
-            for (enchantment, level) in object(required(map, "enchantments")?)? {
-                levels.push((
-                    leak_text(name(&Value::from(enchantment.as_str()))?),
-                    int_provider(level)?,
-                ));
-            }
-            FunctionKind::SetEnchantments {
-                levels: leak_slice(levels),
-                add: optional_flag(map, "add")?.unwrap_or(false),
-            }
-        }
-        other => return unsupported(format!("function {other}")),
-    };
-    Ok(Function { condition, kind })
-}
-
-fn functions(map: &Map<String, Value>) -> Parsed<&'static [Function]> {
-    let Some(Value::Array(list)) = map.get("functions") else {
-        return Ok(&[]);
-    };
-    let mut parsed = Vec::with_capacity(list.len());
-    for item in list {
-        parsed.push(function(item)?);
-    }
-    Ok(leak_slice(parsed))
-}
-
-fn children(map: &Map<String, Value>, skipped: &mut Vec<String>) -> Parsed<&'static [Entry]> {
+fn children(map: &Map<String, Value>, found: &mut Collected) -> Parsed<&'static [Entry]> {
     let Some(Value::Array(list)) = map.get("children") else {
         return invalid("missing \"children\"");
     };
-    Ok(entries(list, skipped))
+    Ok(entries(list, found))
 }
 
-fn entry(value: &Value, skipped: &mut Vec<String>) -> Parsed<Entry> {
+fn entry(value: &Value, found: &mut Collected) -> Parsed<Entry> {
     let map = object(value)?;
     let condition = conditions(map)?;
     let modifier = functions(map)?;
@@ -143,21 +49,35 @@ fn entry(value: &Value, skipped: &mut Vec<String>) -> Parsed<Entry> {
     let kind = match name(required(map, "type")?)?.as_str() {
         "minecraft:item" => leaf(Output::Item(item_id(required(map, "name")?)?))?,
         "minecraft:tag" => {
-            let tag = name(required(map, "name")?)?;
+            let items = match map.get("items") {
+                Some(items) => holder_set("minecraft:item", items)?,
+                None => HolderSet::Tag(leak_text(name(required(map, "name")?)?)),
+            };
             leaf(Output::Items {
-                items: HolderSet::Tag(leak_text(tag)),
+                items,
                 expand: optional_flag(map, "expand")?.unwrap_or(false),
             })?
         }
         "minecraft:loot_table" => match required(map, "value")? {
             Value::String(_) => leaf(Output::Table(leak_text(name(&map["value"])?)))?,
-            _ => return unsupported("inline loot table entry"),
+            inline => {
+                let inline_name = format!("{}/inline{}", found.name, found.inline.len());
+                let outcome = parse_named(inline, &inline_name)?;
+                found.skipped.extend(outcome.skipped);
+                found.inline.extend(outcome.inline);
+                found.inline.push((inline_name.clone(), outcome.table));
+                leaf(Output::Table(leak_text(inline_name)))?
+            }
         },
         "minecraft:empty" => leaf(Output::Empty)?,
         "minecraft:dynamic" => leaf(Output::Dynamic(leak_text(name(required(map, "name")?)?)))?,
-        "minecraft:alternatives" => EntryKind::Alternatives(children(map, skipped)?),
-        "minecraft:sequence" => EntryKind::Sequence(children(map, skipped)?),
-        "minecraft:group" => EntryKind::Group(children(map, skipped)?),
+        "minecraft:slots" => leaf(Output::Slots(leak(slot_source(required(
+            map,
+            "slot_source",
+        )?)?)))?,
+        "minecraft:alternatives" => EntryKind::Alternatives(children(map, found)?),
+        "minecraft:sequence" => EntryKind::Sequence(children(map, found)?),
+        "minecraft:group" => EntryKind::Group(children(map, found)?),
         other => return unsupported(format!("entry type {other}")),
     };
     Ok(Entry {
@@ -167,52 +87,61 @@ fn entry(value: &Value, skipped: &mut Vec<String>) -> Parsed<Entry> {
     })
 }
 
-fn entries(list: &[Value], skipped: &mut Vec<String>) -> &'static [Entry] {
+fn entries(list: &[Value], found: &mut Collected) -> &'static [Entry] {
     let mut parsed = Vec::with_capacity(list.len());
     for (index, value) in list.iter().enumerate() {
-        match entry(value, skipped) {
+        match entry(value, found) {
             Ok(entry) => parsed.push(entry),
-            Err(error) => skipped.push(format!("entry {index}: {error}")),
+            Err(error) => found.skipped.push(format!("entry {index}: {error}")),
         }
     }
     leak_slice(parsed)
 }
 
-fn pool(value: &Value, skipped: &mut Vec<String>) -> Parsed<Pool> {
+fn pool(value: &Value, found: &mut Collected) -> Parsed<Pool> {
     let map = object(value)?;
     only_keys(
         map,
-        &["rolls", "bonus_rolls", "conditions", "functions", "entries"],
+        &[
+            "rolls",
+            "bonus_rolls",
+            "condition",
+            "conditions",
+            "modifier",
+            "functions",
+            "entries",
+        ],
         "pool",
     )?;
     let Some(Value::Array(list)) = map.get("entries") else {
         return invalid("missing \"entries\"");
     };
     let bonus_rolls = match map.get("bonus_rolls") {
-        None => 0.0,
-        Some(value) => match number_provider(value)? {
-            rspigot_data::loot::NumberProvider::Constant(rolls) => rolls,
-            _ => return unsupported("non constant bonus_rolls"),
-        },
+        None => FloatProvider::Constant(0.0),
+        Some(value) => float_provider(value)?,
     };
     Ok(Pool {
         rolls: int_provider(required(map, "rolls")?)?,
         bonus_rolls,
         condition: conditions(map)?,
         modifier: functions(map)?,
-        entries: entries(list, skipped),
+        entries: entries(list, found),
     })
 }
 
-pub fn parse(value: &Value) -> Result<TableOutcome, DataError> {
+pub fn parse_named(value: &Value, table_name: &str) -> Result<TableOutcome, DataError> {
     let map = object(value)?;
-    let mut skipped = Vec::new();
+    let mut found = Collected {
+        name: table_name,
+        skipped: Vec::new(),
+        inline: Vec::new(),
+    };
     let mut pools = Vec::new();
     if let Some(Value::Array(list)) = map.get("pools") {
         for (index, item) in list.iter().enumerate() {
-            match pool(item, &mut skipped) {
+            match pool(item, &mut found) {
                 Ok(pool) => pools.push(pool),
-                Err(error) => skipped.push(format!("pool {index}: {error}")),
+                Err(error) => found.skipped.push(format!("pool {index}: {error}")),
             }
         }
     }
@@ -221,6 +150,20 @@ pub fn parse(value: &Value) -> Result<TableOutcome, DataError> {
             pools: leak_slice(pools),
             modifier: functions(map)?,
         },
-        skipped,
+        skipped: found.skipped,
+        inline: found.inline,
     })
+}
+
+pub(super) fn entry_list(list: &[Value], table_name: &str) -> Parsed<&'static [Entry]> {
+    let mut found = Collected {
+        name: table_name,
+        skipped: Vec::new(),
+        inline: Vec::new(),
+    };
+    let parsed = entries(list, &mut found);
+    match found.skipped.first() {
+        Some(reason) => invalid(reason.clone()),
+        None => Ok(parsed),
+    }
 }

@@ -1844,6 +1844,7 @@ impl<L: ClientLink> Server<L> {
         if let Some(player) = self.players.values().find(|p| p.entity_id == id) {
             let mut facts = LootEntity::of(Kind::Player);
             facts.mainhand = player.inventory.held().cloned();
+            facts.name = Some(player.name().to_owned());
             return Some(facts);
         }
         self.entities.store.get(id).map(loot_facts)

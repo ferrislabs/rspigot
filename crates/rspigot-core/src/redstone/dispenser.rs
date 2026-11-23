@@ -125,6 +125,7 @@ pub(crate) enum Behavior {
     Charge,
     Box,
     Skull,
+    Pumpkin,
     Brush,
     Chest,
     Release(Kind),
@@ -155,6 +156,7 @@ fn behavior_of(stack: &ItemStack) -> Behavior {
         ItemKind::Brush => Behavior::Brush,
         ItemKind::Chest => Behavior::Chest,
         ItemKind::WitherSkeletonSkull => Behavior::Skull,
+        ItemKind::CarvedPumpkin => Behavior::Pumpkin,
         ItemKind::SalmonBucket
         | ItemKind::CodBucket
         | ItemKind::PufferfishBucket
@@ -197,13 +199,26 @@ fn is_shulker_box(stack: &ItemStack) -> bool {
         .is_some_and(|ids| ids.binary_search(&u32::from(stack.item.0)).is_ok())
 }
 
+fn wears(entity: &Entity, stack: &ItemStack, slot: EquipmentSlot) -> bool {
+    match slot {
+        EquipmentSlot::Saddle => crate::kinds::mount_accepts(entity, stack, slot),
+        EquipmentSlot::Body => {
+            crate::kinds::mount_accepts(entity, stack, slot)
+                || (entity.base.kind == Kind::Wolf && stack.item == ItemKind::WolfArmor.id())
+        }
+        _ => true,
+    }
+}
+
 fn equip_or_drop(kind: ItemKind) -> Behavior {
     match kind.equippable() {
         Some(
             slot @ (EquipmentSlot::Head
             | EquipmentSlot::Chest
             | EquipmentSlot::Legs
-            | EquipmentSlot::Feet),
+            | EquipmentSlot::Feet
+            | EquipmentSlot::Saddle
+            | EquipmentSlot::Body),
         ) => Behavior::Equip(slot),
         _ => Behavior::Drop,
     }
@@ -459,11 +474,11 @@ impl<L: ClientLink> Server<L> {
             )),
             Behavior::Equip(slot) => {
                 let target = self.mobs_in_block(front).into_iter().find(|id| {
-                    self.entities
-                        .store
-                        .get(*id)
-                        .and_then(Entity::living)
-                        .is_some_and(|state| state.mob.is_some() && state.equipment(slot).is_none())
+                    self.entities.store.get(*id).is_some_and(|entity| {
+                        entity.living().is_some_and(|state| {
+                            state.mob.is_some() && state.equipment(slot).is_none()
+                        }) && wears(entity, stack, slot)
+                    })
                 });
                 match target {
                     Some(target) => Some((behavior, Some(target), Vec3::ZERO)),
@@ -503,8 +518,10 @@ impl<L: ClientLink> Server<L> {
                 }
                 let sheep = self.mobs_in_block(front).into_iter().find(|id| {
                     self.entities.store.get(*id).is_some_and(|entity| {
-                        matches!(entity.base.kind, Kind::Sheep | Kind::Mooshroom)
-                            && crate::kinds::readiness_for_shearing(entity)
+                        matches!(
+                            entity.base.kind,
+                            Kind::Sheep | Kind::Mooshroom | Kind::SnowGolem
+                        ) && crate::kinds::readiness_for_shearing(entity)
                     })
                 });
                 sheep.map(|target| (behavior, Some(target), Vec3::ZERO))
@@ -576,6 +593,15 @@ impl<L: ClientLink> Server<L> {
             Behavior::Skull => {
                 let target = Vec3::new(f64::from(front.x), f64::from(front.y), f64::from(front.z));
                 if self.block_or_air(front).is_air() && self.wither_base_stands(front) {
+                    Some((behavior, None, target))
+                } else {
+                    let kind = stack.item.kind()?;
+                    self.plan_dispense(pos, direction, equip_or_drop(kind), stack)
+                }
+            }
+            Behavior::Pumpkin => {
+                let target = Vec3::new(f64::from(front.x), f64::from(front.y), f64::from(front.z));
+                if self.block_or_air(front).is_air() && self.can_spawn_golem_at(front) {
                     Some((behavior, None, target))
                 } else {
                     let kind = stack.item.kind()?;
@@ -937,12 +963,22 @@ impl<L: ClientLink> Server<L> {
                 );
                 Some(plain)
             }
-            Behavior::BoneMeal => self
-                .grow_crop(Lane::Block(pos), None, front)
-                .then_some(plain),
+            Behavior::BoneMeal => (self.grow_crop(Lane::Block(pos), None, front)
+                || self.bone_meal_apply(None, front)
+                || self.bone_meal_growth(None, front))
+            .then_some(plain),
             Behavior::Shear => {
                 let target = target?;
-                self.shear_sheep_wool(target);
+                if self
+                    .entities
+                    .store
+                    .get(target)
+                    .is_some_and(|entity| entity.base.kind == Kind::SnowGolem)
+                {
+                    self.shear_snow_golem_pumpkin(target);
+                } else {
+                    self.shear_sheep_wool(target);
+                }
                 Some(Outcome {
                     remainder: None,
                     wear: 1,
@@ -1128,6 +1164,13 @@ impl<L: ClientLink> Server<L> {
                 let state = skull.with_property("rotation", &rotation).unwrap_or(skull);
                 self.set_block(front, state);
                 self.check_wither_summon(front);
+                Some(plain)
+            }
+            Behavior::Pumpkin => {
+                if !self.block_or_air(front).is_air() || !self.can_spawn_golem_at(front) {
+                    return None;
+                }
+                self.set_block(front, BlockKind::CarvedPumpkin.default_state());
                 Some(plain)
             }
             Behavior::Brush => {

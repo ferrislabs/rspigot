@@ -506,6 +506,7 @@ impl<L: ClientLink> Server<L> {
         player.sleep_counter = 0;
         player.sneaking = false;
         player.known_movement = Vec3::ZERO;
+        self.reset_stat(id, crate::stats::custom::TIME_SINCE_REST);
         self.broadcast_metadata(id);
         self.push_own_metadata(id);
         self.ask_teleport(id, spot, None, PlayerTeleportCause::Unknown, None);

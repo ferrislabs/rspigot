@@ -1,5 +1,9 @@
 use rspigot_data::loot::{CopyOperation, ListMode, MergeStrategy, NameTarget};
 use rspigot_domain::BlockStateId;
+use rspigot_domain::text::{Component, Content};
+use rspigot_domain::text_nbt::{component_from_tag, component_to_tag};
+
+use crate::loot::LootEntity;
 use rspigot_nbt::{Compound, NbtPath, Tag, parse_compound, parse_tag};
 
 const BLOCK_STATE: &str = "minecraft:block_state";
@@ -32,16 +36,57 @@ pub(crate) fn copy_state(
     components.insert(BLOCK_STATE, held);
 }
 
-pub(crate) fn set_name(components: &mut Compound, name: &str, target: NameTarget) {
-    if let Ok(tag) = parse_tag(name) {
-        components.insert(target.component(), tag);
+fn resolve_component(component: &Component, entity: &LootEntity) -> Component {
+    let mut resolved = match &component.content {
+        Content::Score { name, objective }
+            if name == "@s" || entity.name.as_deref() == Some(name) =>
+        {
+            match entity.scores.iter().find(|(known, _)| known == objective) {
+                Some((_, value)) => Component::text(value.to_string()),
+                None => component.clone(),
+            }
+        }
+        Content::Selector { pattern, .. } if pattern == "@s" => match &entity.name {
+            Some(name) => Component::text(name.clone()),
+            None => component.clone(),
+        },
+        _ => component.clone(),
+    };
+    resolved.style = component.style.clone();
+    resolved.extra = component
+        .extra
+        .iter()
+        .map(|child| resolve_component(child, entity))
+        .collect();
+    resolved
+}
+
+fn resolved(tag: Tag, entity: Option<&LootEntity>) -> Tag {
+    let Some(entity) = entity else {
+        return tag;
+    };
+    match component_from_tag(&tag) {
+        Some(component) => component_to_tag(&resolve_component(&component, entity)),
+        None => tag,
     }
 }
 
-fn lines_of(lines: &[&str]) -> Vec<Tag> {
+pub(crate) fn set_name(
+    components: &mut Compound,
+    name: &str,
+    target: NameTarget,
+    entity: Option<&LootEntity>,
+) {
+    if let Ok(tag) = parse_tag(name) {
+        components.insert(target.component(), resolved(tag, entity));
+    }
+}
+
+fn lines_of(lines: &[&str], entity: Option<&LootEntity>) -> Vec<Tag> {
     lines
         .iter()
         .filter_map(|line| parse_tag(line).ok())
+        .map(|tag| resolved(tag, entity))
         .collect()
 }
 
@@ -51,30 +96,43 @@ fn offset_in(offset: i32, length: usize) -> Option<usize> {
         .filter(|at| *at <= length)
 }
 
-pub(crate) fn set_lore(components: &mut Compound, lines: &[&str], mode: ListMode) {
-    let values = lines_of(lines);
-    let mut held: Vec<Tag> = components
-        .get_list(LORE)
-        .map(<[Tag]>::to_vec)
-        .unwrap_or_default();
+pub(crate) fn edit_list(held: Vec<Tag>, values: Vec<Tag>, mode: ListMode) -> Option<Vec<Tag>> {
+    let mut held = held;
     match mode {
         ListMode::ReplaceAll => held = values,
         ListMode::Append => held.extend(values),
         ListMode::Insert { offset } => {
-            let Some(at) = offset_in(offset, held.len()) else {
-                return;
-            };
+            let at = offset_in(offset, held.len())?;
             held.splice(at..at, values);
         }
         ListMode::ReplaceSection { offset, size } => {
-            let Some(at) = offset_in(offset, held.len()) else {
-                return;
-            };
+            let at = offset_in(offset, held.len())?;
             let span = size.map_or(values.len(), |size| usize::try_from(size).unwrap_or(0));
             let end = (at + span).min(held.len());
             held.splice(at..end, values);
         }
     }
+    Some(held)
+}
+
+pub(crate) fn page_tags(pages: &[&str]) -> Vec<Tag> {
+    lines_of(pages, None)
+}
+
+pub(crate) fn set_lore(
+    components: &mut Compound,
+    lines: &[&str],
+    mode: ListMode,
+    entity: Option<&LootEntity>,
+) {
+    let values = lines_of(lines, entity);
+    let held: Vec<Tag> = components
+        .get_list(LORE)
+        .map(<[Tag]>::to_vec)
+        .unwrap_or_default();
+    let Some(mut held) = edit_list(held, values, mode) else {
+        return;
+    };
     held.truncate(MAX_LORE_LINES);
     components.insert(LORE, Tag::List(held));
 }
