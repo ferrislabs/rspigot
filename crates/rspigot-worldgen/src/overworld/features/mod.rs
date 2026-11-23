@@ -1,3 +1,4 @@
+mod basalt;
 pub(crate) mod bodies;
 mod cave;
 mod cells;
@@ -304,7 +305,10 @@ impl Features {
 }
 
 #[cfg(test)]
-mod tests {
+mod w29_tests;
+
+#[cfg(test)]
+pub(crate) mod tests {
     use rspigot_domain::world::Dimension;
     use rspigot_domain::{BlockStateId, ChunkPos};
 
@@ -312,15 +316,15 @@ mod tests {
     use crate::overworld::region::Region;
     use crate::resources::{BlockKind, Resources};
 
-    pub(super) struct Bench {
-        pub(super) resources: Resources,
-        pub(super) dimension: Dimension,
+    pub(crate) struct Bench {
+        pub(crate) resources: Resources,
+        pub(crate) dimension: Dimension,
         surface: SurfaceSystem,
         compiler_data: (Map<String, Value>, Map<String, Value>),
     }
 
     impl Bench {
-        pub(super) fn new() -> Self {
+        pub(crate) fn new() -> Self {
             let resources = Resources::resolve();
             let data = worldgen();
             let get = |key: &str| {
@@ -337,7 +341,7 @@ mod tests {
             }
         }
 
-        pub(super) fn floor<'a>(&'a self, ground: BlockKind, top: i32) -> Region<'a> {
+        pub(crate) fn floor<'a>(&'a self, ground: BlockKind, top: i32) -> Region<'a> {
             let ground = self.resources.blocks[ground];
             let stone = self.resources.blocks[BlockKind::Stone];
             Region::fixture(
@@ -354,23 +358,44 @@ mod tests {
             )
         }
 
-        pub(super) fn configured_names(&self) -> Vec<String> {
+        pub(crate) fn with_run<R>(
+            &self,
+            region: &mut Region,
+            seed: i64,
+            body: impl FnOnce(&mut Run) -> R,
+        ) -> R {
+            region.set_random(Xoroshiro::from_seed(seed.wrapping_add(1000)));
+            let mut rng = Xoroshiro::from_seed(seed);
+            let mut run = Run {
+                region,
+                rng: &mut rng,
+                surface: &self.surface,
+                feature_id: 0,
+                seed,
+                biome_has: &[],
+                universal: &[],
+                interest: None,
+            };
+            body(&mut run)
+        }
+
+        pub(crate) fn configured_names(&self) -> Vec<String> {
             self.compiler_data.1.keys().cloned().collect()
         }
 
-        pub(super) fn feature_of(&self, name: &str) -> Arc<bodies::Feature> {
+        pub(crate) fn feature_of(&self, name: &str) -> Arc<bodies::Feature> {
             let mut compiler = Compiler::new(&self.compiler_data.0, &self.compiler_data.1);
             compiler.configured_ref(&Value::String(name.to_owned()))
         }
 
-        pub(super) fn reach_of(&self, name: &str) -> i32 {
+        pub(crate) fn reach_of(&self, name: &str) -> i32 {
             let mut compiler = Compiler::new(&self.compiler_data.0, &self.compiler_data.1);
             compiler
                 .configured_ref(&Value::String(name.to_owned()))
                 .reach()
         }
 
-        pub(super) fn place(
+        pub(crate) fn place(
             &self,
             region: &mut Region,
             name: &str,
@@ -394,7 +419,7 @@ mod tests {
             feature.place(&mut run, pos)
         }
 
-        pub(super) fn place_config(
+        pub(crate) fn place_config(
             &self,
             region: &mut Region,
             config: &Value,
@@ -418,7 +443,7 @@ mod tests {
             feature.place(&mut run, pos)
         }
 
-        pub(super) fn configured(&self, name: &str) -> Value {
+        pub(crate) fn configured(&self, name: &str) -> Value {
             self.compiler_data
                 .1
                 .get(&format!("minecraft:{name}"))
@@ -426,7 +451,7 @@ mod tests {
                 .unwrap_or(Value::Null)
         }
 
-        pub(super) fn scatter(
+        pub(crate) fn scatter(
             &self,
             region: &mut Region,
             name: &str,
@@ -458,7 +483,7 @@ mod tests {
             any
         }
 
-        pub(super) fn place_placed(
+        pub(crate) fn place_placed(
             &self,
             region: &mut Region,
             name: &str,
@@ -482,7 +507,7 @@ mod tests {
             placed.place(&mut run, pos)
         }
 
-        pub(super) fn count(
+        pub(crate) fn count(
             &self,
             region: &mut Region,
             area: i32,

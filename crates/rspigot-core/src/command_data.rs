@@ -38,6 +38,7 @@ impl<L: ClientLink> Server<L> {
     ) -> Result<(), Component> {
         match target {
             DataTarget::Storage(id) => {
+                self.command_storage_dirty.insert(id.namespace().to_owned());
                 self.command_storage.insert(id.clone(), data);
                 Ok(())
             }

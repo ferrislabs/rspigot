@@ -204,6 +204,11 @@ fn pairing_events(entity: &Entity, tracker: &EntityTracker, data: i32) -> Vec<Cl
     events
 }
 
+fn is_player_pearl(entity: &Entity) -> bool {
+    entity.base.kind == Kind::EnderPearl
+        && matches!(&entity.state, EntityState::Thrown(state) if state.owner.is_some())
+}
+
 fn minecart_events(id: EntityId, entity: &Entity, updates: Vec<TrackerUpdate>) -> Vec<ClientEvent> {
     let mut moved = false;
     let mut rest = Vec::new();
@@ -412,6 +417,9 @@ impl<L: ClientLink> Server<L> {
     }
 
     pub(crate) fn entity_ticking(&self, chunk: ChunkPos) -> bool {
+        if self.world.chunks.simulates(chunk) {
+            return true;
+        }
         let simulation = i32::from(self.config.simulation_distance);
         let near = self
             .players
@@ -743,6 +751,7 @@ impl<L: ClientLink> Server<L> {
             self.save_world_data();
             self.persist_all_players();
         }
+        self.spawn_pending_pearls();
     }
 
     fn load_chunk_entities(&mut self, pos: ChunkPos, entities: Vec<Compound>) {
@@ -784,6 +793,7 @@ impl<L: ClientLink> Server<L> {
             .iter()
             .filter(|id| !self.entities.rides.is_passenger(**id))
             .filter_map(|id| self.entities.store.get(*id))
+            .filter(|entity| !is_player_pearl(entity))
             .filter_map(|entity| Some((entity.base.id, self.entity_nbt(entity, world_uuid)?)))
             .unzip();
         let merge = !unload && !self.world.chunks.is_loaded(pos);

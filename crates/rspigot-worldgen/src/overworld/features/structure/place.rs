@@ -73,28 +73,30 @@ fn inside((low, high): Bounds, (x, y, z): Pos) -> bool {
     x >= low.0 && x <= high.0 && y >= low.1 && y <= high.1 && z >= low.2 && z <= high.2
 }
 
-fn processed(
-    template: &Template,
-    run: &mut Run,
-    origin: Pos,
-    settings: &Settings,
-) -> Vec<(Pos, BlockStateId)> {
+type Processed = (Vec<(Pos, BlockStateId)>, Vec<(Pos, serde_json::Value)>);
+
+fn processed(template: &Template, run: &mut Run, origin: Pos, settings: &Settings) -> Processed {
     let mut result = Vec::with_capacity(template.blocks().len());
+    let mut entities = Vec::new();
     for &(local, state) in template.blocks() {
         let at = offset(settings.rotation.transform(local), origin);
         if settings.bounds.is_some_and(|bounds| !inside(bounds, at)) {
             continue;
         }
         let mut current = Some(state);
+        let mut entity = None;
         for processor in settings.processors {
             let Some(held) = current else { break };
-            current = processor.process(run, at, held);
+            current = processor.process(run, at, held, &mut entity);
         }
         if let Some(state) = current {
             result.push((at, state));
+            if let Some(nbt) = entity {
+                entities.push((at, nbt));
+            }
         }
     }
-    result
+    (result, entities)
 }
 
 fn fluid_at(run: &mut Run, (x, y, z): Pos) -> Fluid {
@@ -111,8 +113,9 @@ pub(crate) fn place_in_world(
         return false;
     }
     run.rng.below(1);
-    let blocks = processed(template, run, origin, settings);
+    let (blocks, entities) = processed(template, run, origin, settings);
     commit(run, blocks, settings.rotation, true);
+    run.region.block_entities.extend(entities);
     true
 }
 

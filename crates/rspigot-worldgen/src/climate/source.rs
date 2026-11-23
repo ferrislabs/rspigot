@@ -9,6 +9,7 @@ pub(crate) type ClimateScratch = Scratch;
 pub(crate) struct BiomeSource {
     functions: ClimateFunctions,
     index: Index,
+    fixed: Option<u8>,
 }
 
 fn quantize(value: f32) -> i64 {
@@ -20,7 +21,13 @@ impl BiomeSource {
         Self {
             functions: ClimateFunctions::new(overworld_graph(variant), seed),
             index: Index::new(overworld_points()),
+            fixed: None,
         }
+    }
+
+    pub(crate) fn with_fixed(mut self, index: u8) -> Self {
+        self.fixed = Some(index);
+        self
     }
 
     pub(crate) fn scratch(&self) -> ClimateScratch {
@@ -46,6 +53,9 @@ impl BiomeSource {
         qy: i32,
         qz: i32,
     ) -> u8 {
+        if let Some(fixed) = self.fixed {
+            return fixed;
+        }
         let target = self.target(scratch, qx, qy, qz);
         self.index.find(&target)
     }
@@ -58,6 +68,9 @@ impl BiomeSource {
         qy: i32,
         qz: i32,
     ) -> u8 {
+        if let Some(fixed) = self.fixed {
+            return fixed;
+        }
         let target = self.target(scratch, qx, qy, qz);
         self.index.find_after(&target, last)
     }

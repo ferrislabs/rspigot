@@ -97,6 +97,10 @@ pub trait PlayerStore: Send + Sync + 'static {
         Ok(())
     }
 
+    fn saved_data_namespaces(&self, _leaf: &str) -> Result<Vec<String>, StoreError> {
+        Ok(Vec::new())
+    }
+
     fn load_progress(
         &self,
         _player: PlayerId,

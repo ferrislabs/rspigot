@@ -252,7 +252,7 @@ impl Shaped {
             ),
             Self::Portal(piece) => {
                 let mut tag = Compound::new()
-                    .with("id", "minecraft:rupt")
+                    .with("id", "minecraft:rupo")
                     .with("GD", 0)
                     .with(
                         "BB",

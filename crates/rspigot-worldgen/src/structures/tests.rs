@@ -350,6 +350,45 @@ mod world {
         assert!(recorded);
     }
 
+    fn terrain_signature(overworld: &Overworld, resources: &Resources) -> Vec<u16> {
+        use crate::climate::BiomeSource;
+        use crate::overworld::ChunkBiomes;
+        let dimension = Dimension::overworld();
+        let source = BiomeSource::new(1, ClimateVariant::Normal);
+        let mut scratch = source.scratch();
+        let mut biomes = ChunkBiomes::new(dimension.height);
+        let buffer = overworld.terrain(
+            resources,
+            &dimension,
+            ChunkPos::new(40, 51),
+            &mut biomes,
+            &mut scratch,
+        );
+        let mut found = Vec::new();
+        for y in 40..110 {
+            for z in 0..16 {
+                for x in 0..16 {
+                    found.push(buffer.get(x, y, z).0);
+                }
+            }
+        }
+        found
+    }
+
+    #[test]
+    fn a_village_reshapes_the_terrain_under_and_around_it() {
+        let resources = Resources::resolve();
+        let with =
+            Overworld::with_library(1, ClimateVariant::Normal, &resources.blocks, with_extras());
+        let mut without =
+            Overworld::with_library(1, ClimateVariant::Normal, &resources.blocks, with_extras());
+        without.disable_structures();
+        let adapted = terrain_signature(&with, &resources);
+        let plain = terrain_signature(&without, &resources);
+        let changed = adapted.iter().zip(&plain).filter(|(a, b)| a != b).count();
+        assert!(changed > 20, "only {changed} cells differ");
+    }
+
     #[test]
     fn village_templates_spawn_their_villagers() {
         let resources = Resources::resolve();

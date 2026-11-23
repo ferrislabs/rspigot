@@ -70,7 +70,7 @@ fn a_spectator_action_sets_the_camera_on_a_pickable_entity_in_reach_only() {
 }
 
 #[test]
-fn a_light_changing_edit_sends_one_light_update_for_its_chunk() {
+fn light_changing_edits_send_one_light_update_per_chunk() {
     let mut s = scene_on(configured(|_| {}), &["Alice"], Vec::new());
     stream_chunk_of(&mut s, rspigot_domain::BlockPos::new(1, 64, 1));
     s.players[0].link.take();
@@ -81,13 +81,21 @@ fn a_light_changing_edit_sends_one_light_update_for_its_chunk() {
         "setblock 2 70 1 minecraft:glowstone".to_owned(),
     ));
     s.tick(2);
-    let updates = s.players[0]
+    let chunks: Vec<rspigot_domain::ChunkPos> = s.players[0]
         .link
         .take()
         .into_iter()
-        .filter(|event| matches!(event, ClientEvent::LightUpdate { .. }))
-        .count();
-    assert_eq!(updates, 1);
+        .filter_map(|event| match event {
+            ClientEvent::LightUpdate { chunk, .. } => Some(chunk),
+            _ => None,
+        })
+        .collect();
+    let mut distinct = chunks.clone();
+    distinct.sort_unstable();
+    distinct.dedup();
+    assert_eq!(distinct.len(), chunks.len());
+    assert!(chunks.contains(&rspigot_domain::ChunkPos::new(0, 0)));
+    assert!(chunks.contains(&rspigot_domain::ChunkPos::new(-1, 0)));
 }
 
 #[test]

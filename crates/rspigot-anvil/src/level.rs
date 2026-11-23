@@ -56,10 +56,22 @@ pub fn read_or_create_world_uuid(world_root: &Path) -> Result<uuid::Uuid, StoreE
 }
 
 pub(crate) fn saved_data_path(world_root: &Path, name: &str) -> PathBuf {
+    let (namespace, path) = name.split_once(':').unwrap_or(("minecraft", name));
     world_root
         .join("data")
-        .join("minecraft")
-        .join(format!("{name}.dat"))
+        .join(namespace)
+        .join(format!("{path}.dat"))
+}
+
+pub(crate) fn saved_data_namespaces(world_root: &Path, leaf: &str) -> Vec<String> {
+    let Ok(entries) = std::fs::read_dir(world_root.join("data")) else {
+        return Vec::new();
+    };
+    entries
+        .flatten()
+        .filter(|entry| entry.path().join(format!("{leaf}.dat")).is_file())
+        .filter_map(|entry| entry.file_name().into_string().ok())
+        .collect()
 }
 
 pub(crate) fn read_gzip_nbt(path: &Path) -> Result<Option<Compound>, AnvilError> {

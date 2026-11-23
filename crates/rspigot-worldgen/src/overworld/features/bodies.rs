@@ -159,6 +159,14 @@ pub(crate) enum Feature {
     Fossil(Box<super::fossil::Fossil>),
     Template(Box<super::templated::Templated>),
     Spread(Box<super::spread::Spread>),
+    Pillar(Box<super::basalt::Pillar>),
+    FillLayer {
+        height: i32,
+        state: BlockStateId,
+    },
+    ReplaceSingle(Vec<(RuleTest, BlockStateId)>),
+    Patchy(super::basalt::Patchy),
+    Stepped(Box<super::basalt::Cluster>),
     ReplaceBlobs(Box<super::replace_blobs::ReplaceBlobs>),
     Delta(Box<super::delta::Delta>),
     Fungus(Box<super::fungus::Fungus>),
@@ -370,6 +378,39 @@ impl<'a> Compiler<'a> {
             "coral_claw" => {
                 Feature::CoralClaw(self.placed_ref(value.get("feature").unwrap_or(&Value::Null)))
             }
+            "fill_layer" => Feature::FillLayer {
+                height: integer(value, "height", 0),
+                state: value
+                    .get("state")
+                    .and_then(block_state)
+                    .unwrap_or(BlockStateId::AIR),
+            },
+            "replace_single_block" => Feature::ReplaceSingle(
+                value
+                    .get("targets")
+                    .and_then(Value::as_array)
+                    .map(|targets| {
+                        targets
+                            .iter()
+                            .filter_map(|target| {
+                                Some((
+                                    RuleTest::compile(target.get("target")?),
+                                    block_state(target.get("state")?)?,
+                                ))
+                            })
+                            .collect()
+                    })
+                    .unwrap_or_default(),
+            ),
+            "single_block_pillar" => {
+                Feature::Pillar(Box::new(super::basalt::Pillar::compile(value, self)))
+            }
+            "projected_random_patchy_square" => {
+                Feature::Patchy(super::basalt::Patchy::compile(value))
+            }
+            "stepped_column_cluster" => {
+                Feature::Stepped(Box::new(super::basalt::Cluster::compile(value)))
+            }
             "overlay" => Feature::Overlay(self.placed_list(value.get("features"))),
             "random_neighbor_spread" => {
                 Feature::Spread(Box::new(super::spread::Spread::compile(value)))
@@ -509,6 +550,11 @@ impl Feature {
             Self::Fossil(fossil) => fossil.reach(),
             Self::Template(template) => template.reach(),
             Self::Spread(spread) => spread.reach(),
+            Self::Pillar(pillar) => pillar.reach(),
+            Self::FillLayer { .. } => 16,
+            Self::ReplaceSingle(_) => 1,
+            Self::Patchy(patchy) => patchy.reach(),
+            Self::Stepped(cluster) => cluster.reach(),
             Self::ReplaceBlobs(blobs) => blobs.reach(),
             Self::Delta(delta) => delta.reach(),
             Self::Fungus(fungus) => fungus.reach(),
@@ -566,6 +612,30 @@ impl Feature {
             Self::Fossil(fossil) => fossil.place(run, pos),
             Self::Template(template) => template.place(run, pos),
             Self::Spread(spread) => spread.place(run, pos),
+            Self::Pillar(pillar) => pillar.place(run, pos),
+            Self::FillLayer { height, state } => {
+                let y = run.region.height().min_y + height;
+                for dx in 0..16 {
+                    for dz in 0..16 {
+                        let at = (pos.0 + dx, y, pos.2 + dz);
+                        if run.region.get(at.0, at.1, at.2).is_air() {
+                            run.region.set(at.0, at.1, at.2, *state);
+                        }
+                    }
+                }
+                true
+            }
+            Self::ReplaceSingle(targets) => {
+                let current = run.region.get(pos.0, pos.1, pos.2);
+                for (test, state) in targets {
+                    if test.test(current, pos.1, run.rng) {
+                        return run.region.set(pos.0, pos.1, pos.2, *state);
+                    }
+                }
+                false
+            }
+            Self::Patchy(patchy) => patchy.place(run, pos),
+            Self::Stepped(cluster) => cluster.place(run, pos),
             Self::ReplaceBlobs(blobs) => blobs.place(run, pos),
             Self::Delta(delta) => delta.place(run, pos),
             Self::Fungus(fungus) => fungus.place(run, pos),

@@ -228,8 +228,9 @@ impl Tpl {
             let mut subject = Subject {
                 local: block.pos,
                 at: self.world(block.pos),
+                reference: self.pos,
                 state: block.state,
-                nbt: block.nbt.as_ref(),
+                nbt: block.nbt.as_ref().map(std::borrow::Cow::Borrowed),
             };
             if !steps.iter().all(|step| step.process(run, &mut subject)) {
                 continue;
@@ -237,7 +238,7 @@ impl Tpl {
             entries.push(Entry {
                 at: subject.at,
                 state: subject.state,
-                nbt: subject.nbt.cloned(),
+                nbt: subject.nbt.map(std::borrow::Cow::into_owned),
             });
         }
         if let Some(archaeology) = archaeology {

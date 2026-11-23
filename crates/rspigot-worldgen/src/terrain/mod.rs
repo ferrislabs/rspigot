@@ -1,4 +1,5 @@
 mod aquifer;
+pub(crate) mod beardifier;
 mod eval;
 mod graph;
 

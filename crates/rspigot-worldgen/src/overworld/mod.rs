@@ -127,7 +127,37 @@ impl Overworld {
         palette: &Palette,
         library: &'static Library,
     ) -> Self {
-        let source = Arc::new(BiomeSource::new(seed as i64, variant));
+        Self::build_with(seed, variant, terrain_key, palette, library, None)
+    }
+
+    pub(crate) fn with_fixed_biome(seed: u64, biome: &str, palette: &Palette) -> Option<Self> {
+        let wanted = biome.strip_prefix("minecraft:").unwrap_or(biome);
+        let index = overworld_biomes()
+            .iter()
+            .position(|name| name.strip_prefix("minecraft:").unwrap_or(name) == wanted)?;
+        Some(Self::build_with(
+            seed,
+            ClimateVariant::Normal,
+            "normal",
+            palette,
+            Library::current(),
+            Some(index as u8),
+        ))
+    }
+
+    fn build_with(
+        seed: u64,
+        variant: ClimateVariant,
+        terrain_key: &str,
+        palette: &Palette,
+        library: &'static Library,
+        fixed: Option<u8>,
+    ) -> Self {
+        let mut source = BiomeSource::new(seed as i64, variant);
+        if let Some(index) = fixed {
+            source = source.with_fixed(index);
+        }
+        let source = Arc::new(source);
         let probe = OverworldProbe {
             source: &source,
             scratch: RefCell::new(source.scratch()),
@@ -281,6 +311,14 @@ impl Overworld {
         let (x0, z0) = (pos.x * 16, pos.z * 16);
         let terrain = &*self.terrain;
         let mut sampler = terrain.sampler();
+        if self.structures_on {
+            let probe = self.biome_probe();
+            sampler.set_beardifier(self.structures.beardifier(
+                &self.ground(dimension),
+                &probe,
+                (pos.x, pos.z),
+            ));
+        }
         let cells = terrain.fill(&mut sampler, x0, z0);
         let levels = terrain.chunk_surface_levels(&mut sampler, x0, z0);
         let mut buffer = ChunkBuffer::new(height);

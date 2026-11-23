@@ -70,7 +70,9 @@ impl<L: ClientLink> Server<L> {
     pub(crate) fn persist_player(&self, player: &Player<L>) {
         if let Some(io) = &self.player_io {
             if self.config.save_players {
-                io.save(player.id, PlayerSave::capture(player).to_nbt());
+                let mut save = PlayerSave::capture(player);
+                save.ender_pearls = self.pearl_saves(player.profile.id.0);
+                io.save(player.id, save.to_nbt());
             }
             if self.config.save_stats {
                 io.save_progress(player.id, ProgressFile::Stats, player.stats.to_json());
@@ -90,6 +92,7 @@ impl<L: ClientLink> Server<L> {
             self.persist_player(player);
         }
         self.save_maps();
+        self.save_command_storage();
     }
 
     pub(crate) fn announce_restored(&mut self, id: PlayerId, save: &PlayerSave) {
