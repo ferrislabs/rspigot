@@ -24,7 +24,7 @@ pub const KNOCKBACK_RESISTANCE: &str = "minecraft:knockback_resistance";
 pub const MOVEMENT_SPEED: &str = "minecraft:movement_speed";
 pub const LUCK: &str = "minecraft:luck";
 
-const RANGES: [(&str, f64, f64); 11] = [
+const RANGES: [(&str, f64, f64); 21] = [
     (MAX_HEALTH, 1.0, 1024.0),
     (MAX_ABSORPTION, 0.0, 2048.0),
     (ATTACK_DAMAGE, 0.0, 2048.0),
@@ -36,6 +36,16 @@ const RANGES: [(&str, f64, f64); 11] = [
     (FALL_DAMAGE_MULTIPLIER, 0.0, 100.0),
     (KNOCKBACK_RESISTANCE, -2.0, 1.0),
     (MOVEMENT_SPEED, 0.0, 1024.0),
+    ("minecraft:scale", 0.0625, 16.0),
+    ("minecraft:step_height", 0.0, 10.0),
+    ("minecraft:gravity", -1.0, 1.0),
+    ("minecraft:jump_strength", 0.0, 32.0),
+    ("minecraft:block_interaction_range", 0.0, 64.0),
+    ("minecraft:entity_interaction_range", 0.0, 64.0),
+    ("minecraft:sneaking_speed", 0.0, 1.0),
+    ("minecraft:movement_efficiency", 0.0, 1.0),
+    ("minecraft:water_movement_efficiency", 0.0, 1.0),
+    ("minecraft:explosion_knockback_resistance", 0.0, 1.0),
 ];
 
 const SYNCABLE: [&str; 14] = [
@@ -614,6 +624,9 @@ mod tests {
         assert_eq!(sanitize(MAX_HEALTH, 0.0), 1.0);
         assert_eq!(sanitize(ARMOR, 99.0), 30.0);
         assert_eq!(sanitize(ARMOR, f64::NAN), 0.0);
+        assert_eq!(sanitize("minecraft:scale", 0.0), 0.0625);
+        assert_eq!(sanitize("minecraft:scale", 100.0), 16.0);
+        assert_eq!(sanitize("minecraft:gravity", 0.08), 0.08);
     }
 
     #[test]
