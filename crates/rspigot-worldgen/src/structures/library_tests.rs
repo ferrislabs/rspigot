@@ -202,13 +202,131 @@ fn a_template_nbt_becomes_a_blueprint() {
 }
 
 #[test]
-fn a_corrupt_template_is_reported() {
+fn a_corrupt_template_is_not_a_boot_issue_and_has_no_blueprint() {
     let scratch = Scratch::new("badnbt");
     let dir = pack(&scratch.0, "mine");
     write(&dir.join("data/mine/structure/slab.nbt"), "garbage");
     let (library, issues) = Library::build(&[dir]);
+    assert!(issues.is_empty(), "{issues:?}");
+    assert_eq!(library.parsed(), 0);
     assert!(library.blueprint("mine:slab").is_none());
-    assert!(issues.iter().any(|issue| issue.path.ends_with("slab.nbt")));
+    assert!(library.blueprint("mine:slab").is_none());
+    assert_eq!(library.parsed(), 1);
+}
+
+#[test]
+fn a_corrupt_template_over_an_embedded_one_falls_back_to_the_embedded_one() {
+    let scratch = Scratch::new("badoverride");
+    let dir = pack(&scratch.0, "minecraft");
+    write(
+        &dir.join("data/minecraft/structure/end_city/base_floor.nbt"),
+        "garbage",
+    );
+    let (library, issues) = Library::build(&[dir]);
+    assert!(issues.is_empty(), "{issues:?}");
+    let (base, _) = Library::build(&[]);
+    let expected = base
+        .blueprint(EMBEDDED_TEMPLATE)
+        .map(|blueprint| blueprint.size);
+    assert!(expected.is_some());
+    assert_eq!(
+        library
+            .blueprint(EMBEDDED_TEMPLATE)
+            .map(|blueprint| blueprint.size),
+        expected
+    );
+}
+
+fn slab_pack(scratch: &Scratch) -> PathBuf {
+    let dir = pack(&scratch.0, "mine");
+    let path = dir.join("data/mine/structure/slab.nbt");
+    fs::create_dir_all(path.parent().unwrap()).unwrap();
+    fs::write(&path, stone_template()).unwrap();
+    dir
+}
+
+const EMBEDDED_TEMPLATE: &str = "minecraft:end_city/base_floor";
+
+#[test]
+fn building_a_base_library_parses_no_template() {
+    let (library, issues) = Library::build(&[]);
+    assert!(issues.is_empty(), "{issues:?}");
+    assert_eq!(library.parsed(), 0);
+    assert!(
+        library
+            .blueprint_names()
+            .iter()
+            .any(|name| name == EMBEDDED_TEMPLATE)
+    );
+}
+
+#[test]
+fn building_a_library_with_a_datapack_parses_no_template() {
+    let scratch = Scratch::new("lazy-none");
+    let (library, issues) = Library::build(&[slab_pack(&scratch)]);
+    assert!(issues.is_empty(), "{issues:?}");
+    assert_eq!(library.parsed(), 0);
+    let names = library.blueprint_names();
+    assert!(names.iter().any(|name| name == "mine:slab"));
+    assert!(names.iter().any(|name| name == EMBEDDED_TEMPLATE));
+    assert!(names.windows(2).all(|pair| pair[0] < pair[1]));
+}
+
+#[test]
+fn the_first_lookup_parses_one_datapack_template_and_the_next_reuses_it() {
+    let scratch = Scratch::new("lazy-file");
+    let (library, _) = Library::build(&[slab_pack(&scratch)]);
+    let first = library.blueprint("mine:slab").unwrap();
+    assert_eq!(library.parsed(), 1);
+    let second = library.blueprint("mine:slab").unwrap();
+    assert!(std::ptr::eq(first, second));
+    assert_eq!(library.parsed(), 1);
+}
+
+#[test]
+fn the_first_lookup_parses_one_embedded_template_and_the_next_reuses_it() {
+    let (library, _) = Library::build(&[]);
+    let first = library.blueprint(EMBEDDED_TEMPLATE).unwrap();
+    assert_eq!(library.parsed(), 1);
+    let second = library.blueprint(EMBEDDED_TEMPLATE).unwrap();
+    assert!(std::ptr::eq(first, second));
+    assert_eq!(library.parsed(), 1);
+    assert!(!first.blocks.is_empty());
+}
+
+#[test]
+fn an_unknown_template_name_returns_none_and_parses_nothing() {
+    let scratch = Scratch::new("lazy-unknown");
+    let (library, _) = Library::build(&[slab_pack(&scratch)]);
+    assert!(library.blueprint("mine:nowhere").is_none());
+    assert!(library.blueprint("").is_none());
+    assert_eq!(library.parsed(), 0);
+}
+
+#[test]
+fn a_datapack_template_replaces_an_embedded_one_of_the_same_name() {
+    let scratch = Scratch::new("lazy-override");
+    let dir = pack(&scratch.0, "mine");
+    let path = dir.join("data/minecraft/structure/end_city/base_floor.nbt");
+    fs::create_dir_all(path.parent().unwrap()).unwrap();
+    fs::write(&path, stone_template()).unwrap();
+    let (library, issues) = Library::build(&[dir]);
+    assert!(issues.is_empty(), "{issues:?}");
+    assert_eq!(
+        library.blueprint(EMBEDDED_TEMPLATE).unwrap().size,
+        (2, 1, 1)
+    );
+    assert_eq!(library.parsed(), 1);
+}
+
+#[test]
+fn a_parsed_blueprint_keeps_no_spare_capacity() {
+    let scratch = Scratch::new("lazy-tight");
+    let (library, _) = Library::build(&[slab_pack(&scratch)]);
+    assert!(library.blueprint("mine:slab").unwrap().is_tight());
+    let shipwreck = library.blueprint("minecraft:shipwreck/with_mast").unwrap();
+    assert!(shipwreck.palette_count() > 1);
+    assert!(shipwreck.is_tight());
 }
 
 #[test]

@@ -101,7 +101,7 @@ impl Jigsaw {
 pub(crate) struct Block {
     pub(crate) pos: Pos,
     pub(crate) state: BlockStateId,
-    pub(crate) nbt: Option<Value>,
+    pub(crate) nbt: Option<Box<Value>>,
 }
 
 #[derive(Debug)]
@@ -194,18 +194,18 @@ impl Blueprint {
         let size = triple(value.get("size")?)?;
         let palettes = value.get("palettes")?.as_array()?;
         let rows = value.get("blocks")?.as_array()?;
-        let mut jigsaws = Vec::new();
-        let (blocks, found) = Self::build(palettes.first()?, rows)?;
-        jigsaws.extend(found);
-        let alternates = palettes[1..]
+        let (blocks, jigsaws) = Self::build(palettes.first()?, rows)?;
+        let mut alternates = palettes[1..]
             .iter()
             .map(|palette| Self::build(palette, rows).map(|(blocks, _)| blocks))
             .collect::<Option<Vec<_>>>()?;
-        let entities = value
+        alternates.shrink_to_fit();
+        let mut entities = value
             .get("entities")
             .and_then(Value::as_array)
             .cloned()
             .unwrap_or_default();
+        entities.shrink_to_fit();
         Some(Self {
             size,
             blocks,
@@ -217,7 +217,7 @@ impl Blueprint {
 
     fn build(palette: &Value, rows: &[Value]) -> Option<(Vec<Block>, Vec<Jigsaw>)> {
         let palette: Vec<BlockStateId> = palette.as_array()?.iter().map(palette_state).collect();
-        let mut blocks = Vec::new();
+        let mut blocks = Vec::with_capacity(rows.len());
         let mut jigsaws = Vec::new();
         for row in rows {
             let items = row.as_array()?;
@@ -227,7 +227,7 @@ impl Blueprint {
                 i32::try_from(items.get(2)?.as_i64()?).ok()?,
             );
             let state = *palette.get(usize::try_from(items.get(3)?.as_i64()?).ok()?)?;
-            let nbt = items.get(4).cloned();
+            let nbt = items.get(4).cloned().map(Box::new);
             if state.kind() == Some(BlockKind::Jigsaw)
                 && let Some(nbt) = &nbt
             {
@@ -247,7 +247,19 @@ impl Blueprint {
             (Some(_), _) => 2,
         };
         blocks.sort_by_key(|block| (class(block), block.pos.1, block.pos.0, block.pos.2));
+        blocks.shrink_to_fit();
+        jigsaws.shrink_to_fit();
         Some((blocks, jigsaws))
+    }
+
+    #[cfg(test)]
+    pub(crate) fn is_tight(&self) -> bool {
+        let tight = |blocks: &Vec<Block>| blocks.capacity() == blocks.len();
+        tight(&self.blocks)
+            && self.alternates.capacity() == self.alternates.len()
+            && self.alternates.iter().all(tight)
+            && self.entities.capacity() == self.entities.len()
+            && self.jigsaws.capacity() == self.jigsaws.len()
     }
 
     pub(crate) fn palette(&self, index: usize) -> &[Block] {

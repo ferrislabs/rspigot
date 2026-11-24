@@ -384,7 +384,7 @@ impl Piece {
                 at: (rx + self.origin.0, ry + self.origin.1, rz + self.origin.2),
                 reference: self.origin,
                 state: block.state,
-                nbt: block.nbt.as_ref().map(std::borrow::Cow::Borrowed),
+                nbt: block.nbt.as_deref().map(std::borrow::Cow::Borrowed),
             };
             if !steps.iter().all(|step| step.process(run, &mut subject)) {
                 continue;
@@ -414,7 +414,7 @@ impl Piece {
             if block.state.kind() != Some(Kind::Jigsaw) {
                 continue;
             }
-            let Some(nbt) = &block.nbt else {
+            let Some(nbt) = block.nbt.as_deref() else {
                 continue;
             };
             let name = nbt
