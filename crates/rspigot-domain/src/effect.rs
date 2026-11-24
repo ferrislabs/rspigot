@@ -293,7 +293,10 @@ mod tests {
         assert_eq!(player_base("minecraft:gravity"), 0.08);
         assert_eq!(player_base("minecraft:block_interaction_range"), 4.5);
         assert_eq!(player_base("minecraft:entity_interaction_range"), 3.0);
-        assert_eq!(player_base("minecraft:movement_speed"), 0.100_000_001_490_116_12);
+        assert_eq!(
+            player_base("minecraft:movement_speed"),
+            0.100_000_001_490_116_12
+        );
         assert_eq!(player_base("minecraft:max_health"), 20.0);
     }
 
