@@ -968,7 +968,7 @@ pub enum ClientEvent {
     },
     LightUpdate {
         chunk: ChunkPos,
-        light: Box<rspigot_domain::chunk::ChunkLight>,
+        light: Box<crate::lighting::LightPatch>,
     },
     EntityTeleport {
         entity: EntityId,

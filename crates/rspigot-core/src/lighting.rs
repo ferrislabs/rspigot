@@ -1,6 +1,7 @@
 use std::collections::VecDeque;
 
-use rspigot_domain::chunk::{ChunkColumn, LightArray};
+use rspigot_domain::chunk::{ChunkColumn, ChunkLight, LightArray};
+use rspigot_domain::world::WorldHeight;
 use rspigot_domain::{BlockPos, BlockStateId, ChunkPos};
 use rustc_hash::FxHashMap;
 
@@ -335,19 +336,15 @@ fn read_light(chunk: &ChunkColumn, pos: BlockPos, sky: bool) -> u8 {
         })
 }
 
-fn write_light(chunk: &mut ChunkColumn, pos: BlockPos, sky: bool, level: u8) {
-    let Some(index) = light_index(chunk, pos.y) else {
-        return;
-    };
+fn write_light(chunk: &mut ChunkColumn, pos: BlockPos, sky: bool, level: u8) -> Option<usize> {
+    let index = light_index(chunk, pos.y)?;
     let layers = if sky {
         &mut chunk.light.sky
     } else {
         &mut chunk.light.block
     };
-    if index >= layers.len() {
-        return;
-    }
-    layers[index]
+    layers
+        .get_mut(index)?
         .get_or_insert_with(|| LightArray::filled(0))
         .set(
             (pos.x & 15) as usize,
@@ -355,6 +352,7 @@ fn write_light(chunk: &mut ChunkColumn, pos: BlockPos, sky: bool, level: u8) {
             (pos.z & 15) as usize,
             level,
         );
+    Some(index)
 }
 
 fn step_cost(from: Option<BlockStateId>, to: Option<BlockStateId>, direction: usize) -> Option<u8> {
@@ -369,7 +367,7 @@ fn spread<W: LightWorld>(
     world: &mut W,
     mut queue: VecDeque<BlockPos>,
     sky: bool,
-    changed: &mut Vec<ChunkPos>,
+    changed: &mut Touched,
 ) {
     while let Some(pos) = queue.pop_front() {
         let Some(chunk) = world.light_chunk(pos.chunk()) else {
@@ -398,9 +396,8 @@ fn spread<W: LightWorld>(
             let Some(target) = world.light_chunk_mut(next.chunk()) else {
                 continue;
             };
-            write_light(target, next, sky, raised);
-            if !changed.contains(&next.chunk()) {
-                changed.push(next.chunk());
+            if let Some(index) = write_light(target, next, sky, raised) {
+                changed.mark(next.chunk(), index, sky);
             }
             queue.push_back(next);
         }
@@ -454,8 +451,8 @@ fn border_seeds<W: LightWorld>(
     }
 }
 
-pub fn stitch<W: LightWorld>(world: &mut W, pos: ChunkPos, has_skylight: bool) -> Vec<ChunkPos> {
-    let mut changed = Vec::new();
+pub fn stitch<W: LightWorld>(world: &mut W, pos: ChunkPos, has_skylight: bool) -> Touched {
+    let mut changed = Touched::default();
     for sky in [false, true] {
         if sky && !has_skylight {
             continue;
@@ -465,6 +462,300 @@ pub fn stitch<W: LightWorld>(world: &mut W, pos: ChunkPos, has_skylight: bool) -
         spread(world, seeds, sky, &mut changed);
     }
     changed
+}
+
+#[derive(Debug, Default, Clone, PartialEq, Eq)]
+pub struct LightSections {
+    sky: Vec<usize>,
+    block: Vec<usize>,
+}
+
+impl LightSections {
+    pub fn layer(&self, sky: bool) -> &[usize] {
+        if sky { &self.sky } else { &self.block }
+    }
+
+    fn add(&mut self, index: usize, sky: bool) {
+        let layer = if sky { &mut self.sky } else { &mut self.block };
+        if !layer.contains(&index) {
+            layer.push(index);
+        }
+    }
+}
+
+#[derive(Debug, Default)]
+pub struct Touched(FxHashMap<ChunkPos, LightSections>);
+
+impl Touched {
+    pub fn is_empty(&self) -> bool {
+        self.0.is_empty()
+    }
+
+    pub fn len(&self) -> usize {
+        self.0.len()
+    }
+
+    pub fn contains(&self, pos: ChunkPos) -> bool {
+        self.0.contains_key(&pos)
+    }
+
+    pub fn sections(&self, pos: ChunkPos) -> Option<&LightSections> {
+        self.0.get(&pos)
+    }
+
+    fn mark(&mut self, chunk: ChunkPos, index: usize, sky: bool) {
+        self.0.entry(chunk).or_default().add(index, sky);
+    }
+
+    pub(crate) fn mark_all(&mut self, chunk: ChunkPos, light: &ChunkLight) {
+        let sections = self.0.entry(chunk).or_default();
+        for index in 0..light.sky.len() {
+            sections.add(index, true);
+        }
+        for index in 0..light.block.len() {
+            sections.add(index, false);
+        }
+    }
+
+    pub(crate) fn merge(&mut self, other: Self) {
+        for (chunk, sections) in other.0 {
+            for index in sections.sky {
+                self.mark(chunk, index, true);
+            }
+            for index in sections.block {
+                self.mark(chunk, index, false);
+            }
+        }
+    }
+
+    pub fn into_sorted(self) -> Vec<(ChunkPos, LightSections)> {
+        let mut chunks: Vec<_> = self.0.into_iter().collect();
+        chunks.sort_unstable_by_key(|(pos, _)| *pos);
+        chunks
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct LightPatch {
+    pub sky: Vec<(usize, Option<LightArray>)>,
+    pub block: Vec<(usize, Option<LightArray>)>,
+}
+
+impl LightPatch {
+    pub fn of(light: &ChunkLight, sections: &LightSections) -> Self {
+        let pick = |layers: &[Option<LightArray>], indices: &[usize]| {
+            let mut picked: Vec<(usize, Option<LightArray>)> = indices
+                .iter()
+                .filter_map(|&index| Some((index, layers.get(index)?.clone())))
+                .collect();
+            picked.sort_unstable_by_key(|(index, _)| *index);
+            picked
+        };
+        Self {
+            sky: pick(&light.sky, &sections.sky),
+            block: pick(&light.block, &sections.block),
+        }
+    }
+}
+
+pub fn relight<W: LightWorld>(
+    world: &mut W,
+    edits: &FxHashMap<BlockPos, BlockStateId>,
+    has_skylight: bool,
+) -> Touched {
+    let mut touched = Touched::default();
+    for sky in [false, true] {
+        if sky && !has_skylight {
+            continue;
+        }
+        let mut pass = Relight {
+            world: &mut *world,
+            sky,
+            columns: FxHashMap::default(),
+            touched: &mut touched,
+            darken: VecDeque::new(),
+            brighten: VecDeque::new(),
+        };
+        if sky {
+            pass.seed_sky(edits);
+        } else {
+            for &pos in edits.keys() {
+                pass.dim(pos);
+            }
+        }
+        pass.run();
+    }
+    touched
+}
+
+fn direct_column(
+    height: WorldHeight,
+    x: i32,
+    z: i32,
+    state_at: impl Fn(BlockPos) -> Option<BlockStateId>,
+) -> Box<[u8]> {
+    let mut column = vec![0; height.height as usize].into_boxed_slice();
+    let mut level = MAX_LIGHT;
+    for y in (height.min_y..height.min_y + height.height as i32).rev() {
+        let state = state_at(BlockPos::new(x, y, z)).unwrap_or(BlockStateId::AIR);
+        level = level.saturating_sub(opacity(state));
+        if level == 0 {
+            break;
+        }
+        column[(y - height.min_y) as usize] = level;
+    }
+    column
+}
+
+struct Relight<'w, W> {
+    world: &'w mut W,
+    sky: bool,
+    columns: FxHashMap<(i32, i32), Box<[u8]>>,
+    touched: &'w mut Touched,
+    darken: VecDeque<(BlockPos, u8)>,
+    brighten: VecDeque<BlockPos>,
+}
+
+impl<W: LightWorld> Relight<'_, W> {
+    fn state(&self, pos: BlockPos) -> Option<BlockStateId> {
+        self.world.light_chunk(pos.chunk())?.block(pos)
+    }
+
+    fn level(&self, pos: BlockPos) -> u8 {
+        self.world
+            .light_chunk(pos.chunk())
+            .map_or(0, |chunk| read_light(chunk, pos, self.sky))
+    }
+
+    fn set(&mut self, pos: BlockPos, level: u8) {
+        let Some(chunk) = self.world.light_chunk_mut(pos.chunk()) else {
+            return;
+        };
+        if let Some(index) = write_light(chunk, pos, self.sky, level) {
+            self.touched.mark(pos.chunk(), index, self.sky);
+        }
+    }
+
+    fn source(&mut self, pos: BlockPos, state: BlockStateId) -> u8 {
+        if !self.sky {
+            return emission(state);
+        }
+        let Some(chunk) = self.world.light_chunk(pos.chunk()) else {
+            return 0;
+        };
+        let height = chunk.height();
+        let column = self
+            .columns
+            .entry((pos.x, pos.z))
+            .or_insert_with(|| direct_column(height, pos.x, pos.z, |at| chunk.block(at)));
+        column[(pos.y - height.min_y) as usize]
+    }
+
+    fn seed_sky(&mut self, edits: &FxHashMap<BlockPos, BlockStateId>) {
+        let mut columns: Vec<(i32, i32)> = edits.keys().map(|pos| (pos.x, pos.z)).collect();
+        columns.sort_unstable();
+        columns.dedup();
+        for (x, z) in columns {
+            let Some((height, old, new)) = self
+                .world
+                .light_chunk(BlockPos::new(x, 0, z).chunk())
+                .map(|chunk| {
+                    let height = chunk.height();
+                    let old = direct_column(height, x, z, |at| {
+                        edits.get(&at).copied().or_else(|| chunk.block(at))
+                    });
+                    (
+                        height,
+                        old,
+                        direct_column(height, x, z, |at| chunk.block(at)),
+                    )
+                })
+            else {
+                continue;
+            };
+            self.columns.insert((x, z), new.clone());
+            for (offset, (&was, &now)) in old.iter().zip(new.iter()).enumerate() {
+                let pos = BlockPos::new(x, height.min_y + offset as i32, z);
+                if edits.contains_key(&pos) || now < was {
+                    self.dim(pos);
+                } else if now > was {
+                    self.raise(pos, now);
+                }
+            }
+        }
+    }
+
+    fn dim(&mut self, pos: BlockPos) {
+        let Some(state) = self.state(pos) else {
+            return;
+        };
+        let level = self.level(pos);
+        if level > 0 {
+            self.set(pos, 0);
+        }
+        self.darken.push_back((pos, level));
+        let source = self.source(pos, state);
+        if source > 0 {
+            self.set(pos, source);
+            self.brighten.push_back(pos);
+        }
+    }
+
+    fn raise(&mut self, pos: BlockPos, level: u8) {
+        if level > self.level(pos) {
+            self.set(pos, level);
+        }
+        self.brighten.push_back(pos);
+    }
+
+    fn run(&mut self) {
+        while let Some((pos, level)) = self.darken.pop_front() {
+            for (dx, dy, dz) in DIRECTIONS {
+                let next = pos.offset(dx, dy, dz);
+                let Some(state) = self.state(next) else {
+                    continue;
+                };
+                let neighbour = self.level(next);
+                if neighbour == 0 {
+                    continue;
+                }
+                if neighbour >= level {
+                    self.brighten.push_back(next);
+                    continue;
+                }
+                self.set(next, 0);
+                self.darken.push_back((next, neighbour));
+                let source = self.source(next, state);
+                if source > 0 {
+                    self.set(next, source);
+                    self.brighten.push_back(next);
+                }
+            }
+        }
+        while let Some(pos) = self.brighten.pop_front() {
+            let level = self.level(pos);
+            if level <= 1 {
+                continue;
+            }
+            let Some(from) = self.state(pos) else {
+                continue;
+            };
+            for (direction, (dx, dy, dz)) in DIRECTIONS.iter().enumerate() {
+                let next = pos.offset(*dx, *dy, *dz);
+                let Some(to) = self.state(next) else {
+                    continue;
+                };
+                let Some(cost) = step_cost(Some(from), Some(to), direction) else {
+                    continue;
+                };
+                let raised = level - cost.min(level);
+                if raised > self.level(next) {
+                    self.set(next, raised);
+                    self.brighten.push_back(next);
+                }
+            }
+        }
+    }
 }
 
 #[cfg(test)]
@@ -640,7 +931,7 @@ mod tests {
         let mut world = grid(vec![lit, floor_chunk(east)], false);
         assert_eq!(level(&world, BlockPos::new(16, 64, 8), false), 0);
         let changed = stitch(&mut world, east, false);
-        assert!(changed.contains(&east));
+        assert!(changed.contains(east));
         assert_eq!(level(&world, BlockPos::new(15, 64, 8), false), 14);
         assert_eq!(level(&world, BlockPos::new(16, 64, 8), false), 13);
         assert_eq!(level(&world, BlockPos::new(20, 64, 8), false), 9);
@@ -715,5 +1006,192 @@ mod tests {
         chunk.set_block(BlockPos::new(6, 64, 4), bottom);
         compute(&mut chunk, false);
         assert_eq!(light_level(&chunk, BlockPos::new(6, 64, 4), false), 12);
+    }
+
+    const LOW: WorldHeight = WorldHeight {
+        min_y: 0,
+        height: 32,
+    };
+    const SPAN: i32 = 48;
+
+    type Placement = (i32, i32, i32, usize);
+
+    fn palette() -> [BlockStateId; 10] {
+        use rspigot_blocks::BlockKind;
+        let slab = |kind: &str| {
+            BlockKind::OakSlab
+                .state_with(&[("type", kind), ("waterlogged", "false")])
+                .expect("a slab")
+        };
+        [
+            BlockStateId::AIR,
+            stone(),
+            BlockKind::Water.default_state(),
+            BlockKind::Glass.default_state(),
+            BlockKind::OakLeaves.default_state(),
+            rspigot_blocks::Torch::DEFAULT_STATE,
+            BlockKind::Glowstone.default_state(),
+            slab("bottom"),
+            slab("top"),
+            BlockKind::OakStairs.default_state(),
+        ]
+    }
+
+    fn terrain(placements: &[Placement]) -> Vec<ChunkColumn> {
+        let palette = palette();
+        let mut chunks = std::collections::HashMap::new();
+        for cx in 0..SPAN / 16 {
+            for cz in 0..SPAN / 16 {
+                let pos = ChunkPos::new(cx, cz);
+                let mut chunk = ChunkColumn::empty(pos, LOW, BiomeId(0));
+                for x in 0..16 {
+                    for z in 0..16 {
+                        chunk.set_block(
+                            BlockPos::new(pos.min_block_x() + x, 4, pos.min_block_z() + z),
+                            stone(),
+                        );
+                    }
+                }
+                chunks.insert(pos, chunk);
+            }
+        }
+        for &(x, y, z, kind) in placements {
+            let pos = BlockPos::new(x, y, z);
+            if let Some(chunk) = chunks.get_mut(&pos.chunk()) {
+                chunk.set_block(pos, palette[kind]);
+            }
+        }
+        chunks.into_values().collect()
+    }
+
+    fn settled(chunks: Vec<ChunkColumn>, sky: bool) -> Grid {
+        let mut world = grid(chunks, sky);
+        let mut positions: Vec<ChunkPos> = world.0.keys().copied().collect();
+        positions.sort_unstable();
+        loop {
+            let mut moved = false;
+            for pos in &positions {
+                moved |= !stitch(&mut world, *pos, sky).is_empty();
+            }
+            if !moved {
+                return world;
+            }
+        }
+    }
+
+    fn edit(world: &mut Grid, edits: &[Placement]) -> FxHashMap<BlockPos, BlockStateId> {
+        let palette = palette();
+        let mut changes = FxHashMap::default();
+        for &(x, y, z, kind) in edits {
+            let pos = BlockPos::new(x, y, z);
+            let chunk = world.0.get_mut(&pos.chunk()).expect("inside the grid");
+            let old = chunk.block(pos).expect("inside the height");
+            chunk.set_block(pos, palette[kind]);
+            changes.entry(pos).or_insert(old);
+        }
+        changes
+    }
+
+    fn mismatch(actual: &Grid, expected: &Grid, sky: bool) -> Option<(BlockPos, bool, i32, i32)> {
+        let layers: &[bool] = if sky { &[false, true] } else { &[false] };
+        for x in 0..SPAN {
+            for z in 0..SPAN {
+                for y in LOW.min_y..LOW.min_y + LOW.height as i32 {
+                    let pos = BlockPos::new(x, y, z);
+                    for &layer in layers {
+                        let (want, got) = (level(expected, pos, layer), level(actual, pos, layer));
+                        if want != got {
+                            return Some((pos, layer, want, got));
+                        }
+                    }
+                }
+            }
+        }
+        None
+    }
+
+    fn same(now: Option<&LightArray>, then: Option<&LightArray>) -> bool {
+        match (now, then) {
+            (Some(now), Some(then)) => now == then,
+            (Some(array), None) | (None, Some(array)) => array.is_uniform(0),
+            (None, None) => true,
+        }
+    }
+
+    fn placements(max: usize) -> impl proptest::strategy::Strategy<Value = Vec<Placement>> {
+        proptest::collection::vec((0..SPAN, 0..LOW.height as i32, 0..SPAN, 0..10usize), 0..max)
+    }
+
+    #[test]
+    fn a_falling_water_column_only_relights_its_own_chunk() {
+        let mut world = settled(terrain(&[]), true);
+        let changes = edit(&mut world, &[(20, 30, 20, 2), (20, 29, 20, 2)]);
+        let touched = relight(&mut world, &changes, true);
+        let expected = settled(terrain(&[(20, 30, 20, 2), (20, 29, 20, 2)]), true);
+        assert_eq!(mismatch(&world, &expected, true), None);
+        assert_eq!(touched.len(), 1);
+        assert_eq!(level(&world, BlockPos::new(20, 10, 20), true), 14);
+    }
+
+    #[test]
+    fn a_sky_without_skylight_stays_dark() {
+        let mut world = settled(terrain(&[]), false);
+        let changes = edit(&mut world, &[(20, 30, 20, 1), (3, 10, 3, 5)]);
+        relight(&mut world, &changes, false);
+        assert!(
+            world
+                .0
+                .values()
+                .all(|chunk| chunk.light.sky.iter().all(Option::is_none))
+        );
+        assert_eq!(level(&world, BlockPos::new(4, 10, 3), false), 13);
+    }
+
+    proptest::proptest! {
+        #![proptest_config(proptest::prelude::ProptestConfig::with_cases(48))]
+
+        #[test]
+        fn relighting_edits_matches_a_full_recompute(
+            terrain_blocks in placements(300),
+            edits in placements(12),
+            sky in proptest::prelude::any::<bool>(),
+        ) {
+            let mut world = settled(terrain(&terrain_blocks), sky);
+            let changes = edit(&mut world, &edits);
+            relight(&mut world, &changes, sky);
+            let mut all = terrain_blocks.clone();
+            all.extend(edits.iter().copied());
+            let expected = settled(terrain(&all), sky);
+            proptest::prop_assert_eq!(mismatch(&world, &expected, sky), None);
+        }
+
+        #[test]
+        fn relighting_reports_every_section_it_changes(
+            terrain_blocks in placements(300),
+            edits in placements(12),
+            sky in proptest::prelude::any::<bool>(),
+        ) {
+            let mut world = settled(terrain(&terrain_blocks), sky);
+            let before: std::collections::HashMap<ChunkPos, rspigot_domain::chunk::ChunkLight> = world
+                .0
+                .iter()
+                .map(|(pos, chunk)| (*pos, chunk.light.clone()))
+                .collect();
+            let changes = edit(&mut world, &edits);
+            let touched = relight(&mut world, &changes, sky);
+            for (pos, chunk) in &world.0 {
+                let then = &before[pos];
+                for (layer, now, old) in [(true, &chunk.light.sky, &then.sky), (false, &chunk.light.block, &then.block)] {
+                    for index in 0..now.len() {
+                        if !same(now[index].as_ref(), old[index].as_ref()) {
+                            let reported = touched
+                                .sections(*pos)
+                                .is_some_and(|sections| sections.layer(layer).contains(&index));
+                            proptest::prop_assert!(reported, "{pos:?} sky={layer} section {index} changed unreported");
+                        }
+                    }
+                }
+            }
+        }
     }
 }
