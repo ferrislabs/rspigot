@@ -138,7 +138,16 @@ impl ChunkWorkers {
                 let sender = sender.clone();
                 std::thread::Builder::new()
                     .name(format!("chunk-worker-{index}"))
-                    .spawn(move || run_worker(&queue, &*store, &*generator, &sender))
+                    .spawn(move || {
+                        if let Err(error) = thread_priority::set_current_thread_priority(
+                            thread_priority::ThreadPriority::Min,
+                        ) {
+                            tracing::warn!(
+                                "chunk worker {index} keeps its default priority: {error}"
+                            );
+                        }
+                        run_worker(&queue, &*store, &*generator, &sender);
+                    })
                     .ok()
             })
             .collect::<Option<Vec<_>>>()
