@@ -99,6 +99,7 @@ fn main() -> anyhow::Result<()> {
     let total: Duration = samples.iter().sum();
     println!("chunks_loaded: {loaded}");
     println!("chunks_pending: {}", stats.pending);
+    println!("chunk_copies: {}", stats.copies);
     println!("load_seconds: {:.1}", load_time.as_secs_f64());
     println!(
         "avg_load_ms_per_chunk: {:.2}",

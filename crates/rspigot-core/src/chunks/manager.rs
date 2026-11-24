@@ -40,6 +40,7 @@ pub struct ChunkManagerStats {
     pub saved: u64,
     pub unloaded: u64,
     pub cancelled: u64,
+    pub copies: u64,
     pub total_load_time: Duration,
 }
 
@@ -60,6 +61,29 @@ struct Loaded {
     tickets: u32,
     unload_at: Option<u64>,
     dirty: bool,
+    inhabited_delta: i64,
+}
+
+impl Loaded {
+    fn chunk_mut(&mut self, copies: &mut u64) -> &mut ChunkColumn {
+        if Arc::strong_count(&self.chunk) > 1 {
+            *copies += 1;
+        }
+        let chunk = Arc::make_mut(&mut self.chunk);
+        chunk.inhabited_time += std::mem::take(&mut self.inhabited_delta);
+        chunk
+    }
+
+    fn snapshot(&mut self, copies: &mut u64) -> Arc<ChunkColumn> {
+        if self.inhabited_delta != 0 {
+            self.chunk_mut(copies);
+        }
+        Arc::clone(&self.chunk)
+    }
+
+    fn inhabited_time(&self) -> i64 {
+        self.chunk.inhabited_time + self.inhabited_delta
+    }
 }
 
 struct Pending {
@@ -339,6 +363,7 @@ impl ChunkManager {
                         tickets: pending.tickets,
                         unload_at: None,
                         dirty: source == ChunkSource::Generated || relit,
+                        inhabited_delta: 0,
                     },
                 );
                 Some(pos)
@@ -397,12 +422,13 @@ impl ChunkManager {
         if !self.unload_due(pos) {
             return false;
         }
-        let Some(loaded) = self.loaded.remove(&pos) else {
+        let Some(mut loaded) = self.loaded.remove(&pos) else {
             return false;
         };
         self.block_entities.forget(pos);
         if save && loaded.dirty {
-            self.submit_save(loaded.chunk, workers);
+            let chunk = loaded.snapshot(&mut self.stats.copies);
+            self.submit_save(chunk, workers);
         }
         if save && self.poi.is_dirty(pos) {
             self.submit_poi_save(pos, workers);
@@ -453,11 +479,12 @@ impl ChunkManager {
         for (pos, loaded) in &mut self.loaded {
             if loaded.dirty && !skipped(*pos) {
                 loaded.dirty = false;
+                let chunk = loaded.snapshot(&mut self.stats.copies);
                 workers.submit(
                     Priority::BACKGROUND,
                     ChunkJob::Save {
                         dimension: Arc::clone(&self.dimension),
-                        chunk: Arc::clone(&loaded.chunk),
+                        chunk,
                     },
                 );
                 count += 1;
@@ -480,8 +507,12 @@ impl ChunkManager {
 
     pub fn add_inhabited_time(&mut self, pos: ChunkPos, ticks: i64) {
         if let Some(loaded) = self.loaded.get_mut(&pos) {
-            Arc::make_mut(&mut loaded.chunk).inhabited_time += ticks;
+            loaded.inhabited_delta += ticks;
         }
+    }
+
+    pub fn inhabited_time(&self, pos: ChunkPos) -> Option<i64> {
+        self.loaded.get(&pos).map(Loaded::inhabited_time)
     }
 
     pub fn load_unhandled(&self, pos: ChunkPos) -> bool {
@@ -496,7 +527,7 @@ impl ChunkManager {
         let loaded = self.loaded.get_mut(&pos)?;
         loaded.dirty = true;
         self.block_entities.mark(pos);
-        Some(Arc::make_mut(&mut loaded.chunk))
+        Some(loaded.chunk_mut(&mut self.stats.copies))
     }
 
     pub fn chunks_with_block_entities(
@@ -526,7 +557,7 @@ impl ChunkManager {
         if volatile {
             let loaded = self.loaded.get_mut(&pos.chunk())?;
             self.block_entities.mark(pos.chunk());
-            Some(Arc::make_mut(&mut loaded.chunk))
+            Some(loaded.chunk_mut(&mut self.stats.copies))
         } else {
             self.chunk_mut(pos.chunk())
         }
@@ -791,6 +822,7 @@ mod tests {
     #[derive(Default)]
     struct MemoryStore {
         saved: Mutex<Vec<ChunkPos>>,
+        inhabited: Mutex<Vec<(ChunkPos, i64)>>,
     }
 
     impl ChunkStore for MemoryStore {
@@ -801,6 +833,9 @@ mod tests {
         fn save(&self, _: &Identifier, chunk: &ChunkColumn) -> Result<(), StoreError> {
             if let Ok(mut saved) = self.saved.lock() {
                 saved.push(chunk.pos());
+            }
+            if let Ok(mut inhabited) = self.inhabited.lock() {
+                inhabited.push((chunk.pos(), chunk.inhabited_time));
             }
             Ok(())
         }
@@ -992,6 +1027,50 @@ mod tests {
         }
         assert!(!manager.is_loaded(pos));
         assert!(furnace_chunks(&mut manager).is_empty());
+        workers.shutdown();
+    }
+
+    #[test]
+    fn inhabited_time_grows_without_copying_a_shared_chunk() {
+        let (mut manager, workers, _) = setup();
+        let pos = ChunkPos::new(0, 0);
+        load(&mut manager, &workers, &[pos]);
+        let shared = Arc::clone(manager.get(pos).expect("loaded"));
+        manager.add_inhabited_time(pos, 5);
+        assert!(Arc::ptr_eq(&shared, manager.get(pos).expect("loaded")));
+        assert_eq!(manager.inhabited_time(pos), Some(5));
+        assert_eq!(manager.stats().copies, 0);
+        workers.shutdown();
+    }
+
+    #[test]
+    fn a_save_carries_the_pending_inhabited_time() {
+        let (mut manager, workers, store) = setup();
+        let pos = ChunkPos::new(0, 0);
+        load(&mut manager, &workers, &[pos]);
+        manager.chunk_mut(pos).expect("loaded").touch();
+        manager.add_inhabited_time(pos, 5);
+        assert_eq!(manager.save_dirty(&workers), 1);
+        assert!(workers.flush_blocking(Duration::from_secs(10)));
+        let saved = store
+            .inhabited
+            .lock()
+            .map(|s| s.clone())
+            .unwrap_or_default();
+        assert_eq!(saved, vec![(pos, 5)]);
+        assert_eq!(manager.inhabited_time(pos), Some(5));
+        workers.shutdown();
+    }
+
+    #[test]
+    fn a_write_to_a_shared_chunk_counts_as_a_copy() {
+        let (mut manager, workers, _) = setup();
+        let pos = ChunkPos::new(0, 0);
+        load(&mut manager, &workers, &[pos]);
+        let shared = Arc::clone(manager.get(pos).expect("loaded"));
+        manager.chunk_mut(pos).expect("loaded").touch();
+        assert!(!Arc::ptr_eq(&shared, manager.get(pos).expect("loaded")));
+        assert_eq!(manager.stats().copies, 1);
         workers.shutdown();
     }
 
