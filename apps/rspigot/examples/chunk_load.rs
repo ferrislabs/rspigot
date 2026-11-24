@@ -100,6 +100,7 @@ fn main() -> anyhow::Result<()> {
     println!("chunks_loaded: {loaded}");
     println!("chunks_pending: {}", stats.pending);
     println!("chunk_copies: {}", stats.copies);
+    println!("stitch_queued_after_ticks: {}", stats.stitch_queued);
     println!("load_seconds: {:.1}", load_time.as_secs_f64());
     println!(
         "avg_load_ms_per_chunk: {:.2}",
