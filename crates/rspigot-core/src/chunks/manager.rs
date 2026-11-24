@@ -2,7 +2,7 @@ use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Duration;
 
-use rspigot_domain::chunk::{BlockMeta, ChunkColumn};
+use rspigot_domain::chunk::{BlockMeta, ChunkColumn, ChunkLight};
 use rspigot_domain::meta::{MetaError, MetaValue};
 use rspigot_domain::poi::PoiManager;
 use rspigot_domain::world::Dimension;
@@ -12,6 +12,7 @@ use rustc_hash::{FxHashMap, FxHashSet};
 
 use super::queue::Priority;
 use super::workers::{ChunkJob, ChunkResult, ChunkSource, ChunkWorkers};
+use crate::lighting::Touched;
 use crate::structure_spawns::SpawnStructures;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -83,7 +84,7 @@ pub struct ChunkManager {
     now: u64,
     stats: ChunkManagerStats,
     events: ChunkEvents,
-    relight: FxHashMap<ChunkPos, u8>,
+    light_edits: FxHashMap<BlockPos, BlockStateId>,
     stitch: FxHashSet<ChunkPos>,
     mob_generation: Option<super::MobGeneration>,
     poi: PoiManager,
@@ -108,7 +109,7 @@ impl ChunkManager {
             now: 0,
             stats: ChunkManagerStats::default(),
             events: ChunkEvents::default(),
-            relight: FxHashMap::default(),
+            light_edits: FxHashMap::default(),
             stitch: FxHashSet::default(),
             mob_generation: None,
             poi,
@@ -613,7 +614,7 @@ impl ChunkManager {
         }
         self.poi.on_block_change(pos, current, state);
         if crate::lighting::affects_light(current, state) {
-            *self.relight.entry(pos.chunk()).or_default() |= reach_mask(pos);
+            self.light_edits.entry(pos).or_insert(current);
         }
         old
     }
@@ -622,13 +623,46 @@ impl ChunkManager {
         self.relight_chunks().len()
     }
 
-    pub fn relight_chunks(&mut self) -> Vec<ChunkPos> {
+    pub fn relight_chunks(&mut self) -> Touched {
         let has_skylight = self.dimension.has_skylight;
-        let mut edited: Vec<ChunkPos> = Vec::new();
-        let mut recompute: Vec<ChunkPos> = Vec::new();
-        for (pos, mask) in self.relight.drain() {
-            edited.push(pos);
-            recompute.push(pos);
+        let edits = std::mem::take(&mut self.light_edits);
+        let mut stitch: Vec<ChunkPos> = self.stitch.drain().collect();
+        let mut before = Vec::new();
+        let mut touched = if edits.len() > FULL_RELIGHT_EDITS {
+            self.recompute(&edits, &mut stitch, &mut before)
+        } else {
+            crate::lighting::relight(self, &edits, has_skylight)
+        };
+        stitch.sort_unstable();
+        stitch.dedup();
+        for pos in stitch {
+            if self.loaded.contains_key(&pos) {
+                touched.merge(crate::lighting::stitch(self, pos, has_skylight));
+            }
+        }
+        for (pos, light) in before {
+            if let Some(loaded) = self.loaded.get(&pos)
+                && loaded.chunk.light != light
+            {
+                touched.mark_all(pos, &loaded.chunk.light);
+            }
+        }
+        touched
+    }
+
+    fn recompute(
+        &mut self,
+        edits: &FxHashMap<BlockPos, BlockStateId>,
+        stitch: &mut Vec<ChunkPos>,
+        before: &mut Vec<(ChunkPos, ChunkLight)>,
+    ) -> Touched {
+        let has_skylight = self.dimension.has_skylight;
+        let mut masks: FxHashMap<ChunkPos, u8> = FxHashMap::default();
+        for pos in edits.keys() {
+            *masks.entry(pos.chunk()).or_default() |= reach_mask(*pos);
+        }
+        let mut recompute: Vec<ChunkPos> = masks.keys().copied().collect();
+        for (pos, mask) in &masks {
             for (bit, (dx, dz)) in NEIGHBOURS.iter().enumerate() {
                 if mask & (1 << bit) != 0 {
                     recompute.push(ChunkPos::new(pos.x + dx, pos.z + dz));
@@ -638,44 +672,23 @@ impl ChunkManager {
         recompute.sort_unstable();
         recompute.dedup();
         recompute.retain(|pos| self.loaded.contains_key(pos));
-        let before: Vec<(ChunkPos, rspigot_domain::chunk::ChunkLight)> = recompute
-            .iter()
-            .filter(|pos| !edited.contains(pos))
-            .filter_map(|pos| Some((*pos, self.loaded.get(pos)?.chunk.light.clone())))
-            .collect();
-        let mut done = Vec::new();
+        before.extend(
+            recompute
+                .iter()
+                .filter(|pos| !masks.contains_key(pos))
+                .filter_map(|pos| Some((*pos, self.loaded.get(pos)?.chunk.light.clone()))),
+        );
+        let mut touched = Touched::default();
         for pos in &recompute {
             if let Some(chunk) = self.chunk_mut(*pos) {
                 crate::lighting::compute(chunk, has_skylight);
-                if edited.contains(pos) {
-                    done.push(*pos);
+                if masks.contains_key(pos) {
+                    touched.mark_all(*pos, &chunk.light);
                 }
             }
         }
-        let mut stitch: Vec<ChunkPos> = self.stitch.drain().collect();
         stitch.extend(recompute);
-        stitch.sort_unstable();
-        stitch.dedup();
-        for pos in stitch {
-            if !self.loaded.contains_key(&pos) {
-                continue;
-            }
-            for changed in crate::lighting::stitch(self, pos, has_skylight) {
-                if !done.contains(&changed) {
-                    done.push(changed);
-                }
-            }
-        }
-        for (pos, light) in before {
-            let differs = self
-                .loaded
-                .get(&pos)
-                .is_some_and(|loaded| loaded.chunk.light != light);
-            if differs && !done.contains(&pos) {
-                done.push(pos);
-            }
-        }
-        done
+        touched
     }
 
     pub fn stats(&self) -> ChunkManagerStats {
@@ -713,6 +726,7 @@ const NEIGHBOURS: [(i32, i32); 8] = [
 ];
 
 const LIGHT_REACH: i32 = 14;
+const FULL_RELIGHT_EDITS: usize = 4096;
 
 fn reach_mask(pos: BlockPos) -> u8 {
     let (x, z) = (pos.x & 15, pos.z & 15);
@@ -816,6 +830,104 @@ mod tests {
             }
         }
         loaded
+    }
+
+    struct Reference(FxHashMap<ChunkPos, ChunkColumn>);
+
+    impl crate::lighting::LightWorld for Reference {
+        fn light_chunk(&self, pos: ChunkPos) -> Option<&ChunkColumn> {
+            self.0.get(&pos)
+        }
+
+        fn light_chunk_mut(&mut self, pos: ChunkPos) -> Option<&mut ChunkColumn> {
+            self.0.get_mut(&pos)
+        }
+    }
+
+    fn assert_light_matches_a_fresh_recompute(manager: &ChunkManager) {
+        let mut world = Reference(
+            manager
+                .loaded
+                .iter()
+                .map(|(pos, loaded)| {
+                    let mut chunk = (*loaded.chunk).clone();
+                    crate::lighting::compute(&mut chunk, true);
+                    (*pos, chunk)
+                })
+                .collect(),
+        );
+        let positions: Vec<ChunkPos> = world.0.keys().copied().collect();
+        while positions.iter().fold(false, |moved, pos| {
+            !crate::lighting::stitch(&mut world, *pos, true).is_empty() | moved
+        }) {}
+        let height = manager.dimension.height;
+        for (pos, expected) in &world.0 {
+            let actual = manager.get(*pos).expect("loaded");
+            for x in 0..16 {
+                for z in 0..16 {
+                    for y in height.min_y..height.min_y + height.height as i32 {
+                        let at = BlockPos::new(pos.min_block_x() + x, y, pos.min_block_z() + z);
+                        for sky in [false, true] {
+                            assert_eq!(
+                                crate::lighting::light_level(actual, at, sky),
+                                crate::lighting::light_level(expected, at, sky),
+                                "{at:?} sky={sky}"
+                            );
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    fn two_loaded_chunks() -> (ChunkManager, ChunkWorkers) {
+        let (mut manager, workers, _) = setup();
+        for x in 0..2 {
+            manager.add_ticket(ChunkPos::new(x, 0), Priority(1), &workers);
+        }
+        drain(&mut manager, &workers, 2);
+        manager.relight();
+        (manager, workers)
+    }
+
+    #[test]
+    fn a_few_edits_relight_incrementally_to_the_same_light_as_a_recompute() {
+        let (mut manager, workers) = two_loaded_chunks();
+        for x in 10..20 {
+            manager.set_block(BlockPos::new(x, 70, 8), BlockStateId(1));
+        }
+        manager.set_block(
+            BlockPos::new(15, 69, 8),
+            rspigot_blocks::Torch::DEFAULT_STATE,
+        );
+        manager.set_block(
+            BlockPos::new(16, 64, 3),
+            rspigot_blocks::BlockKind::Water.default_state(),
+        );
+        assert!(manager.light_edits.len() <= FULL_RELIGHT_EDITS);
+        manager.relight();
+        assert_light_matches_a_fresh_recompute(&manager);
+        workers.shutdown();
+    }
+
+    #[test]
+    fn a_mass_edit_falls_back_to_a_full_recompute_with_the_same_light() {
+        let (mut manager, workers) = two_loaded_chunks();
+        for x in 0..16 {
+            for z in 0..16 {
+                for y in 60..78 {
+                    manager.set_block(BlockPos::new(x, y, z), BlockStateId(1));
+                }
+            }
+        }
+        manager.set_block(
+            BlockPos::new(15, 78, 8),
+            rspigot_blocks::Torch::DEFAULT_STATE,
+        );
+        assert!(manager.light_edits.len() > FULL_RELIGHT_EDITS);
+        manager.relight();
+        assert_light_matches_a_fresh_recompute(&manager);
+        workers.shutdown();
     }
 
     fn setup() -> (ChunkManager, ChunkWorkers, Arc<MemoryStore>) {
@@ -1157,11 +1269,11 @@ mod tests {
         };
         assert_eq!(level(&manager), Some(0));
         let done = manager.relight_chunks();
-        assert!(done.contains(&east));
+        assert!(done.contains(east));
         assert_eq!(level(&manager), Some(12));
         manager.set_block(torch, BlockStateId::AIR);
         let done = manager.relight_chunks();
-        assert!(done.contains(&east));
+        assert!(done.contains(east));
         assert_eq!(level(&manager), Some(0));
         workers.shutdown();
     }

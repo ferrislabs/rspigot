@@ -925,11 +925,13 @@ fn container_for<T: Copy + Eq, S: rspigot_domain::chunk::PaletteStrategy>(
     WireContainer::from_entries(strategy, &entries)
 }
 
-fn light_data(light: &[Option<DomainLight>]) -> (ByteBitSet, ByteBitSet, Vec<Cow<'_, [u8; 2048]>>) {
+fn light_data<'a>(
+    layers: impl Iterator<Item = (usize, &'a Option<DomainLight>)>,
+) -> (ByteBitSet, ByteBitSet, Vec<Cow<'a, [u8; 2048]>>) {
     let mut present = Vec::new();
     let mut empty = Vec::new();
     let mut arrays = Vec::new();
-    for (index, layer) in light.iter().enumerate() {
+    for (index, layer) in layers {
         match layer {
             Some(array) if !array.is_uniform(0) => {
                 present.push(index);
@@ -1013,8 +1015,10 @@ pub fn chunk_packet(chunk: &ChunkColumn, out: &mut Vec<u8>) {
             })
         })
         .collect();
-    let (sky_y_mask, empty_sky_y_mask, sky_updates) = light_data(&chunk.light.sky);
-    let (block_y_mask, empty_block_y_mask, block_updates) = light_data(&chunk.light.block);
+    let (sky_y_mask, empty_sky_y_mask, sky_updates) =
+        light_data(chunk.light.sky.iter().enumerate());
+    let (block_y_mask, empty_block_y_mask, block_updates) =
+        light_data(chunk.light.block.iter().enumerate());
     let packet = cb::LevelChunkWithLight {
         x: chunk.pos().x,
         z: chunk.pos().z,
@@ -1354,8 +1358,10 @@ impl Encoder {
                 },
             ),
             ClientEvent::LightUpdate { chunk, light } => {
-                let (sky_y_mask, empty_sky_y_mask, sky_updates) = light_data(&light.sky);
-                let (block_y_mask, empty_block_y_mask, block_updates) = light_data(&light.block);
+                let (sky_y_mask, empty_sky_y_mask, sky_updates) =
+                    light_data(light.sky.iter().map(|(index, layer)| (*index, layer)));
+                let (block_y_mask, empty_block_y_mask, block_updates) =
+                    light_data(light.block.iter().map(|(index, layer)| (*index, layer)));
                 Self::queue(
                     writer,
                     &cb::LightUpdate {
@@ -3484,11 +3490,35 @@ mod tests {
     }
 
     #[test]
+    fn a_light_update_carries_only_the_sections_of_its_patch() {
+        use rspigot_protocol::codec::decode_exact;
+        let lit = DomainLight::filled(15);
+        let packets = encode(ClientEvent::LightUpdate {
+            chunk: ChunkPos::new(0, 0),
+            light: Box::new(rspigot_core::lighting::LightPatch {
+                sky: vec![(3, Some(lit.clone())), (5, None)],
+                block: vec![(7, Some(DomainLight::filled(0)))],
+            }),
+        });
+        assert_eq!(packets[0].0, id::LIGHT_UPDATE);
+        let packet: cb::LightUpdate = decode_exact(&packets[0].1).expect("decodes");
+        assert_eq!(packet.light.sky_y_mask, ByteBitSet::from_bits([3]));
+        assert_eq!(packet.light.empty_sky_y_mask, ByteBitSet::from_bits([5]));
+        assert_eq!(packet.light.block_y_mask, ByteBitSet::from_bits([]));
+        assert_eq!(packet.light.empty_block_y_mask, ByteBitSet::from_bits([7]));
+        assert_eq!(packet.light.sky_updates.len(), 1);
+        assert_eq!(packet.light.sky_updates[0].as_ref(), lit.as_bytes());
+        assert!(packet.light.block_updates.is_empty());
+    }
+
+    #[test]
     fn light_updates_and_section_block_batches_encode() {
-        let light = rspigot_domain::chunk::ChunkLight::new(2);
         let packets = encode(ClientEvent::LightUpdate {
             chunk: ChunkPos::new(1, -2),
-            light: Box::new(light),
+            light: Box::new(rspigot_core::lighting::LightPatch {
+                sky: Vec::new(),
+                block: Vec::new(),
+            }),
         });
         assert_eq!(packets[0].0, id::LIGHT_UPDATE);
         assert_eq!(&packets[0].1[..2], &[1, 254]);
