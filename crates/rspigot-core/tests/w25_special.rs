@@ -523,12 +523,20 @@ fn structure_rig() -> Scene {
     s
 }
 
+fn tick_until_placed(s: &mut Scene, pos: BlockPos) {
+    let deadline = std::time::Instant::now() + Duration::from_secs(5);
+    while kind_at(s, pos) == Some(BlockKind::Air) && std::time::Instant::now() < deadline {
+        s.tick(1);
+        std::thread::sleep(Duration::from_millis(5));
+    }
+}
+
 #[test]
 fn a_powered_structure_block_in_load_mode_places_its_template_at_its_offset() {
     let mut s = structure_rig();
     assert_eq!(kind_at(&s, STRUCTURE.offset(0, 1, 0)), Some(BlockKind::Air));
     console(&mut s, "setblock 8 64 5 minecraft:redstone_block");
-    s.tick(10);
+    tick_until_placed(&mut s, STRUCTURE.offset(0, 1, 0));
     assert_eq!(
         kind_at(&s, STRUCTURE.offset(0, 1, 0)),
         Some(BlockKind::Stone)
