@@ -74,54 +74,102 @@ fn piece_boxes(start: &Compound) -> Vec<[i32; 6]> {
         .collect()
 }
 
-fn contains(start: &Compound, mode: StructureBox, pos: BlockPos) -> bool {
-    let pieces = piece_boxes(start);
-    match mode {
-        StructureBox::Piece => pieces.iter().any(|piece| inside(piece, pos)),
-        StructureBox::Full => union(&pieces).is_some_and(|full| inside(&full, pos)),
+#[derive(Debug)]
+struct StartBoxes {
+    pieces: Box<[[i32; 6]]>,
+    full: Option<[i32; 6]>,
+}
+
+impl StartBoxes {
+    fn of(start: &Compound) -> Self {
+        let pieces = piece_boxes(start).into_boxed_slice();
+        let full = union(&pieces);
+        Self { pieces, full }
+    }
+
+    fn contains(&self, mode: StructureBox, pos: BlockPos) -> bool {
+        let in_full = self.full.is_some_and(|full| inside(&full, pos));
+        match mode {
+            StructureBox::Piece => in_full && self.pieces.iter().any(|piece| inside(piece, pos)),
+            StructureBox::Full => in_full,
+        }
+    }
+}
+
+#[derive(Debug, Default)]
+pub(crate) struct SpawnStructures {
+    references: Vec<(usize, Box<[ChunkPos]>)>,
+    starts: Vec<(usize, StartBoxes)>,
+}
+
+impl SpawnStructures {
+    pub(crate) fn of(chunk: &ChunkColumn) -> Self {
+        let Some(structures) = chunk.extra.get_compound(STRUCTURES) else {
+            return Self::default();
+        };
+        let mut references: Vec<(usize, Box<[ChunkPos]>)> = structures
+            .get_compound(REFERENCES)
+            .map(|references| {
+                references
+                    .iter()
+                    .filter_map(|(name, tag)| {
+                        let index = rspigot_data::spawns::structure_index(name)?;
+                        match tag {
+                            Tag::LongArray(chunks) => {
+                                Some((index, chunks.iter().map(|packed| unpack(*packed)).collect()))
+                            }
+                            _ => None,
+                        }
+                    })
+                    .collect()
+            })
+            .unwrap_or_default();
+        references.sort_unstable_by_key(|(index, _)| *index);
+        let starts = structures
+            .get_compound(STARTS)
+            .map(|starts| {
+                starts
+                    .iter()
+                    .filter_map(|(name, tag)| {
+                        let index = rspigot_data::spawns::structure_index(name)?;
+                        Some((index, StartBoxes::of(tag.as_compound()?)))
+                    })
+                    .collect()
+            })
+            .unwrap_or_default();
+        Self { references, starts }
+    }
+
+    fn start(&self, index: usize) -> Option<&StartBoxes> {
+        self.starts
+            .iter()
+            .find(|(candidate, _)| *candidate == index)
+            .map(|(_, start)| start)
     }
 }
 
 pub(crate) fn assignment_at<'a>(
-    chunk_at: impl Fn(ChunkPos) -> Option<&'a ChunkColumn>,
+    structures_at: impl Fn(ChunkPos) -> Option<&'a SpawnStructures>,
     pos: BlockPos,
 ) -> Assignment {
     let mut found: Assignment = [None; CATEGORIES];
-    let Some(references) = chunk_at(pos.chunk())
-        .and_then(|chunk| chunk.extra.get_compound(STRUCTURES))
-        .and_then(|structures| structures.get_compound(REFERENCES))
-    else {
+    let Some(here) = structures_at(pos.chunk()) else {
         return found;
     };
-    let mut candidates: Vec<(usize, &[i64], &str)> = references
-        .iter()
-        .filter_map(|(name, tag)| {
-            let index = rspigot_data::spawns::structure_index(name)?;
-            match tag {
-                Tag::LongArray(chunks) => Some((index, chunks.as_slice(), name)),
-                _ => None,
-            }
-        })
-        .collect();
-    candidates.sort_unstable_by_key(|(index, ..)| *index);
-    for (index, chunks, name) in candidates {
-        let Some(spawns) = rspigot_data::spawns::structure(index) else {
+    for (index, chunks) in &here.references {
+        let Some(spawns) = rspigot_data::spawns::structure(*index) else {
             continue;
         };
-        for packed in chunks {
-            let Some(start) = chunk_at(unpack(*packed))
-                .and_then(|chunk| chunk.extra.get_compound(STRUCTURES))
-                .and_then(|structures| structures.get_compound(STARTS))
-                .and_then(|starts| starts.get_compound(name))
-            else {
+        for chunk in chunks {
+            let Some(start) = structures_at(*chunk).and_then(|there| there.start(*index)) else {
                 continue;
             };
             for (category, entry) in found.iter_mut().enumerate() {
                 if entry.is_none()
                     && let Some(rule) = override_of(spawns, category)
-                    && contains(start, rule.bounding_box, pos)
+                    && start.contains(rule.bounding_box, pos)
                 {
-                    *entry = Some(index as u8);
+                    *entry = Some(*index as u8);
                 }
             }
         }
@@ -167,14 +215,14 @@ pub(crate) fn replacement(
 }
 
 pub(crate) fn spawns_at<'a>(
-    chunk_at: impl Fn(ChunkPos) -> Option<&'a ChunkColumn>,
+    structures_at: impl Fn(ChunkPos) -> Option<&'a SpawnStructures>,
     biome_id: u16,
     pos: BlockPos,
 ) -> &'static BiomeSpawns {
     replacement(
         rspigot_data::spawns::biome(biome_id),
         biome_id,
-        assignment_at(chunk_at, pos),
+        assignment_at(structures_at, pos),
     )
 }
 
@@ -216,15 +264,22 @@ mod tests {
         )
     }
 
-    fn world(name: &str, origin: ChunkPos, boxes: &[[i32; 6]]) -> HashMap<ChunkPos, ChunkColumn> {
+    fn world(
+        name: &str,
+        origin: ChunkPos,
+        boxes: &[[i32; 6]],
+    ) -> HashMap<ChunkPos, SpawnStructures> {
         let mut origin_tag = start(name, origin, boxes);
         for (key, value) in reference(name, origin).iter() {
             origin_tag.insert(key, value.clone());
         }
         let mut map = HashMap::new();
-        map.insert(origin, chunk(origin, origin_tag));
+        map.insert(origin, SpawnStructures::of(&chunk(origin, origin_tag)));
         let neighbour = ChunkPos::new(origin.x + 1, origin.z);
-        map.insert(neighbour, chunk(neighbour, reference(name, origin)));
+        map.insert(
+            neighbour,
+            SpawnStructures::of(&chunk(neighbour, reference(name, origin))),
+        );
         map
     }
 

@@ -134,11 +134,9 @@ impl<L: ClientLink> Server<L> {
             let mut group: Vec<(EntityId, ItemStack)> = self
                 .entities
                 .store
-                .iter()
+                .touching(*area)
                 .filter(|entity| {
-                    matches!(entity.state, EntityState::Item(_))
-                        && entity.base.removal.is_none()
-                        && entity.base.bounding_box().intersects(area)
+                    matches!(entity.state, EntityState::Item(_)) && entity.base.removal.is_none()
                 })
                 .filter_map(|entity| {
                     item::stack(&entity.base).map(|stack| (entity.base.id, stack.clone()))
