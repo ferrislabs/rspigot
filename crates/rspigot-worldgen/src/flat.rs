@@ -14,7 +14,7 @@ use crate::buffer::{LAYER, SECTION, block_container};
 use crate::classify::Classifier;
 use crate::dimension::DimensionKind;
 use crate::flat_structures::FlatStructures;
-use crate::noise::NoiseGenerator;
+use crate::noise::LazyNoise;
 use crate::overworld::region::FlatTerrain;
 use crate::resources::biome_id;
 
@@ -101,7 +101,7 @@ pub struct FlatGenerator {
     layers: Vec<(BlockStateId, u32)>,
     biome: BiomeId,
     classifier: Classifier,
-    other_dimensions: Box<NoiseGenerator>,
+    other_dimensions: LazyNoise,
     every_dimension: bool,
     seed: i64,
     overrides: Option<Vec<String>>,
@@ -174,7 +174,7 @@ impl FlatGenerator {
             layers,
             biome,
             classifier: Classifier::new(),
-            other_dimensions: Box::new(NoiseGenerator::new(seed)),
+            other_dimensions: LazyNoise::new(seed),
             every_dimension: false,
             seed,
             overrides: None,
@@ -269,7 +269,7 @@ impl ChunkGenerator for FlatGenerator {
                 self.biome,
             )
         } else {
-            self.other_dimensions.generate(dimension, pos)
+            self.other_dimensions.get().generate(dimension, pos)
         }
     }
 
@@ -277,25 +277,44 @@ impl ChunkGenerator for FlatGenerator {
         if self.every_dimension || DimensionKind::of(dimension) == DimensionKind::Overworld {
             self.flat_spawn(dimension)
         } else {
-            self.other_dimensions.spawn_point(dimension)
+            self.other_dimensions.get().spawn_point(dimension)
         }
     }
 
     fn structure_entities(&self, dimension: &Dimension, pos: ChunkPos) -> Vec<Compound> {
-        if self.structures
-            && (self.every_dimension || DimensionKind::of(dimension) == DimensionKind::Overworld)
-        {
+        if self.every_dimension || DimensionKind::of(dimension) == DimensionKind::Overworld {
+            if !self.structures {
+                return Vec::new();
+            }
             return self
                 .structures_world()
                 .entities(&self.terrain(dimension), dimension, pos);
         }
-        self.other_dimensions.structure_entities(dimension, pos)
+        self.other_dimensions
+            .get()
+            .structure_entities(dimension, pos)
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_flat_world_builds_its_other_dimensions_only_when_one_is_asked_for() {
+        let generator = FlatGenerator::vanilla(1);
+        let overworld = Dimension::overworld();
+        generator.generate(&overworld, ChunkPos::new(0, 0));
+        generator.spawn_point(&overworld);
+        assert!(
+            generator
+                .structure_entities(&overworld, ChunkPos::new(3, 3))
+                .is_empty()
+        );
+        assert!(!generator.other_dimensions.is_built());
+        generator.spawn_point(&Dimension::nether());
+        assert!(generator.other_dimensions.is_built());
+    }
     use rspigot_domain::BlockPos;
     use rspigot_domain::chunk::HeightmapKind;
 

@@ -82,7 +82,7 @@ fn supported(def: &StructureDef, pools: &Pools) -> bool {
         return false;
     };
     pool.elements.iter().all(|(element, _)| match element {
-        Element::Single { blueprint, .. } => blueprint.is_some(),
+        Element::Single { .. } => element.has_blueprint(),
         _ => true,
     })
 }

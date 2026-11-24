@@ -57,12 +57,11 @@ fn place_element(
             }
         }
         Element::Single {
-            blueprint,
             processors,
             projection,
             ..
         } => {
-            let Some(blueprint) = blueprint else {
+            let Some(blueprint) = element.blueprint() else {
                 return;
             };
             let mut steps = vec![Step::IgnoreStructureBlock, Step::JigsawReplacement];
@@ -79,7 +78,7 @@ fn place_element(
                     at: (rx + piece.pos.0, ry + piece.pos.1, rz + piece.pos.2),
                     reference,
                     state: block.state,
-                    nbt: block.nbt.as_ref().map(Cow::Borrowed),
+                    nbt: block.nbt.as_deref().map(Cow::Borrowed),
                 };
                 if !steps.iter().all(|step| step.process(run, &mut subject)) {
                     dropped = true;

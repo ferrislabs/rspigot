@@ -3,13 +3,15 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::sync::OnceLock;
 
+use serde_json::value::RawValue;
 use serde_json::{Map, Value, json};
 
 use super::blueprint::Blueprint;
 use super::data::short;
-use super::pack::{self, LoadIssue, Pack, TagFile, short_key};
+use super::pack::{self, LoadIssue, Pack, PackError, TagFile, short_key};
 use super::pool::Pools;
 use super::processors::{Step, compile_list};
+use super::template;
 
 const STRUCTURES: &str = include_str!("../../data/structures.json");
 const TEMPLATES: &str = include_str!("../../data/jigsaw_templates.json");
@@ -22,9 +24,86 @@ pub(crate) struct Library {
     structures: Map<String, Value>,
     pools: Map<String, Value>,
     lists: Map<String, Value>,
-    blueprints: HashMap<String, Blueprint>,
+    blueprints: HashMap<String, Lazy>,
     compiled_pools: OnceLock<Pools>,
     compiled_lists: OnceLock<HashMap<String, Vec<Step>>>,
+}
+
+#[derive(Debug)]
+enum Source {
+    Embedded(&'static RawValue),
+    File(PathBuf),
+}
+
+#[derive(Debug)]
+struct Lazy {
+    source: Source,
+    fallback: Option<&'static RawValue>,
+    parsed: OnceLock<Option<Blueprint>>,
+}
+
+impl Lazy {
+    fn new(source: Source) -> Self {
+        Self {
+            source,
+            fallback: None,
+            parsed: OnceLock::new(),
+        }
+    }
+
+    fn overriding(path: PathBuf, previous: Option<&Self>) -> Self {
+        let fallback = previous.and_then(|entry| match entry.source {
+            Source::Embedded(raw) => Some(raw),
+            Source::File(_) => entry.fallback,
+        });
+        Self {
+            fallback,
+            ..Self::new(Source::File(path))
+        }
+    }
+
+    fn get(&self, name: &str) -> Option<&Blueprint> {
+        self.parsed.get_or_init(|| self.load(name)).as_ref()
+    }
+
+    fn load(&self, name: &str) -> Option<Blueprint> {
+        let loaded = match &self.source {
+            Source::Embedded(raw) => serde_json::from_str::<Value>(raw.get())
+                .map_err(PackError::from)
+                .and_then(|value| Self::parse(&value)),
+            Source::File(path) => fs::read(path)
+                .map_err(PackError::from)
+                .and_then(|bytes| template::decode(&bytes))
+                .and_then(|value| Self::parse(&value)),
+        };
+        match loaded {
+            Ok(blueprint) => Some(blueprint),
+            Err(error) => {
+                match &self.source {
+                    Source::Embedded(_) => {
+                        tracing::warn!(template = name, %error, "template is malformed");
+                    }
+                    Source::File(path) => {
+                        tracing::warn!(
+                            template = name,
+                            path = %path.display(),
+                            %error,
+                            "template is malformed"
+                        );
+                    }
+                }
+                self.fallback.and_then(|raw| {
+                    serde_json::from_str::<Value>(raw.get())
+                        .ok()
+                        .and_then(|value| Blueprint::parse(&value))
+                })
+            }
+        }
+    }
+
+    fn parse(value: &Value) -> Result<Blueprint, PackError> {
+        Blueprint::parse(value).ok_or_else(|| PackError::Invalid("not a valid template".to_owned()))
+    }
 }
 
 static INSTALLED: OnceLock<&'static Library> = OnceLock::new();
@@ -127,13 +206,11 @@ fn templates_of(element: &Value, out: &mut Vec<String>) {
 impl Library {
     fn base() -> Self {
         let mut data = serde_json::from_str::<Value>(STRUCTURES).unwrap_or(Value::Null);
-        let blueprints = match serde_json::from_str::<Value>(TEMPLATES) {
-            Ok(Value::Object(entries)) => entries
-                .iter()
-                .filter_map(|(name, value)| Some((name.clone(), Blueprint::parse(value)?)))
-                .collect(),
-            _ => HashMap::new(),
-        };
+        let blueprints = serde_json::from_str::<HashMap<String, &'static RawValue>>(TEMPLATES)
+            .unwrap_or_default()
+            .into_iter()
+            .map(|(name, raw)| (name, Lazy::new(Source::Embedded(raw))))
+            .collect();
         Self {
             sets: section(&mut data, "sets"),
             structures: section(&mut data, "structures"),
@@ -251,16 +328,9 @@ impl Library {
         for (name, value) in pack.lists {
             self.lists.insert(name, value);
         }
-        for (name, value) in &pack.templates {
-            match Blueprint::parse(value) {
-                Some(blueprint) => {
-                    self.blueprints.insert(name.clone(), blueprint);
-                }
-                None => issues.push(LoadIssue::new(
-                    root,
-                    format!("template {name} is malformed"),
-                )),
-            }
+        for (name, path) in pack.templates {
+            let entry = Lazy::overriding(path, self.blueprints.get(&name));
+            self.blueprints.insert(name, entry);
         }
         for name in pool_names {
             let mut wanted = Vec::new();
@@ -294,7 +364,19 @@ impl Library {
     }
 
     pub(crate) fn blueprint(&self, name: &str) -> Option<&Blueprint> {
-        self.blueprints.get(name)
+        self.blueprints.get(name)?.get(name)
+    }
+
+    #[cfg(test)]
+    pub(crate) fn parsed(&self) -> usize {
+        self.blueprints
+            .values()
+            .filter(|entry| entry.parsed.get().is_some())
+            .count()
+    }
+
+    pub(crate) fn has_blueprint(&self, name: &str) -> bool {
+        self.blueprints.contains_key(name)
     }
 
     pub(crate) fn blueprint_names(&self) -> Vec<String> {

@@ -1,4 +1,5 @@
 use std::borrow::Cow;
+use std::time::Instant;
 
 use crate::book;
 use bytes::Bytes;
@@ -1188,8 +1189,8 @@ impl Encoder {
         cache: &ChunkPacketCache,
         compression: Option<Compression>,
     ) -> Result<(), ConnectionError> {
-        let key = (dimension.clone(), chunk.pos(), chunk.revision());
-        let frame = cache.get_or_build(key, || {
+        let key = (dimension.clone(), chunk.pos());
+        let frame = cache.get_or_build(key, chunk.revision(), Instant::now(), || {
             let mut body = Vec::with_capacity(32 * 1024);
             chunk_packet(chunk, &mut body);
             let mut frame = Vec::with_capacity(body.len() / 2 + 8);
@@ -2797,6 +2798,7 @@ mod tests {
     use rspigot_protocol::ids::play::clientbound as id;
 
     use super::*;
+    use std::time::Duration;
 
     #[test]
     fn custom_dimension_types_index_after_the_vanilla_entries() {
@@ -2882,7 +2884,13 @@ mod tests {
     fn encode(event: ClientEvent) -> Vec<(i32, Vec<u8>)> {
         let mut sink = Captured::default();
         Encoder::new(false)
-            .encode(&event, &mut sink, &ChunkPacketCache::new(1024), None, 0)
+            .encode(
+                &event,
+                &mut sink,
+                &ChunkPacketCache::new(1024, Duration::from_secs(10)),
+                None,
+                0,
+            )
             .unwrap();
         sink.0
     }
@@ -2909,7 +2917,13 @@ mod tests {
         let mut encoder = Encoder::new(false);
         for event in events {
             encoder
-                .encode(&event, &mut sink, &ChunkPacketCache::new(1024), None, 0)
+                .encode(
+                    &event,
+                    &mut sink,
+                    &ChunkPacketCache::new(1024, Duration::from_secs(10)),
+                    None,
+                    0,
+                )
                 .unwrap();
         }
         sink.0
