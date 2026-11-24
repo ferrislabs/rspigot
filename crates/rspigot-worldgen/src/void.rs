@@ -5,13 +5,13 @@ use rspigot_domain::{ChunkPos, Vec3};
 use rspigot_nbt::Compound;
 
 use crate::dimension::DimensionKind;
-use crate::noise::NoiseGenerator;
+use crate::noise::LazyNoise;
 use crate::resources::{Biome, BlockKind, Resources};
 
 #[derive(Debug, Clone)]
 pub struct VoidGenerator {
     resources: Box<Resources>,
-    other_dimensions: Box<NoiseGenerator>,
+    other_dimensions: LazyNoise,
     every_dimension: bool,
 }
 
@@ -19,7 +19,7 @@ impl VoidGenerator {
     pub fn new(seed: i64) -> Self {
         Self {
             resources: Box::new(Resources::resolve()),
-            other_dimensions: Box::new(NoiseGenerator::new(seed)),
+            other_dimensions: LazyNoise::new(seed),
             every_dimension: false,
         }
     }
@@ -28,6 +28,10 @@ impl VoidGenerator {
     pub fn in_every_dimension(mut self) -> Self {
         self.every_dimension = true;
         self
+    }
+
+    fn is_void(&self, dimension: &Dimension) -> bool {
+        self.every_dimension || DimensionKind::of(dimension) == DimensionKind::Overworld
     }
 
     fn platform_y(dimension: &Dimension) -> i32 {
@@ -63,22 +67,49 @@ impl VoidGenerator {
 
 impl ChunkGenerator for VoidGenerator {
     fn generate(&self, dimension: &Dimension, pos: ChunkPos) -> ChunkColumn {
-        if self.every_dimension || DimensionKind::of(dimension) == DimensionKind::Overworld {
+        if self.is_void(dimension) {
             self.void_column(dimension, pos)
         } else {
-            self.other_dimensions.generate(dimension, pos)
+            self.other_dimensions.get().generate(dimension, pos)
         }
     }
 
     fn spawn_point(&self, dimension: &Dimension) -> Vec3 {
-        if self.every_dimension || DimensionKind::of(dimension) == DimensionKind::Overworld {
+        if self.is_void(dimension) {
             Vec3::new(0.5, f64::from(Self::platform_y(dimension) + 1), 0.5)
         } else {
-            self.other_dimensions.spawn_point(dimension)
+            self.other_dimensions.get().spawn_point(dimension)
         }
     }
 
     fn structure_entities(&self, dimension: &Dimension, pos: ChunkPos) -> Vec<Compound> {
-        self.other_dimensions.structure_entities(dimension, pos)
+        if self.is_void(dimension) {
+            Vec::new()
+        } else {
+            self.other_dimensions
+                .get()
+                .structure_entities(dimension, pos)
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn a_void_world_builds_its_other_dimensions_only_when_one_is_asked_for() {
+        let generator = VoidGenerator::new(1);
+        let overworld = Dimension::overworld();
+        generator.generate(&overworld, ChunkPos::new(0, 0));
+        generator.spawn_point(&overworld);
+        assert!(
+            generator
+                .structure_entities(&overworld, ChunkPos::new(3, 3))
+                .is_empty()
+        );
+        assert!(!generator.other_dimensions.is_built());
+        generator.spawn_point(&Dimension::nether());
+        assert!(generator.other_dimensions.is_built());
     }
 }

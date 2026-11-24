@@ -1,3 +1,5 @@
+use std::sync::OnceLock;
+
 use rspigot_core::ports::{ChunkGenerator, PlaceFailure, PlaceRequest, PlacedBlock};
 use rspigot_domain::chunk::ChunkColumn;
 use rspigot_domain::world::Dimension;
@@ -43,6 +45,31 @@ struct NoiseState {
 #[derive(Debug, Clone)]
 pub struct NoiseGenerator {
     state: Box<NoiseState>,
+}
+
+#[derive(Debug, Clone)]
+pub(crate) struct LazyNoise {
+    seed: i64,
+    generator: OnceLock<Box<NoiseGenerator>>,
+}
+
+impl LazyNoise {
+    pub(crate) fn new(seed: i64) -> Self {
+        Self {
+            seed,
+            generator: OnceLock::new(),
+        }
+    }
+
+    pub(crate) fn get(&self) -> &NoiseGenerator {
+        self.generator
+            .get_or_init(|| Box::new(NoiseGenerator::new(self.seed)))
+    }
+
+    #[cfg(test)]
+    pub(crate) fn is_built(&self) -> bool {
+        self.generator.get().is_some()
+    }
 }
 
 impl NoiseGenerator {
