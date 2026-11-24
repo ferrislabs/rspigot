@@ -6,7 +6,7 @@ use rspigot_domain::{BlockStateId, ChunkPos, Vec3};
 use rspigot_nbt::Compound;
 
 use crate::dimension::DimensionKind;
-use crate::noise::NoiseGenerator;
+use crate::noise::LazyNoise;
 use crate::resources::{Biome, Resources};
 
 const BARRIER_Y: i32 = 60;
@@ -16,7 +16,7 @@ const SPAWN_HEIGHT: f64 = 64.0;
 #[derive(Debug, Clone)]
 pub struct DebugGenerator {
     resources: Box<Resources>,
-    other_dimensions: Box<NoiseGenerator>,
+    other_dimensions: LazyNoise,
     width: i32,
     height: i32,
 }
@@ -32,7 +32,7 @@ impl DebugGenerator {
         let (width, height) = grid_size(STATE_COUNT);
         Self {
             resources: Box::new(Resources::resolve()),
-            other_dimensions: Box::new(NoiseGenerator::new(seed)),
+            other_dimensions: LazyNoise::new(seed),
             width,
             height,
         }
@@ -104,7 +104,7 @@ impl ChunkGenerator for DebugGenerator {
         if DimensionKind::of(dimension) == DimensionKind::Overworld {
             self.column(dimension, pos)
         } else {
-            self.other_dimensions.generate(dimension, pos)
+            self.other_dimensions.get().generate(dimension, pos)
         }
     }
 
@@ -112,18 +112,39 @@ impl ChunkGenerator for DebugGenerator {
         if DimensionKind::of(dimension) == DimensionKind::Overworld {
             Vec3::new(0.5, SPAWN_HEIGHT, 0.5)
         } else {
-            self.other_dimensions.spawn_point(dimension)
+            self.other_dimensions.get().spawn_point(dimension)
         }
     }
 
     fn structure_entities(&self, dimension: &Dimension, pos: ChunkPos) -> Vec<Compound> {
-        self.other_dimensions.structure_entities(dimension, pos)
+        if DimensionKind::of(dimension) == DimensionKind::Overworld {
+            return Vec::new();
+        }
+        self.other_dimensions
+            .get()
+            .structure_entities(dimension, pos)
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_debug_world_builds_its_other_dimensions_only_when_one_is_asked_for() {
+        let generator = DebugGenerator::new(1);
+        let overworld = Dimension::overworld();
+        generator.generate(&overworld, ChunkPos::new(0, 0));
+        generator.spawn_point(&overworld);
+        assert!(
+            generator
+                .structure_entities(&overworld, ChunkPos::new(3, 3))
+                .is_empty()
+        );
+        assert!(!generator.other_dimensions.is_built());
+        generator.spawn_point(&Dimension::nether());
+        assert!(generator.other_dimensions.is_built());
+    }
 
     #[test]
     fn the_grid_is_the_ceiling_of_the_square_root() {

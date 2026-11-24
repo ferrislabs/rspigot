@@ -194,7 +194,7 @@ impl Tpl {
             .iter()
             .filter(|block| block.state.kind() == Some(Kind::StructureBlock))
             .filter_map(|block| {
-                let nbt = block.nbt.as_ref()?;
+                let nbt = block.nbt.as_deref()?;
                 if nbt.get("mode").and_then(Value::as_str) != Some("DATA") {
                     return None;
                 }
@@ -230,7 +230,7 @@ impl Tpl {
                 at: self.world(block.pos),
                 reference: self.pos,
                 state: block.state,
-                nbt: block.nbt.as_ref().map(std::borrow::Cow::Borrowed),
+                nbt: block.nbt.as_deref().map(std::borrow::Cow::Borrowed),
             };
             if !steps.iter().all(|step| step.process(run, &mut subject)) {
                 continue;

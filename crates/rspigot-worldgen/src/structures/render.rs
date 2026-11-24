@@ -57,7 +57,7 @@ pub(crate) fn blueprint_blocks(
             Some(BlockKind::Jigsaw) => {
                 let name = block
                     .nbt
-                    .as_ref()
+                    .as_deref()
                     .and_then(|nbt| nbt.get("final_state"))
                     .and_then(Value::as_str)
                     .unwrap_or("minecraft:air");
@@ -112,18 +112,18 @@ fn element_blocks(
                 element_blocks(inner, origin, rotation, out);
             }
         }
-        Element::Single {
-            blueprint: Some(blueprint),
-            ..
-        } => blueprint_blocks(
-            blueprint,
-            origin,
-            rotation,
-            TemplateMirror::None,
-            || true,
-            out,
-        ),
-        Element::Single { .. } => {}
+        Element::Single { .. } => {
+            if let Some(blueprint) = element.blueprint() {
+                blueprint_blocks(
+                    blueprint,
+                    origin,
+                    rotation,
+                    TemplateMirror::None,
+                    || true,
+                    out,
+                );
+            }
+        }
     }
 }
 

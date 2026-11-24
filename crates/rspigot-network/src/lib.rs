@@ -52,6 +52,7 @@ pub struct NetworkConfig {
     pub resource_pack: Option<rspigot_core::client_extras::ResourcePackOffer>,
     pub server_links: Vec<rspigot_core::client_extras::ServerLink>,
     pub chunk_cache_bytes: u64,
+    pub chunk_cache_idle: Duration,
     pub proxy: ProxyForwarding,
 }
 
@@ -82,7 +83,8 @@ impl Default for NetworkConfig {
             rate_limit: 0,
             resource_pack: None,
             server_links: Vec::new(),
-            chunk_cache_bytes: 256 * 1024 * 1024,
+            chunk_cache_bytes: 64 * 1024 * 1024,
+            chunk_cache_idle: Duration::from_secs(10),
             proxy: ProxyForwarding::Off,
         }
     }

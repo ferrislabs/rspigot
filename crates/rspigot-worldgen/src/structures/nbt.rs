@@ -261,10 +261,10 @@ fn collect_entities(
                 collect_entities(inner, piece, area, out);
             }
         }
-        Element::Single {
-            blueprint: Some(blueprint),
-            ..
-        } => {
+        Element::Single { .. } => {
+            let Some(blueprint) = element.blueprint() else {
+                return;
+            };
             for entity in &blueprint.entities {
                 let (Some(exact), Some(block), Some(nbt)) = (
                     entity.get("pos").and_then(triple),

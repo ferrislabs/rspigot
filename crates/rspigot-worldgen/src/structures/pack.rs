@@ -7,7 +7,6 @@ use thiserror::Error;
 
 use super::data::short;
 use super::placement::Placement;
-use super::template;
 
 #[derive(Debug, Error)]
 pub(crate) enum PackError {
@@ -54,7 +53,7 @@ pub(crate) struct Pack {
     pub(crate) sets: Vec<(String, Value)>,
     pub(crate) pools: Vec<(String, Value)>,
     pub(crate) lists: Vec<(String, Value)>,
-    pub(crate) templates: Vec<(String, Value)>,
+    pub(crate) templates: Vec<(String, PathBuf)>,
     pub(crate) biome_tags: Vec<(String, TagFile)>,
 }
 
@@ -267,15 +266,8 @@ pub(crate) fn read(root: &Path, issues: &mut Vec<LoadIssue>) -> Pack {
         let mut found = Vec::new();
         if template_root.is_dir() && files(&template_root, "nbt", &mut found).is_ok() {
             for path in found {
-                let decoded = fs::read(&path)
-                    .map_err(PackError::from)
-                    .and_then(|bytes| template::decode(&bytes));
-                match decoded {
-                    Ok(value) => pack
-                        .templates
-                        .push((ident(&namespace, &template_root, &path), value)),
-                    Err(error) => issues.push(LoadIssue::new(&path, error)),
-                }
+                pack.templates
+                    .push((ident(&namespace, &template_root, &path), path));
             }
         }
     }

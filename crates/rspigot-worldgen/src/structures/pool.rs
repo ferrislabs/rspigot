@@ -27,7 +27,7 @@ pub(crate) enum Element {
     Empty,
     Single {
         template: String,
-        blueprint: Option<&'static Blueprint>,
+        library: TemplateLibrary,
         processors: Processors,
         projection: Projection,
         legacy: bool,
@@ -65,7 +65,34 @@ fn projection(value: &Value) -> Projection {
     }
 }
 
+#[derive(Clone, Copy)]
+pub(crate) struct TemplateLibrary(&'static Library);
+
+impl std::fmt::Debug for TemplateLibrary {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        formatter.write_str("TemplateLibrary")
+    }
+}
+
 impl Element {
+    pub(crate) fn blueprint(&self) -> Option<&'static Blueprint> {
+        match self {
+            Self::Single {
+                template, library, ..
+            } => library.0.blueprint(template),
+            _ => None,
+        }
+    }
+
+    pub(crate) fn has_blueprint(&self) -> bool {
+        match self {
+            Self::Single {
+                template, library, ..
+            } => library.0.has_blueprint(template),
+            _ => false,
+        }
+    }
+
     fn parse(value: &Value, library: &'static Library) -> Self {
         match short(
             value
@@ -85,7 +112,7 @@ impl Element {
                     None => Processors::Named("minecraft:empty".to_owned()),
                 };
                 Self::Single {
-                    blueprint: library.blueprint(&template),
+                    library: TemplateLibrary(library),
                     template,
                     processors,
                     projection: projection(value),
@@ -137,7 +164,7 @@ impl Element {
 
     pub(crate) fn size(&self, rotation: Rotation) -> Pos {
         match self {
-            Self::Single { blueprint, .. } => blueprint.map_or((0, 0, 0), |b| b.size(rotation)),
+            Self::Single { .. } => self.blueprint().map_or((0, 0, 0), |b| b.size(rotation)),
             Self::List { elements, .. } => elements.iter().fold((0, 0, 0), |acc, element| {
                 let size = element.size(rotation);
                 (acc.0.max(size.0), acc.1.max(size.1), acc.2.max(size.2))
@@ -148,7 +175,7 @@ impl Element {
 
     pub(crate) fn bounds(&self, pos: Pos, rotation: Rotation) -> Bbox {
         match self {
-            Self::Single { blueprint, .. } => match blueprint {
+            Self::Single { .. } => match self.blueprint() {
                 Some(blueprint) => blueprint.bounds(pos, rotation),
                 None => Bbox::from_corners(pos, pos),
             },
@@ -173,9 +200,9 @@ impl Element {
 
     pub(crate) fn jigsaws(&self, pos: Pos, rotation: Rotation) -> Vec<Jigsaw> {
         match self {
-            Self::Single { blueprint, .. } => {
-                blueprint.map_or_else(Vec::new, |blueprint| blueprint.jigsaws(pos, rotation))
-            }
+            Self::Single { .. } => self
+                .blueprint()
+                .map_or_else(Vec::new, |blueprint| blueprint.jigsaws(pos, rotation)),
             Self::Feature { .. } => vec![Jigsaw {
                 pos,
                 front: Dir::Down,
