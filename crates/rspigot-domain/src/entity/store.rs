@@ -3,8 +3,10 @@ use std::collections::BTreeMap;
 use rustc_hash::FxHashMap;
 use uuid::Uuid;
 
-use super::Entity;
+use super::{Aabb, Entity};
 use crate::{ChunkPos, EntityId};
+
+const INDEX_MARGIN: f64 = 8.0;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, thiserror::Error)]
 #[error("an entity with uuid {0} already exists")]
@@ -79,6 +81,23 @@ impl Entities {
         self.by_chunk.get(&chunk).map_or(&[], Vec::as_slice)
     }
 
+    pub fn touching(&self, area: Aabb) -> impl Iterator<Item = &Entity> {
+        let wide = area.inflate(INDEX_MARGIN);
+        let (x0, x1) = (
+            (wide.min_x.floor() as i32) >> 4,
+            (wide.max_x.floor() as i32) >> 4,
+        );
+        let (z0, z1) = (
+            (wide.min_z.floor() as i32) >> 4,
+            (wide.max_z.floor() as i32) >> 4,
+        );
+        (x0..=x1)
+            .flat_map(move |x| (z0..=z1).map(move |z| ChunkPos::new(x, z)))
+            .flat_map(|chunk| self.in_chunk(chunk))
+            .filter_map(|id| self.get(*id))
+            .filter(move |entity| entity.base.bounding_box().intersects(&area))
+    }
+
     pub fn chunks(&self) -> impl Iterator<Item = ChunkPos> + '_ {
         self.by_chunk.keys().copied()
     }
@@ -136,5 +155,22 @@ mod tests {
         assert!(store.remove(EntityId(1)).is_some());
         assert!(store.by_uuid(Uuid::from_u128(1)).is_none());
         assert!(store.is_empty());
+    }
+    #[test]
+    fn touching_finds_the_entities_of_an_area_across_chunk_borders_only() {
+        let mut store = Entities::default();
+        for (id, x) in [(1, 15.9), (2, 16.1), (3, 40.0), (4, -0.2)] {
+            store.insert(marker(id, id as u128, x)).ok();
+        }
+        let area = Aabb::new(15.5, -1.0, -1.0, 16.5, 1.0, 1.0);
+        let mut found: Vec<EntityId> = store.touching(area).map(|e| e.base.id).collect();
+        found.sort_unstable();
+        assert_eq!(found, vec![EntityId(1), EntityId(2)]);
+        let everywhere: Vec<EntityId> = store
+            .iter()
+            .filter(|e| e.base.bounding_box().intersects(&area))
+            .map(|e| e.base.id)
+            .collect();
+        assert_eq!(found, everywhere);
     }
 }

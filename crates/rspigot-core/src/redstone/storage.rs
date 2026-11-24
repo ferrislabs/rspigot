@@ -426,11 +426,9 @@ impl<L: ClientLink> Server<L> {
         let mut carts: Vec<EntityId> = self
             .entities
             .store
-            .iter()
+            .touching(area)
             .filter(|entity| {
-                entity.base.removal.is_none()
-                    && crate::vehicles::cargo_of(entity).is_some()
-                    && entity.base.bounding_box().intersects(&area)
+                entity.base.removal.is_none() && crate::vehicles::cargo_of(entity).is_some()
             })
             .map(|entity| entity.base.id)
             .collect();
