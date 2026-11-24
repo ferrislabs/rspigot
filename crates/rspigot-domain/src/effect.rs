@@ -221,21 +221,8 @@ pub fn attribute_template(effect: &str) -> Option<AttributeTemplate> {
         .copied()
 }
 
-pub const PLAYER_ATTRIBUTE_BASES: [(&str, f64); 13] = [
-    ("minecraft:movement_speed", 0.100_000_001_490_116_12),
-    ("minecraft:attack_speed", 4.0),
-    ("minecraft:attack_damage", 1.0),
-    ("minecraft:safe_fall_distance", 3.0),
-    ("minecraft:fall_damage_multiplier", 1.0),
-    ("minecraft:waypoint_transmit_range", 6.0e7),
-    ("minecraft:max_health", 20.0),
-    ("minecraft:max_absorption", 0.0),
-    ("minecraft:luck", 0.0),
-    ("minecraft:block_break_speed", 1.0),
-    ("minecraft:submerged_mining_speed", 0.2),
-    ("minecraft:sneaking_speed", 0.3),
-    ("minecraft:burning_time", 1.0),
-];
+pub const PLAYER_ATTRIBUTE_BASES: &[(&str, f64)] =
+    <rspigot_entities::Player as rspigot_entities::EntityType>::DEFAULT_ATTRIBUTES;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct AttributeModifier {
@@ -297,6 +284,17 @@ mod tests {
 
     fn speed() -> EffectId {
         EffectId::from_name("speed").unwrap()
+    }
+
+    #[test]
+    fn player_bases_follow_vanilla_defaults() {
+        assert_eq!(player_base("minecraft:scale"), 1.0);
+        assert_eq!(player_base("minecraft:step_height"), 0.6);
+        assert_eq!(player_base("minecraft:gravity"), 0.08);
+        assert_eq!(player_base("minecraft:block_interaction_range"), 4.5);
+        assert_eq!(player_base("minecraft:entity_interaction_range"), 3.0);
+        assert_eq!(player_base("minecraft:movement_speed"), 0.100_000_001_490_116_12);
+        assert_eq!(player_base("minecraft:max_health"), 20.0);
     }
 
     #[test]
