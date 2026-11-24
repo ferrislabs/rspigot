@@ -114,7 +114,11 @@ impl<L: ClientLink> Server<L> {
 
     pub(crate) fn tick_furnaces(&mut self) {
         let mut found: Vec<(BlockPos, CookingKind)> = Vec::new();
-        for chunk_pos in self.world.chunks.loaded_positions() {
+        for chunk_pos in self
+            .world
+            .chunks
+            .chunks_with_block_entities(|kind| cooking_of_entity(kind).is_some())
+        {
             let Some(chunk) = self.world.chunks.get(chunk_pos) else {
                 continue;
             };
