@@ -77,7 +77,7 @@ pub async fn serve<V: SessionVerifier>(
         tracing::warn!("The server will make no attempt to authenticate usernames. Beware.");
     }
     let shared = Arc::new(Shared {
-        chunks: ChunkPacketCache::new(config.chunk_cache_bytes),
+        chunks: ChunkPacketCache::new(config.chunk_cache_bytes, config.chunk_cache_idle),
         config,
         verifier,
         status,
