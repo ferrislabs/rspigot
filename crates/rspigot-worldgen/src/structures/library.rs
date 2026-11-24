@@ -375,6 +375,10 @@ impl Library {
             .count()
     }
 
+    pub(crate) fn has_blueprint(&self, name: &str) -> bool {
+        self.blueprints.contains_key(name)
+    }
+
     pub(crate) fn blueprint_names(&self) -> Vec<String> {
         let mut names: Vec<String> = self.blueprints.keys().cloned().collect();
         names.sort_unstable();

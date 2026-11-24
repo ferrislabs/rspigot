@@ -112,18 +112,18 @@ fn element_blocks(
                 element_blocks(inner, origin, rotation, out);
             }
         }
-        Element::Single {
-            blueprint: Some(blueprint),
-            ..
-        } => blueprint_blocks(
-            blueprint,
-            origin,
-            rotation,
-            TemplateMirror::None,
-            || true,
-            out,
-        ),
-        Element::Single { .. } => {}
+        Element::Single { .. } => {
+            if let Some(blueprint) = element.blueprint() {
+                blueprint_blocks(
+                    blueprint,
+                    origin,
+                    rotation,
+                    TemplateMirror::None,
+                    || true,
+                    out,
+                );
+            }
+        }
     }
 }
 

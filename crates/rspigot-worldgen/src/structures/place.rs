@@ -57,12 +57,11 @@ fn place_element(
             }
         }
         Element::Single {
-            blueprint,
             processors,
             projection,
             ..
         } => {
-            let Some(blueprint) = blueprint else {
+            let Some(blueprint) = element.blueprint() else {
                 return;
             };
             let mut steps = vec![Step::IgnoreStructureBlock, Step::JigsawReplacement];

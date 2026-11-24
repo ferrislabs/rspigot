@@ -431,3 +431,17 @@ fn a_nether_fossil_without_its_height_is_reported() {
         "{issues:?}"
     );
 }
+
+#[test]
+fn loading_the_pools_parses_no_template_until_an_element_is_used() {
+    let library: &'static Library = Box::leak(Box::new(Library::build(&[]).0));
+    let pools = library.pools();
+    assert_eq!(library.parsed(), 0);
+    let element = pools
+        .get("minecraft:village/plains/town_centers")
+        .and_then(|pool| pool.elements.first())
+        .map(|(element, _)| element)
+        .expect("a vanilla pool");
+    assert!(element.blueprint().is_some());
+    assert_eq!(library.parsed(), 1);
+}
