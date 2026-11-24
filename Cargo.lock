@@ -21,7 +21,7 @@ dependencies = [
 
 [[package]]
 name = "agent-npc"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "crossbeam-channel",
  "rspigot-core",
@@ -244,7 +244,7 @@ checksum = "fc652a48c352aef3ea3aed32080501cf3ef6ed5da78602a020c991775b0aff04"
 
 [[package]]
 name = "capitainerie"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "axum",
  "crossbeam-channel",
@@ -577,7 +577,7 @@ dependencies = [
 
 [[package]]
 name = "factions"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "rspigot-plugin",
  "tokio",
@@ -1141,7 +1141,7 @@ checksum = "7ef0d4ed8669f8f8826eb00dc878084aa8f253506c4fd5e8f58f5bce72ddb97e"
 
 [[package]]
 name = "marker"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "rspigot-plugin",
  "tokio",
@@ -1151,7 +1151,7 @@ dependencies = [
 
 [[package]]
 name = "market"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "rspigot-plugin",
  "tokio",
@@ -1724,7 +1724,7 @@ checksum = "d6f6ff9a378485b298a5286656da665ba74413d36db0979633275d2e708145d4"
 
 [[package]]
 name = "relic"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "rspigot-plugin",
  "tokio",
@@ -1809,7 +1809,7 @@ dependencies = [
 
 [[package]]
 name = "rspigot"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "anyhow",
  "base64 0.22.1",
@@ -1840,7 +1840,7 @@ dependencies = [
 
 [[package]]
 name = "rspigot-ai"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "proptest",
  "rspigot-blocks",
@@ -1854,7 +1854,7 @@ dependencies = [
 
 [[package]]
 name = "rspigot-anvil"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "flate2",
  "lz4_flex",
@@ -1873,7 +1873,7 @@ dependencies = [
 
 [[package]]
 name = "rspigot-auth"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "base64 0.22.1",
  "rspigot-core",
@@ -1887,11 +1887,11 @@ dependencies = [
 
 [[package]]
 name = "rspigot-blocks"
-version = "0.1.0"
+version = "0.1.1"
 
 [[package]]
 name = "rspigot-core"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "chrono",
  "crossbeam-channel",
@@ -1921,11 +1921,11 @@ dependencies = [
 
 [[package]]
 name = "rspigot-data"
-version = "0.1.0"
+version = "0.1.1"
 
 [[package]]
 name = "rspigot-domain"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "md-5",
  "proptest",
@@ -1946,14 +1946,14 @@ dependencies = [
 
 [[package]]
 name = "rspigot-effects"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "rspigot-data",
 ]
 
 [[package]]
 name = "rspigot-entities"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "rspigot-data",
  "rspigot-items",
@@ -1961,7 +1961,7 @@ dependencies = [
 
 [[package]]
 name = "rspigot-items"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "rspigot-blocks",
  "rspigot-data",
@@ -1969,7 +1969,7 @@ dependencies = [
 
 [[package]]
 name = "rspigot-management"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "base64 0.22.1",
  "chrono",
@@ -1988,7 +1988,7 @@ dependencies = [
 
 [[package]]
 name = "rspigot-nbt"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "indexmap",
  "proptest",
@@ -1997,7 +1997,7 @@ dependencies = [
 
 [[package]]
 name = "rspigot-network"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "base64 0.22.1",
  "bytes",
@@ -2024,7 +2024,7 @@ dependencies = [
 
 [[package]]
 name = "rspigot-plugin"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "rspigot-data",
  "rspigot-nbt",
@@ -2043,7 +2043,7 @@ dependencies = [
 
 [[package]]
 name = "rspigot-plugin-macros"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -2054,7 +2054,7 @@ dependencies = [
 
 [[package]]
 name = "rspigot-plugin-protocol"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "prost",
  "tonic",
@@ -2063,7 +2063,7 @@ dependencies = [
 
 [[package]]
 name = "rspigot-plugins"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "crossbeam-channel",
  "rspigot-core",
@@ -2083,7 +2083,7 @@ dependencies = [
 
 [[package]]
 name = "rspigot-probe"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "anyhow",
  "rspigot-data",
@@ -2094,7 +2094,7 @@ dependencies = [
 
 [[package]]
 name = "rspigot-protocol"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "aes",
  "cfb8",
@@ -2109,7 +2109,7 @@ dependencies = [
 
 [[package]]
 name = "rspigot-rcon"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "rspigot-core",
  "thiserror",
@@ -2119,7 +2119,7 @@ dependencies = [
 
 [[package]]
 name = "rspigot-worldgen"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "criterion",
  "flate2",
@@ -2352,7 +2352,7 @@ dependencies = [
 
 [[package]]
 name = "sheepwars"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "rspigot-plugin",
  "serde",
@@ -3133,7 +3133,7 @@ dependencies = [
 
 [[package]]
 name = "welcome"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "crossbeam-channel",
  "rspigot-core",
@@ -3472,7 +3472,7 @@ checksum = "29666d0abbfad1e3dc4dcf6144730dd3a3ab225bbbdac83319345b1b44ccfc1b"
 
 [[package]]
 name = "zoo"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "rspigot-plugin",
  "tokio",
