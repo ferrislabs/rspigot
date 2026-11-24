@@ -141,8 +141,9 @@ pub(crate) struct Flow {
 impl Flow {
     fn of(state: BlockStateId) -> Option<Self> {
         let Some(liquid) = Liquid::of(state) else {
-            return (state.property("waterlogged") == Some("true"))
-                .then(|| Self::source(Liquid::Water));
+            let wet = state.property("waterlogged") == Some("true")
+                || state.flags().contains(StateFlags::WATER);
+            return wet.then(|| Self::source(Liquid::Water));
         };
         let level = state.property("level")?.parse().ok()?;
         Some(Self { liquid, level })
@@ -613,6 +614,28 @@ impl<L: ClientLink> Server<L> {
 #[cfg(test)]
 mod fast_lava_tests {
     use super::*;
+
+    #[test]
+    fn plants_that_live_in_water_are_water_sources_for_the_flow() {
+        for kind in [
+            BlockKind::Kelp,
+            BlockKind::KelpPlant,
+            BlockKind::Seagrass,
+            BlockKind::TallSeagrass,
+            BlockKind::BubbleColumn,
+        ] {
+            assert_eq!(
+                Flow::of(kind.default_state()),
+                Some(Flow::source(Liquid::Water)),
+                "{kind:?}"
+            );
+        }
+        let dry = BlockKind::OakSlab
+            .state_with(&[("type", "bottom"), ("waterlogged", "false")])
+            .expect("a slab");
+        assert_eq!(Flow::of(dry), None);
+        assert_eq!(Flow::of(BlockKind::ShortGrass.default_state()), None);
+    }
 
     #[test]
     fn lava_in_a_fast_lava_dimension_ticks_every_ten_loses_one_and_slopes_four() {
