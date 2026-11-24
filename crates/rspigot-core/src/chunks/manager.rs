@@ -12,6 +12,7 @@ use rustc_hash::{FxHashMap, FxHashSet};
 
 use super::queue::Priority;
 use super::workers::{ChunkJob, ChunkResult, ChunkSource, ChunkWorkers};
+use crate::structure_spawns::SpawnStructures;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct ChunkManagerConfig {
@@ -53,6 +54,7 @@ impl ChunkManagerStats {
 
 struct Loaded {
     chunk: Arc<ChunkColumn>,
+    spawns: SpawnStructures,
     tickets: u32,
     unload_at: Option<u64>,
     dirty: bool,
@@ -326,6 +328,7 @@ impl ChunkManager {
                 self.loaded.insert(
                     pos,
                     Loaded {
+                        spawns: SpawnStructures::of(&chunk),
                         chunk: Arc::new(*chunk),
                         tickets: pending.tickets,
                         unload_at: None,
@@ -458,6 +461,10 @@ impl ChunkManager {
 
     pub fn get(&self, pos: ChunkPos) -> Option<&Arc<ChunkColumn>> {
         self.loaded.get(&pos).map(|l| &l.chunk)
+    }
+
+    pub(crate) fn spawn_structures(&self, pos: ChunkPos) -> Option<&SpawnStructures> {
+        self.loaded.get(&pos).map(|l| &l.spawns)
     }
 
     pub fn is_loaded(&self, pos: ChunkPos) -> bool {

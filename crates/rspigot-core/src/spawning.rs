@@ -247,7 +247,7 @@ impl<L: ClientLink> SpawnLevel for Server<L> {
 
     fn spawns_at(&self, pos: BlockPos) -> &'static rspigot_data::spawns::BiomeSpawns {
         crate::structure_spawns::spawns_at(
-            |chunk| self.world.chunks.get(chunk).map(|column| &**column),
+            |chunk| self.world.chunks.spawn_structures(chunk),
             self.biome(pos).0,
             pos,
         )
