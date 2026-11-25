@@ -2100,6 +2100,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "rspigot-proxy"
+version = "0.1.1"
+dependencies = [
+ "anyhow",
+ "base64 0.22.1",
+ "rspigot-auth",
+ "rspigot-proxy-network",
+ "serde",
+ "tempfile",
+ "tokio",
+ "toml",
+ "tracing",
+ "tracing-subscriber",
+]
+
+[[package]]
 name = "rspigot-proxy-network"
 version = "0.1.1"
 dependencies = [
