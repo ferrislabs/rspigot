@@ -2,20 +2,23 @@ mod backend;
 mod client;
 pub mod forwarding;
 mod session;
+mod shared;
 mod status;
+pub mod text;
 mod wire;
 
 use std::sync::Arc;
-use std::sync::{Mutex, MutexGuard};
 use std::time::Duration;
 
 use rspigot_core::ports::SessionVerifier;
 use rspigot_protocol::codec::DecodeError;
-use rspigot_protocol::crypto::{CryptoError, ServerKey};
+use rspigot_protocol::crypto::CryptoError;
 use rspigot_protocol::frame::FrameError;
 use rspigot_protocol::types::JsonText;
-use rspigot_proxy_core::{Roster, ServerRegistry};
+use rspigot_proxy_core::ProxyHooks;
 use tokio::net::TcpListener;
+
+pub use crate::shared::{Shared, State};
 
 #[derive(Debug, thiserror::Error)]
 pub enum ProxyError {
@@ -52,45 +55,9 @@ pub struct ProxySettings {
     pub connect_timeout: Duration,
 }
 
-pub struct State {
-    pub registry: ServerRegistry,
-    pub roster: Roster,
-}
-
-pub struct Shared<V> {
-    settings: ProxySettings,
-    verifier: V,
-    key: ServerKey,
-    state: Mutex<State>,
-}
-
-impl<V> Shared<V> {
-    pub fn new(
-        settings: ProxySettings,
-        registry: ServerRegistry,
-        verifier: V,
-    ) -> Result<Self, ProxyError> {
-        Ok(Self {
-            settings,
-            verifier,
-            key: ServerKey::generate()?,
-            state: Mutex::new(State {
-                registry,
-                roster: Roster::default(),
-            }),
-        })
-    }
-
-    pub fn state(&self) -> MutexGuard<'_, State> {
-        self.state
-            .lock()
-            .unwrap_or_else(std::sync::PoisonError::into_inner)
-    }
-}
-
-pub async fn serve<V: SessionVerifier>(
+pub async fn serve<V: SessionVerifier, H: ProxyHooks>(
     listener: TcpListener,
-    shared: Arc<Shared<V>>,
+    shared: Arc<Shared<V, H>>,
 ) -> Result<(), ProxyError> {
     loop {
         let (stream, peer) = listener.accept().await?;

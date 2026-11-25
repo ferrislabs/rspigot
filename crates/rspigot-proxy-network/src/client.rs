@@ -12,20 +12,23 @@ use rspigot_protocol::login::{
 use rspigot_protocol::split_packet_id;
 use rspigot_protocol::status::{PongResponse, ServerboundStatus, StatusResponse};
 use rspigot_protocol::types::{JsonText, ProfileProperty};
+use rspigot_proxy_core::{ConnectCause, PlayerView, ProxyHooks, Verdict};
 use tokio::net::TcpStream;
+use tokio::sync::mpsc;
 use tokio::time::timeout;
 
 use crate::backend;
 use crate::forwarding::ForwardedPlayer;
 use crate::session::{Link, Session};
+use crate::shared::Handle;
 use crate::status;
 use crate::wire::{self, Reader, Writer};
 use crate::{ProxyError, Shared};
 
-pub async fn handle<V: SessionVerifier>(
+pub async fn handle<V: SessionVerifier, H: ProxyHooks>(
     stream: TcpStream,
     peer: SocketAddr,
-    shared: Arc<Shared<V>>,
+    shared: Arc<Shared<V, H>>,
 ) -> Result<(), ProxyError> {
     let (mut reader, mut writer) = wire::split(stream);
     let login_deadline = shared.settings.login_timeout;
@@ -62,10 +65,10 @@ pub async fn handle<V: SessionVerifier>(
     }
 }
 
-async fn answer_status<V>(
+async fn answer_status<V, H: ProxyHooks>(
     reader: &mut Reader,
     writer: &mut Writer,
-    shared: &Shared<V>,
+    shared: &Shared<V, H>,
 ) -> Result<(), ProxyError> {
     loop {
         let packet = reader.next().await?;
@@ -93,10 +96,10 @@ async fn next_login(reader: &mut Reader) -> Result<ServerboundLogin, ProxyError>
     Ok(ServerboundLogin::decode(id, body)?)
 }
 
-async fn authenticate<V: SessionVerifier>(
+async fn authenticate<V: SessionVerifier, H: ProxyHooks>(
     reader: &mut Reader,
     writer: &mut Writer,
-    shared: &Arc<Shared<V>>,
+    shared: &Arc<Shared<V, H>>,
     peer: SocketAddr,
 ) -> Result<Option<ForwardedPlayer>, ProxyError> {
     let ServerboundLogin::Hello(hello) = next_login(reader).await? else {
@@ -174,10 +177,10 @@ async fn authenticate<V: SessionVerifier>(
     }
 }
 
-async fn join<V>(
+async fn join<V, H: ProxyHooks>(
     mut client_reader: Reader,
     mut client_writer: Writer,
-    shared: &Shared<V>,
+    shared: &Shared<V, H>,
     player: ForwardedPlayer,
 ) -> Result<(), ProxyError> {
     let login = shared.state().roster.login(player.id, &player.name);
@@ -189,8 +192,28 @@ async fn join<V>(
         )
         .await;
     }
-    let result = play(&mut client_reader, &mut client_writer, shared, &player).await;
-    shared.state().roster.logout(player.id);
+    let view = PlayerView {
+        id: player.id,
+        name: player.name.clone(),
+        address: player.address,
+        server: None,
+    };
+    shared.hooks.login(&view);
+    let result = play(
+        &mut client_reader,
+        &mut client_writer,
+        shared,
+        &player,
+        &view,
+    )
+    .await;
+    {
+        let mut state = shared.state();
+        state.roster.logout(player.id);
+        state.sessions.remove(&player.id);
+        state.permissions.remove(&player.id);
+    }
+    shared.hooks.disconnect(&view);
     tracing::info!("{} left the proxy", player.name);
     match result {
         Err(ProxyError::Closed) => Ok(()),
@@ -198,16 +221,49 @@ async fn join<V>(
     }
 }
 
-async fn play<V>(
+async fn play<V, H: ProxyHooks>(
     client_reader: &mut Reader,
     client_writer: &mut Writer,
-    shared: &Shared<V>,
+    shared: &Shared<V, H>,
     player: &ForwardedPlayer,
+    view: &PlayerView,
 ) -> Result<(), ProxyError> {
     let settings = &shared.settings;
-    let candidates = shared.state().registry.join_candidates();
+    let mut candidates = shared.state().registry.join_candidates();
+    let names = candidates
+        .iter()
+        .map(|server| server.name.clone())
+        .collect();
+    match shared.hooks.initial_server(view.clone(), names).await {
+        Verdict::Allow => {}
+        Verdict::Deny(message) => return disconnect(client_writer, &status::text(&message)).await,
+        Verdict::Redirect { server, .. } => {
+            let chosen = shared.state().registry.get(&server);
+            if let Some(chosen) = chosen {
+                candidates.retain(|candidate| candidate.name != chosen.name);
+                candidates.insert(0, chosen);
+            }
+        }
+    }
     let mut reached = None;
-    for server in candidates {
+    for candidate in candidates {
+        let verdict = shared
+            .hooks
+            .pre_connect(view.clone(), candidate.name.clone(), ConnectCause::Join)
+            .await;
+        let server = match verdict {
+            Verdict::Allow => candidate,
+            Verdict::Deny(message) => {
+                return disconnect(client_writer, &status::text(&message)).await;
+            }
+            Verdict::Redirect { server, .. } => {
+                let target = shared.state().registry.get(&server);
+                match target {
+                    Some(target) => target,
+                    None => continue,
+                }
+            }
+        };
         let attempt = timeout(
             settings.connect_timeout,
             backend::login(
@@ -271,14 +327,29 @@ async fn play<V>(
         }
     }
     backend_writer.send(&LoginAcknowledged).await?;
-    shared.state().roster.connected(player.id, &server.name);
+    let (sender, commands) = mpsc::unbounded_channel();
+    {
+        let mut state = shared.state();
+        state.roster.connected(player.id, &server.name);
+        state.sessions.insert(
+            player.id,
+            Handle {
+                address: player.address,
+                name: player.name.clone(),
+                sender,
+            },
+        );
+    }
     tracing::info!("{} ({}) joined {}", player.name, player.id, server.name);
+    let mut connected = view.clone();
+    connected.server = Some(server.name.clone());
+    shared.hooks.connected(&connected, &server.name, None);
     let link = Link {
         server,
         reader: backend_reader,
         writer: backend_writer,
     };
-    Session::new(shared, player, client_reader, client_writer, link)
+    Session::new(shared, player, client_reader, client_writer, link, commands)
         .run()
         .await
 }
