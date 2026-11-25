@@ -270,8 +270,9 @@ fn to_sections(
     for section in 0..sections {
         let base = section * 16;
         let slice = &volume.levels[Volume::index(0, base, 0)..Volume::index(0, base + 16, 0)];
-        if slice.iter().all(|l| *l == 0) {
-            out.push(None);
+        let first = slice[0];
+        if slice.iter().all(|l| *l == first) {
+            out.push((first != 0).then(|| LightArray::filled(first)));
             continue;
         }
         let mut array = LightArray::filled(0);
@@ -786,6 +787,28 @@ mod tests {
         assert_eq!(above, Some(15));
         assert!(chunk.light.sky[1].is_none());
         assert_eq!(chunk.light.sky.len(), 26);
+    }
+
+    #[test]
+    fn uniform_sections_are_stored_without_a_buffer() {
+        let mut chunk = ChunkColumn::empty(ChunkPos::new(0, 0), WorldHeight::OVERWORLD, BiomeId(0));
+        for x in 0..16 {
+            for z in 0..16 {
+                for y in -64..64 {
+                    chunk.set_block(BlockPos::new(x, y, z), stone());
+                }
+            }
+        }
+        compute(&mut chunk, true);
+        assert!(
+            chunk
+                .light
+                .sky
+                .iter()
+                .flatten()
+                .all(|array| !array.is_dense())
+        );
+        assert!(chunk.light.block.iter().all(Option::is_none));
     }
 
     fn daisy_chunk(roof: bool) -> ChunkColumn {
