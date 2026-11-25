@@ -52,16 +52,13 @@ impl<L: ClientLink> Server<L> {
     }
 
     pub fn inhabited_time(&self, chunk: rspigot_domain::ChunkPos) -> Option<i64> {
-        self.world
-            .chunks
-            .get(chunk)
-            .map(|loaded| loaded.inhabited_time)
+        self.world.chunks.inhabited_time(chunk)
     }
 
     pub(crate) fn difficulty_at(&self, pos: BlockPos) -> DifficultyInstance {
-        let (inhabited, moon) = match self.world.chunks.get(pos.chunk()) {
-            Some(chunk) => (
-                chunk.inhabited_time,
+        let (inhabited, moon) = match self.world.chunks.inhabited_time(pos.chunk()) {
+            Some(inhabited) => (
+                inhabited,
                 difficulty::moon_brightness(
                     self.world.level.day_time,
                     self.world.dimension.has_skylight,
