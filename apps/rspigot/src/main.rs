@@ -27,6 +27,9 @@ use tracing_subscriber::Layer;
 
 use crate::config::ServerFiles;
 
+#[global_allocator]
+static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
+
 struct Arguments {
     root: PathBuf,
     port: Option<u16>,
