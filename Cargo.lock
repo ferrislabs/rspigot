@@ -1481,6 +1481,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "proxy-network"
+version = "0.1.1"
+dependencies = [
+ "rspigot-proxy-plugin",
+ "tokio",
+ "tracing",
+ "tracing-subscriber",
+]
+
+[[package]]
 name = "quick-error"
 version = "1.2.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2147,6 +2157,21 @@ dependencies = [
  "tracing",
  "tracing-subscriber",
  "uuid",
+]
+
+[[package]]
+name = "rspigot-proxy-plugin"
+version = "0.1.1"
+dependencies = [
+ "rspigot-plugin-protocol",
+ "rspigot-proxy-core",
+ "rspigot-proxy-network",
+ "rspigot-proxy-plugins",
+ "thiserror",
+ "tokio",
+ "tokio-stream",
+ "tonic",
+ "tracing",
 ]
 
 [[package]]
