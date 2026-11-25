@@ -4,7 +4,8 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use rspigot_core::events::ClientEvent;
 use rspigot_core::ports::ClientLink;
 use rspigot_domain::text::Component;
-use tokio::sync::mpsc::UnboundedSender;
+use tokio::sync::mpsc::Sender;
+use tokio::sync::mpsc::error::TrySendError;
 
 #[derive(Debug)]
 pub enum Outgoing {
@@ -17,13 +18,13 @@ pub enum Outgoing {
 
 #[derive(Clone)]
 pub struct NetLink {
-    sender: UnboundedSender<Outgoing>,
+    sender: Sender<Outgoing>,
     connected: Arc<AtomicBool>,
     suspended: Arc<AtomicBool>,
 }
 
 impl NetLink {
-    pub fn new(sender: UnboundedSender<Outgoing>, connected: Arc<AtomicBool>) -> Self {
+    pub fn new(sender: Sender<Outgoing>, connected: Arc<AtomicBool>) -> Self {
         Self {
             sender,
             connected,
@@ -44,15 +45,34 @@ impl NetLink {
     }
 
     pub fn raw(&self, id: i32, body: Vec<u8>) {
-        let _ = self.sender.send(Outgoing::Packet { id, body });
+        self.push(Outgoing::Packet { id, body });
     }
 
     pub fn close(&self) {
-        let _ = self.sender.send(Outgoing::Close);
+        self.push(Outgoing::Close);
     }
 
     pub fn pong(&self, payload: i64) {
-        let _ = self.sender.send(Outgoing::Pong(payload));
+        self.push(Outgoing::Pong(payload));
+    }
+
+    fn push(&self, message: Outgoing) -> bool {
+        match self.sender.try_send(message) {
+            Ok(()) => true,
+            Err(TrySendError::Full(_)) => {
+                if self.connected.swap(false, Ordering::AcqRel) {
+                    tracing::warn!(
+                        capacity = self.sender.max_capacity(),
+                        "outbound queue full, dropping the client"
+                    );
+                }
+                false
+            }
+            Err(TrySendError::Closed(_)) => {
+                self.connected.store(false, Ordering::Release);
+                false
+            }
+        }
     }
 }
 
@@ -63,18 +83,15 @@ impl ClientLink for NetLink {
         }
         let reconfigure = matches!(event, ClientEvent::Reconfigure);
         if self.connected.load(Ordering::Acquire)
-            && self.sender.send(Outgoing::Event(Box::new(event))).is_err()
+            && self.push(Outgoing::Event(Box::new(event)))
+            && reconfigure
         {
-            self.connected.store(false, Ordering::Release);
-        } else if reconfigure {
             self.suspended.store(true, Ordering::Release);
         }
     }
 
     fn disconnect(&self, reason: Component) {
-        if self.sender.send(Outgoing::Disconnect(reason)).is_err() {
-            self.connected.store(false, Ordering::Release);
-        }
+        self.push(Outgoing::Disconnect(reason));
     }
 
     fn is_connected(&self) -> bool {
@@ -84,16 +101,38 @@ impl ClientLink for NetLink {
 
 #[cfg(test)]
 mod tests {
-    use tokio::sync::mpsc::unbounded_channel;
+    use tokio::sync::mpsc::channel;
 
     use super::*;
 
-    fn link() -> (NetLink, tokio::sync::mpsc::UnboundedReceiver<Outgoing>) {
-        let (sender, receiver) = unbounded_channel();
+    fn link() -> (NetLink, tokio::sync::mpsc::Receiver<Outgoing>) {
+        link_with_capacity(64)
+    }
+
+    fn link_with_capacity(capacity: usize) -> (NetLink, tokio::sync::mpsc::Receiver<Outgoing>) {
+        let (sender, receiver) = channel(capacity);
         (
             NetLink::new(sender, Arc::new(AtomicBool::new(true))),
             receiver,
         )
+    }
+
+    #[test]
+    fn a_full_outbound_queue_marks_the_link_disconnected() {
+        let (link, mut receiver) = link_with_capacity(2);
+        link.send(ClientEvent::TickingStep(1));
+        link.send(ClientEvent::TickingStep(2));
+        assert!(link.is_connected());
+        link.send(ClientEvent::TickingStep(3));
+        assert!(!link.is_connected());
+        link.send(ClientEvent::TickingStep(4));
+        assert!(
+            matches!(receiver.try_recv(), Ok(Outgoing::Event(event)) if *event == ClientEvent::TickingStep(1))
+        );
+        assert!(
+            matches!(receiver.try_recv(), Ok(Outgoing::Event(event)) if *event == ClientEvent::TickingStep(2))
+        );
+        assert!(receiver.try_recv().is_err());
     }
 
     #[test]
