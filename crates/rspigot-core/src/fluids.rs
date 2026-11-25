@@ -241,7 +241,11 @@ fn holds_fluid(state: BlockStateId) -> bool {
 impl<L: ClientLink> Server<L> {
     fn cell(&self, pos: BlockPos) -> Cell {
         let Some(state) = self.world.chunks.block(pos) else {
-            return Cell::Solid;
+            return if pos.y < self.world.dimension.height.min_y {
+                Cell::Empty
+            } else {
+                Cell::Solid
+            };
         };
         if let Some(flow) = Flow::of(state) {
             Cell::Fluid(flow)
