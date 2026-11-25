@@ -1,3 +1,4 @@
+use std::collections::VecDeque;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Duration;
@@ -41,6 +42,7 @@ pub struct ChunkManagerStats {
     pub unloaded: u64,
     pub cancelled: u64,
     pub copies: u64,
+    pub stitch_queued: usize,
     pub total_load_time: Duration,
 }
 
@@ -110,7 +112,8 @@ pub struct ChunkManager {
     stats: ChunkManagerStats,
     events: ChunkEvents,
     light_edits: FxHashMap<BlockPos, BlockStateId>,
-    stitch: FxHashSet<ChunkPos>,
+    stitch: VecDeque<ChunkPos>,
+    stitch_queued: FxHashSet<ChunkPos>,
     mob_generation: Option<super::MobGeneration>,
     poi: PoiManager,
     forced: std::collections::BTreeSet<ChunkPos>,
@@ -136,7 +139,8 @@ impl ChunkManager {
             stats: ChunkManagerStats::default(),
             events: ChunkEvents::default(),
             light_edits: FxHashMap::default(),
-            stitch: FxHashSet::default(),
+            stitch: VecDeque::new(),
+            stitch_queued: FxHashSet::default(),
             mob_generation: None,
             poi,
             forced: std::collections::BTreeSet::new(),
@@ -210,6 +214,7 @@ impl ChunkManager {
         }
         let tickets = self.loaded.remove(&pos).map_or(0, |loaded| {
             self.block_entities.forget(pos);
+            self.stitch_queued.remove(&pos);
             self.poi.unload_chunk(pos);
             loaded.tickets
         });
@@ -353,7 +358,9 @@ impl ChunkManager {
                 self.poi.import_chunk(&chunk, poi.as_ref());
                 let mut chunk = chunk;
                 chunk.block_meta.drop_volatile();
-                self.stitch.insert(pos);
+                if self.stitch_queued.insert(pos) {
+                    self.stitch.push_back(pos);
+                }
                 self.block_entities.refresh(pos, &chunk);
                 self.loaded.insert(
                     pos,
@@ -426,6 +433,7 @@ impl ChunkManager {
             return false;
         };
         self.block_entities.forget(pos);
+        self.stitch_queued.remove(&pos);
         if save && loaded.dirty {
             let chunk = loaded.snapshot(&mut self.stats.copies);
             self.submit_save(chunk, workers);
@@ -678,7 +686,7 @@ impl ChunkManager {
     pub fn relight_chunks(&mut self) -> Touched {
         let has_skylight = self.dimension.has_skylight;
         let edits = std::mem::take(&mut self.light_edits);
-        let mut stitch: Vec<ChunkPos> = self.stitch.drain().collect();
+        let mut stitch = self.take_stitch_batch();
         let mut before = Vec::new();
         let mut touched = if edits.len() > FULL_RELIGHT_EDITS {
             self.recompute(&edits, &mut stitch, &mut before)
@@ -700,6 +708,19 @@ impl ChunkManager {
             }
         }
         touched
+    }
+
+    fn take_stitch_batch(&mut self) -> Vec<ChunkPos> {
+        let mut batch = Vec::new();
+        while batch.len() < STITCH_PER_TICK {
+            let Some(pos) = self.stitch.pop_front() else {
+                break;
+            };
+            if self.stitch_queued.remove(&pos) {
+                batch.push(pos);
+            }
+        }
+        batch
     }
 
     fn recompute(
@@ -747,6 +768,7 @@ impl ChunkManager {
         ChunkManagerStats {
             loaded: self.loaded.len(),
             pending: self.pending.len(),
+            stitch_queued: self.stitch_queued.len(),
             ..self.stats
         }
     }
@@ -778,6 +800,7 @@ const NEIGHBOURS: [(i32, i32); 8] = [
 ];
 
 const LIGHT_REACH: i32 = 14;
+const STITCH_PER_TICK: usize = 32;
 const FULL_RELIGHT_EDITS: usize = 4096;
 
 fn reach_mask(pos: BlockPos) -> u8 {
@@ -1071,6 +1094,38 @@ mod tests {
         manager.chunk_mut(pos).expect("loaded").touch();
         assert!(!Arc::ptr_eq(&shared, manager.get(pos).expect("loaded")));
         assert_eq!(manager.stats().copies, 1);
+        workers.shutdown();
+    }
+
+    #[test]
+    fn fresh_chunks_are_stitched_at_most_thirty_two_per_relight() {
+        let (mut manager, workers, _) = setup();
+        let positions: Vec<ChunkPos> = (0..7)
+            .flat_map(|x| (0..5).map(move |z| ChunkPos::new(x, z)))
+            .collect();
+        load(&mut manager, &workers, &positions);
+        assert_eq!(manager.stats().stitch_queued, 35);
+        manager.relight();
+        assert_eq!(manager.stats().stitch_queued, 3);
+        manager.relight();
+        assert_eq!(manager.stats().stitch_queued, 0);
+        workers.shutdown();
+    }
+
+    #[test]
+    fn an_unloaded_chunk_leaves_the_stitch_queue() {
+        let (mut manager, workers, _) = setup();
+        let pos = ChunkPos::new(0, 0);
+        load(&mut manager, &workers, &[pos]);
+        assert_eq!(manager.stats().stitch_queued, 1);
+        manager.remove_ticket(pos);
+        for _ in 0..8 {
+            manager.tick();
+            manager.unload(pos, false, &workers);
+        }
+        assert!(!manager.is_loaded(pos));
+        assert_eq!(manager.stats().stitch_queued, 0);
+        assert_eq!(manager.relight(), 0);
         workers.shutdown();
     }
 
