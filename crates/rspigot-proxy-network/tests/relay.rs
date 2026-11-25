@@ -4,7 +4,7 @@ use std::time::Duration;
 use rspigot_core::ports::{AuthError, SessionVerifier};
 use rspigot_domain::player::{GameProfile, PlayerId};
 use rspigot_network::verify_velocity;
-use rspigot_protocol::codec::decode_exact;
+use rspigot_protocol::codec::{Encode, VarInt, decode_exact};
 use rspigot_protocol::common::Identifier;
 use rspigot_protocol::frame::{Compression, FrameDecoder, FrameEncoder};
 use rspigot_protocol::handshake::{ClientIntent, Intention};
@@ -13,6 +13,8 @@ use rspigot_protocol::login::{
     CustomQuery, CustomQueryAnswer, LoginAcknowledged, LoginCompression, LoginDisconnect,
     LoginFinished, ServerboundHello,
 };
+use rspigot_protocol::play::player::{PlayerInfoActions, PlayerInfoEntry, PlayerInfoUpdate};
+use rspigot_protocol::play::types::GameMode;
 use rspigot_protocol::status::{PingRequest, PongResponse, StatusRequest, StatusResponse};
 use rspigot_protocol::types::{GameProfile as WireProfile, JsonText};
 use rspigot_protocol::{Packet, split_packet_id, write_packet, write_packet_with_id};
@@ -108,6 +110,10 @@ async fn start_proxy(backend: String, secret: &[u8]) -> String {
 }
 
 async fn start_proxy_with(backends: &[String], secret: &[u8]) -> String {
+    let _ = tracing_subscriber::fmt()
+        .with_env_filter("rspigot_proxy_network=debug")
+        .with_test_writer()
+        .try_init();
     let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
     let address = listener.local_addr().unwrap().to_string();
     let names: Vec<String> = (0..backends.len()).map(|i| format!("server-{i}")).collect();
@@ -174,7 +180,8 @@ async fn expect_closed(peer: &mut Peer) {
 
 fn raw(id: i32, body: &[u8]) -> Vec<u8> {
     let mut out = Vec::new();
-    write_packet_with_id(id, &body.to_vec(), &mut out);
+    VarInt(id).encode(&mut out);
+    out.extend_from_slice(body);
     out
 }
 
@@ -499,4 +506,164 @@ async fn a_kick_reaches_the_player_and_ends_the_session() {
     let mut again = login(&proxy, "Steve").await;
     let (mut backend, forwarded) = backend_accepts_forwarded_player(&backend_listener).await;
     finish_login(&mut again, &mut backend, forwarded.id).await;
+}
+
+fn string_body(text: &str) -> Vec<u8> {
+    let mut out = Vec::new();
+    text.to_owned().encode(&mut out);
+    out
+}
+
+fn id_of(packet: &[u8]) -> i32 {
+    split_packet_id(packet).unwrap().0
+}
+
+struct InPlay {
+    player: Peer,
+    backend: Peer,
+    information: Vec<u8>,
+    brand: Vec<u8>,
+    chat_session: Vec<u8>,
+}
+
+async fn join_and_play(proxy: &str, first: &TcpListener) -> InPlay {
+    let mut player = login(proxy, "Steve").await;
+    let (mut backend, forwarded) = backend_accepts_forwarded_player(first).await;
+    finish_login(&mut player, &mut backend, forwarded.id).await;
+    let information = raw(
+        ids::configuration::serverbound::CLIENT_INFORMATION,
+        &[5, b'e', b'n', b'_', b'u', b's', 10],
+    );
+    let mut brand_body = string_body("minecraft:brand");
+    brand_body.extend(string_body("vanilla"));
+    let brand = raw(ids::configuration::serverbound::CUSTOM_PAYLOAD, &brand_body);
+    let finish = raw(ids::configuration::serverbound::FINISH_CONFIGURATION, &[]);
+    let chat_session = raw(ids::play::serverbound::CHAT_SESSION_UPDATE, &[1, 2, 3, 4]);
+    for packet in [&information, &brand, &finish, &chat_session] {
+        player.send_raw(packet).await;
+        assert_eq!(&backend.next().await, packet);
+    }
+    let mut tab = Vec::new();
+    write_packet(
+        &PlayerInfoUpdate {
+            actions: PlayerInfoActions(1),
+            entries: vec![PlayerInfoEntry {
+                profile_id: Uuid::from_u128(77),
+                name: "Npc".to_owned(),
+                properties: Vec::new(),
+                chat_session: None,
+                game_mode: GameMode::Survival,
+                listed: true,
+                latency: 0,
+                display_name: None,
+                list_order: 0,
+                show_hat: true,
+            }],
+        },
+        &mut tab,
+    );
+    backend.send_raw(&tab).await;
+    assert_eq!(player.next().await, tab);
+    InPlay {
+        player,
+        backend,
+        information,
+        brand,
+        chat_session,
+    }
+}
+
+async fn expect_moved(game: &mut InPlay, second: &TcpListener) -> Peer {
+    let (mut next, forwarded) = backend_accepts_forwarded_player(second).await;
+    next.send(&LoginFinished {
+        profile: WireProfile {
+            id: forwarded.id,
+            name: "Steve".to_owned(),
+            properties: Vec::new(),
+        },
+        session_id: Uuid::from_u128(10),
+    })
+    .await;
+    let mut seen = Vec::new();
+    for _ in 0..4 {
+        let packet = game.player.next().await;
+        seen.push(id_of(&packet));
+    }
+    assert_eq!(
+        seen,
+        [
+            ids::play::clientbound::SYSTEM_CHAT,
+            ids::play::clientbound::PLAYER_INFO_REMOVE,
+            ids::play::clientbound::CLEAR_TITLES,
+            ids::play::clientbound::START_CONFIGURATION,
+        ]
+    );
+    game.player
+        .send_raw(&raw(
+            ids::play::serverbound::CONFIGURATION_ACKNOWLEDGED,
+            &[],
+        ))
+        .await;
+    assert_eq!(
+        id_of(&next.next().await),
+        ids::login::serverbound::LOGIN_ACKNOWLEDGED
+    );
+    assert_eq!(next.next().await, game.information);
+    assert_eq!(next.next().await, game.brand);
+
+    let registry = raw(ids::configuration::clientbound::REGISTRY_DATA, &[1, 2, 3]);
+    next.send_raw(&registry).await;
+    assert_eq!(game.player.next().await, registry);
+    let finish = raw(ids::configuration::serverbound::FINISH_CONFIGURATION, &[]);
+    game.player.send_raw(&finish).await;
+    assert_eq!(next.next().await, finish);
+    assert_eq!(next.next().await, game.chat_session);
+    next
+}
+
+#[tokio::test]
+async fn a_kick_in_play_moves_the_player_to_the_next_server() {
+    let (first, first_address) = listener().await;
+    let (second, second_address) = listener().await;
+    let proxy = start_proxy_with(&[first_address, second_address], SECRET).await;
+    let mut game = join_and_play(&proxy, &first).await;
+
+    game.backend
+        .send_raw(&raw(
+            ids::play::clientbound::DISCONNECT,
+            &[8, 0, 4, b'b', b'y', b'e', b'!'],
+        ))
+        .await;
+    let mut next = expect_moved(&mut game, &second).await;
+
+    let chat = raw(ids::play::serverbound::CHAT_COMMAND, &string_body("list"));
+    game.player.send_raw(&chat).await;
+    assert_eq!(next.next().await, chat);
+}
+
+#[tokio::test]
+async fn a_backend_lost_in_play_moves_the_player_to_the_next_server() {
+    let (first, first_address) = listener().await;
+    let (second, second_address) = listener().await;
+    let proxy = start_proxy_with(&[first_address, second_address], SECRET).await;
+    let mut game = join_and_play(&proxy, &first).await;
+    game.backend.stream.shutdown().await.unwrap();
+    let _next = expect_moved(&mut game, &second).await;
+}
+
+#[tokio::test]
+async fn a_kick_with_no_live_fallback_reaches_the_player() {
+    let (first, first_address) = listener().await;
+    let (dead, dead_address) = listener().await;
+    drop(dead);
+    let proxy = start_proxy_with(&[first_address, dead_address], SECRET).await;
+    let mut game = join_and_play(&proxy, &first).await;
+
+    let kick = raw(
+        ids::play::clientbound::DISCONNECT,
+        &[8, 0, 4, b'b', b'y', b'e', b'!'],
+    );
+    game.backend.send_raw(&kick).await;
+    assert_eq!(game.player.next().await, kick);
+    expect_closed(&mut game.player).await;
 }

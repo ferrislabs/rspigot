@@ -1,6 +1,7 @@
 mod backend;
 mod client;
 pub mod forwarding;
+mod session;
 mod status;
 mod wire;
 

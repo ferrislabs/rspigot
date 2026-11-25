@@ -1,6 +1,5 @@
 use std::net::SocketAddr;
 use std::sync::Arc;
-use std::sync::atomic::{AtomicU8, Ordering};
 
 use rspigot_core::ports::SessionVerifier;
 use rspigot_domain::player::PlayerId;
@@ -13,14 +12,14 @@ use rspigot_protocol::login::{
 use rspigot_protocol::split_packet_id;
 use rspigot_protocol::status::{PongResponse, ServerboundStatus, StatusResponse};
 use rspigot_protocol::types::{JsonText, ProfileProperty};
-use rspigot_proxy_core::Phase;
 use tokio::net::TcpStream;
 use tokio::time::timeout;
 
 use crate::backend;
 use crate::forwarding::ForwardedPlayer;
+use crate::session::{Link, Session};
 use crate::status;
-use crate::wire::{self, Ended, Reader, Writer};
+use crate::wire::{self, Reader, Writer};
 use crate::{ProxyError, Shared};
 
 pub async fn handle<V: SessionVerifier>(
@@ -247,7 +246,7 @@ async fn play<V>(
         .await;
     };
     let backend::BackendLink {
-        reader: mut backend_reader,
+        reader: backend_reader,
         writer: mut backend_writer,
         finished,
     } = link;
@@ -274,29 +273,14 @@ async fn play<V>(
     backend_writer.send(&LoginAcknowledged).await?;
     shared.state().roster.connected(player.id, &server.name);
     tracing::info!("{} ({}) joined {}", player.name, player.id, server.name);
-    let phase = AtomicU8::new(Phase::Configuration.as_u8());
-    let ended = tokio::select! {
-        result = wire::pump_serverbound(client_reader, &mut backend_writer, &phase) => result,
-        result = wire::pump_clientbound(&mut backend_reader, client_writer, &phase) => result,
+    let link = Link {
+        server,
+        reader: backend_reader,
+        writer: backend_writer,
     };
-    match ended {
-        Ok(Ended::Client) => Ok(()),
-        Ok(Ended::Kicked) => {
-            tracing::info!("{} was kicked from {}", player.name, server.name);
-            Ok(())
-        }
-        Err(ProxyError::BackendLost) => {
-            tracing::info!("{} lost {}", player.name, server.name);
-            let phase = Phase::from_u8(phase.load(Ordering::Relaxed));
-            client_writer
-                .send_disconnect(
-                    phase,
-                    &status::nbt_text("The server you were on went down."),
-                )
-                .await
-        }
-        Err(error) => Err(error),
-    }
+    Session::new(shared, player, client_reader, client_writer, link)
+        .run()
+        .await
 }
 
 async fn disconnect(writer: &mut Writer, reason: &JsonText) -> Result<(), ProxyError> {
