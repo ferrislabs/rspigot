@@ -87,6 +87,7 @@ fn main() -> anyhow::Result<()> {
     let loaded = server.start(Duration::from_secs(240));
     let load_time = started.elapsed();
     let after_load = rss_kib();
+    let profile_before = server.tick_profile();
     let mut samples = Vec::with_capacity(args.ticks);
     for _ in 0..args.ticks {
         let tick = Instant::now();
@@ -94,6 +95,7 @@ fn main() -> anyhow::Result<()> {
         samples.push(tick.elapsed());
     }
     let after_ticks = rss_kib();
+    let profile = server.tick_profile().since(&profile_before);
     samples.sort_unstable();
     let stats = server.chunk_stats();
     let total: Duration = samples.iter().sum();
@@ -139,6 +141,10 @@ fn main() -> anyhow::Result<()> {
             "tick_ms_mean: {:.3}",
             total.as_secs_f64() * 1000.0 / samples.len() as f64
         );
+    }
+    println!("passes_per_tick_us (top 15):");
+    for line in profile.lines().iter().take(15) {
+        println!("  {line}");
     }
     Ok(())
 }

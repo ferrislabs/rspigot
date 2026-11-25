@@ -12,6 +12,7 @@ use crate::waypoints::Waypoints;
 
 pub const PERF_RUN_TICKS: u64 = 200;
 const CHAT_COST: u32 = 20;
+const PERF_SHOWN_PASSES: usize = 5;
 const REPORT_DIR: &str = "debug/profiling";
 
 #[derive(Debug)]
@@ -19,6 +20,7 @@ pub struct PerfRun {
     pub started: Instant,
     pub tick: u64,
     pub requester: Option<PlayerId>,
+    pub profile: crate::tick_profile::Snapshot,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -26,6 +28,7 @@ pub struct PerfReport {
     pub seconds: f64,
     pub ticks: i64,
     pub saved: Result<String, String>,
+    pub passes: Vec<String>,
 }
 
 #[derive(Debug, Default)]
@@ -37,15 +40,24 @@ pub struct SurfaceState {
     pub perf: Option<PerfRun>,
 }
 
-fn write_report(seconds: f64, ticks: i64, tps: [f64; 3]) -> Result<String, String> {
+fn write_report(
+    seconds: f64,
+    ticks: i64,
+    tps: [f64; 3],
+    passes: &[String],
+) -> Result<String, String> {
     let stamp = SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .map_or(0, |elapsed| elapsed.as_secs());
     let path = format!("{REPORT_DIR}/perf-{stamp}.txt");
-    let body = format!(
+    let mut body = format!(
         "duration_seconds: {seconds:.3}\nticks: {ticks}\ntps_1m: {:.2}\ntps_5m: {:.2}\ntps_15m: {:.2}\n",
         tps[0], tps[1], tps[2]
     );
+    for line in passes {
+        body.push_str(line);
+        body.push('\n');
+    }
     std::fs::create_dir_all(REPORT_DIR)
         .and_then(|()| std::fs::write(&path, body))
         .map(|()| path)
@@ -89,6 +101,7 @@ impl<L: ClientLink> Server<L> {
             started: Instant::now(),
             tick: self.tick,
             requester,
+            profile: self.profile.snapshot(),
         });
         true
     }
@@ -97,12 +110,14 @@ impl<L: ClientLink> Server<L> {
         let run = self.surface.perf.take()?;
         let seconds = run.started.elapsed().as_secs_f64();
         let ticks = i64::try_from(self.tick.saturating_sub(run.tick)).unwrap_or(i64::MAX);
-        let saved = write_report(seconds, ticks, self.tps());
+        let passes = self.profile.snapshot().since(&run.profile).lines();
+        let saved = write_report(seconds, ticks, self.tps(), &passes);
         Some((
             PerfReport {
                 seconds,
                 ticks,
                 saved,
+                passes,
             },
             run.requester,
         ))
@@ -120,7 +135,15 @@ impl<L: ClientLink> Server<L> {
         let Some((report, requester)) = self.end_perf_run() else {
             return;
         };
-        let lines = [stopped_message(&report), saved_message(&report)];
+        let heaviest = report
+            .passes
+            .iter()
+            .take(PERF_SHOWN_PASSES)
+            .map(|line| Component::text(line.clone()));
+        let lines: Vec<Component> = [stopped_message(&report), saved_message(&report)]
+            .into_iter()
+            .chain(heaviest)
+            .collect();
         for line in lines {
             match requester {
                 Some(id) if self.players.contains_key(&id) => {
