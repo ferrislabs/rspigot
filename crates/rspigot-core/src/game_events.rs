@@ -494,34 +494,13 @@ impl<L: ClientLink> Server<L> {
                 listeners.extend(chunk.block_entities.iter().filter_map(block_listener));
             }
         }
-        listeners.extend(
-            self.entities
-                .mobs
-                .entries
-                .keys()
-                .copied()
-                .filter(|id| {
-                    self.entities
-                        .store
-                        .get(*id)
-                        .is_some_and(|e| e.base.kind == EntityKind::Warden)
-                })
-                .map(Listener::Warden),
-        );
-        listeners.extend(
-            self.entities
-                .mobs
-                .entries
-                .keys()
-                .copied()
-                .filter(|id| {
-                    self.entities
-                        .store
-                        .get(*id)
-                        .is_some_and(|e| e.base.kind == EntityKind::Allay)
-                })
-                .map(Listener::Allay),
-        );
+        for id in self.ticking_entities() {
+            match self.entities.store.get(id).map(|e| e.base.kind) {
+                Some(EntityKind::Warden) => listeners.push(Listener::Warden(id)),
+                Some(EntityKind::Allay) => listeners.push(Listener::Allay(id)),
+                _ => {}
+            }
+        }
         for listener in listeners {
             self.tick_vibrations(listener);
         }

@@ -441,8 +441,10 @@ impl<L: ClientLink> Server<L> {
                 bodies.push((bounds, false));
             }
         }
-        for entity in self.entities.store.iter() {
-            if entity.base.removal.is_none() {
+        for id in self.ticking_entities() {
+            if let Some(entity) = self.entities.store.get(id)
+                && entity.base.removal.is_none()
+            {
                 bodies.push((entity.base.bounding_box(), is_arrow(entity.base.kind)));
             }
         }

@@ -427,24 +427,6 @@ impl<L: ClientLink> Server<L> {
         }
     }
 
-    pub(crate) fn entity_ticking(&self, chunk: ChunkPos) -> bool {
-        if self.world.chunks.simulates(chunk) {
-            return true;
-        }
-        let simulation = i32::from(self.config.simulation_distance);
-        let near = self
-            .players
-            .values()
-            .any(|p| p.position.chunk().chebyshev_distance(chunk) <= simulation);
-        near && (-1..=1).all(|dx| {
-            (-1..=1).all(|dz| {
-                self.world
-                    .chunks
-                    .is_loaded(ChunkPos::new(chunk.x + dx, chunk.z + dz))
-            })
-        })
-    }
-
     pub(crate) fn send_entity_changes(&mut self) {
         self.sync_boss_bars();
         let ids: Vec<EntityId> = self.entities.tracked.keys().copied().collect();
@@ -486,7 +468,7 @@ impl<L: ClientLink> Server<L> {
     pub(crate) fn tick_entities(&mut self) {
         self.refresh_mob_players();
         self.activate_entities();
-        for id in self.entities.store.ids() {
+        for id in self.ticking_entities() {
             let Some(entity) = self.entities.store.get(id) else {
                 continue;
             };

@@ -413,7 +413,7 @@ impl<L: ClientLink> Server<L> {
     }
 
     pub(crate) fn tick_bubble_pushes(&mut self) {
-        let ids = self.entities.store.ids();
+        let ids = self.ticking_entities();
         for id in ids {
             let Some(entity) = self.entities.store.get(id) else {
                 continue;

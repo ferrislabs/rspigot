@@ -161,6 +161,7 @@ pub struct Server<L> {
     pub(crate) restart_signal: Option<std::sync::Arc<std::sync::atomic::AtomicBool>>,
     pub(crate) heartbeat: Option<crate::heartbeat::Heartbeat>,
     pub(crate) profile: crate::tick_profile::TickProfile,
+    pub(crate) ticking: crate::ticking::Ticking,
     pub(crate) empty_ticks: u64,
     pub(crate) profiler: Option<(Instant, u64)>,
     pub(crate) command_source: Option<crate::commands::source::Source>,
@@ -283,6 +284,7 @@ impl<L: ClientLink> Server<L> {
             restart_signal: None,
             heartbeat: None,
             profile: crate::tick_profile::TickProfile::default(),
+            ticking: crate::ticking::Ticking::default(),
             empty_ticks: 0,
             profiler: None,
             saving_enabled: true,
@@ -1225,6 +1227,7 @@ impl<L: ClientLink> Server<L> {
             self.ask_chunk_unload(pos);
         }
         pass!(self, handle_chunk_events);
+        pass!(self, refresh_ticking);
         let streaming = Instant::now();
         for player in self.players.values_mut().filter(|player| !player.won_game) {
             player.streamer.tick(&self.world.chunks, &player.link);
@@ -1346,6 +1349,7 @@ impl<L: ClientLink> Server<L> {
             self.ask_chunk_unload(pos);
         }
         self.handle_chunk_events();
+        self.refresh_ticking();
         for player in self.players.values_mut().filter(|player| !player.won_game) {
             player.streamer.tick(&self.world.chunks, &player.link);
         }
