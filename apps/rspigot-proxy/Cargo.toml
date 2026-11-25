@@ -9,6 +9,7 @@ rust-version.workspace = true
 rspigot-auth = { workspace = true }
 rspigot-proxy-core = { workspace = true }
 rspigot-proxy-network = { workspace = true }
+rspigot-proxy-plugins = { workspace = true }
 anyhow = "1"
 base64 = "0.22"
 serde = { version = "1", features = ["derive"] }

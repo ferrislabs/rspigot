@@ -24,6 +24,11 @@ try = ["lobby"]
 
 [servers]
 lobby = "127.0.0.1:25566"
+
+[plugins]
+bind = "127.0.0.1:25579"
+token_file = ""
+decide_timeout_ms = 1000
 "#;
 
 #[derive(Debug, Deserialize)]
@@ -44,6 +49,42 @@ pub struct ProxyFile {
     #[serde(rename = "try")]
     pub try_order: Vec<String>,
     pub servers: BTreeMap<String, String>,
+    #[serde(default)]
+    pub plugins: Option<PluginsFile>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct PluginsFile {
+    pub bind: String,
+    #[serde(default)]
+    pub token_file: String,
+    #[serde(default = "default_decide_timeout")]
+    pub decide_timeout_ms: u64,
+}
+
+impl PluginsFile {
+    pub fn token(&self, root: &Path) -> anyhow::Result<Option<String>> {
+        if self.token_file.is_empty() {
+            return Ok(None);
+        }
+        let path = root.join(&self.token_file);
+        let token = std::fs::read_to_string(&path)
+            .with_context(|| format!("cannot read the plugin token {}", path.display()))?;
+        let token = token.trim();
+        if token.is_empty() {
+            bail!("the plugin token {} is empty", path.display());
+        }
+        Ok(Some(token.to_owned()))
+    }
+
+    pub fn decide_timeout(&self) -> Duration {
+        Duration::from_millis(self.decide_timeout_ms)
+    }
+}
+
+const fn default_decide_timeout() -> u64 {
+    1000
 }
 
 const fn default_connect_timeout() -> u64 {
@@ -125,6 +166,27 @@ mod tests {
         assert_eq!(settings.compression_threshold, Some(256));
         assert!(settings.online_mode);
         assert_eq!(settings.favicon, None);
+    }
+
+    #[test]
+    fn the_default_plugin_host_listens_on_loopback_without_a_token() {
+        let dir = tempfile::tempdir().unwrap();
+        let file = ProxyFile::parse(DEFAULT).unwrap();
+        let plugins = file.plugins.unwrap();
+        assert_eq!(plugins.bind, "127.0.0.1:25579");
+        assert_eq!(plugins.token(dir.path()).unwrap(), None);
+        assert_eq!(plugins.decide_timeout(), Duration::from_secs(1));
+        let without = DEFAULT.split("[plugins]").next().unwrap();
+        assert!(ProxyFile::parse(without).unwrap().plugins.is_none());
+    }
+
+    #[test]
+    fn a_plugin_token_file_is_read_and_trimmed() {
+        let dir = tempfile::tempdir().unwrap();
+        std::fs::write(dir.path().join("plugins.token"), "abc\n").unwrap();
+        let text = DEFAULT.replace("token_file = \"\"", "token_file = \"plugins.token\"");
+        let plugins = ProxyFile::parse(&text).unwrap().plugins.unwrap();
+        assert_eq!(plugins.token(dir.path()).unwrap().as_deref(), Some("abc"));
     }
 
     #[test]

@@ -2108,6 +2108,7 @@ dependencies = [
  "rspigot-auth",
  "rspigot-proxy-core",
  "rspigot-proxy-network",
+ "rspigot-proxy-plugins",
  "serde",
  "tempfile",
  "tokio",
@@ -2145,6 +2146,22 @@ dependencies = [
  "tokio",
  "tracing",
  "tracing-subscriber",
+ "uuid",
+]
+
+[[package]]
+name = "rspigot-proxy-plugins"
+version = "0.1.1"
+dependencies = [
+ "rspigot-core",
+ "rspigot-plugin-protocol",
+ "rspigot-proxy-core",
+ "rspigot-proxy-network",
+ "thiserror",
+ "tokio",
+ "tokio-stream",
+ "tonic",
+ "tracing",
  "uuid",
 ]
 
