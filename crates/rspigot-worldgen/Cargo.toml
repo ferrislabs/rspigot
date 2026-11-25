@@ -14,7 +14,7 @@ rspigot-entities = { workspace = true }
 rspigot-nbt = { workspace = true }
 flate2 = "1.1"
 libm = "0.2"
-md-5 = "0.10"
+md-5 = "0.11"
 serde = { version = "1", features = ["derive"] }
 serde_json = { version = "1", features = ["raw_value"] }
 thiserror = "2"
