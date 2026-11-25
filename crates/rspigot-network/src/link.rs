@@ -10,6 +10,7 @@ use tokio::sync::mpsc::error::TrySendError;
 #[derive(Debug)]
 pub enum Outgoing {
     Event(Box<ClientEvent>),
+    Shared(Arc<ClientEvent>),
     Disconnect(Component),
     Pong(i64),
     Packet { id: i32, body: Vec<u8> },
@@ -90,6 +91,13 @@ impl ClientLink for NetLink {
         }
     }
 
+    fn send_shared(&self, event: Arc<ClientEvent>) {
+        if self.suspended.load(Ordering::Acquire) || !self.connected.load(Ordering::Acquire) {
+            return;
+        }
+        self.push(Outgoing::Shared(event));
+    }
+
     fn disconnect(&self, reason: Component) {
         self.push(Outgoing::Disconnect(reason));
     }
@@ -115,6 +123,16 @@ mod tests {
             NetLink::new(sender, Arc::new(AtomicBool::new(true))),
             receiver,
         )
+    }
+
+    #[test]
+    fn a_shared_event_is_queued_without_being_copied() {
+        let (link, mut receiver) = link();
+        let event = Arc::new(ClientEvent::TickingStep(7));
+        link.send_shared(Arc::clone(&event));
+        assert!(
+            matches!(receiver.try_recv(), Ok(Outgoing::Shared(shared)) if Arc::ptr_eq(&shared, &event))
+        );
     }
 
     #[test]

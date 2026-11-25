@@ -19,7 +19,7 @@ mod text;
 use std::net::SocketAddr;
 use std::time::Duration;
 
-pub use cache::ChunkPacketCache;
+pub use cache::{ChunkPacketCache, SharedFrameCache};
 pub use link::NetLink;
 pub use listener::{run, serve};
 pub use proxy::{Forwarded, ProxyForwarding, hmac_sha256, verify_velocity};
