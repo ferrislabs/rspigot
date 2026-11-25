@@ -5,6 +5,7 @@ use std::sync::Arc;
 
 use anyhow::Context;
 use rspigot_auth::MojangSessionVerifier;
+use rspigot_proxy_core::NoHooks;
 use rspigot_proxy_network::{Shared, serve};
 use tokio::net::TcpListener;
 
@@ -45,6 +46,7 @@ async fn main() -> anyhow::Result<()> {
         settings,
         registry,
         MojangSessionVerifier::new(false),
+        NoHooks,
     )?);
     tokio::select! {
         result = serve(listener, shared) => result?,

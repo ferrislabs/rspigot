@@ -18,6 +18,7 @@ pub enum RegistryError {
 pub struct ServerRegistry {
     servers: BTreeMap<String, String>,
     try_order: Vec<String>,
+    configured_try: Vec<String>,
 }
 
 impl ServerRegistry {
@@ -31,14 +32,32 @@ impl ServerRegistry {
         if let Some(unknown) = try_order.iter().find(|name| !servers.contains_key(*name)) {
             return Err(RegistryError::UnknownTry(unknown.clone()));
         }
-        Ok(Self { servers, try_order })
+        Ok(Self {
+            servers,
+            configured_try: try_order.clone(),
+            try_order,
+        })
     }
 
     pub fn register(&mut self, name: &str, address: &str) -> Option<String> {
         self.servers.insert(name.to_owned(), address.to_owned())
     }
 
+    pub fn register_fallback(&mut self, name: &str, address: &str) -> Option<String> {
+        if !self.try_order.iter().any(|existing| existing == name) {
+            self.try_order.push(name.to_owned());
+        }
+        self.register(name, address)
+    }
+
     pub fn unregister(&mut self, name: &str) -> Option<String> {
+        if !self
+            .configured_try
+            .iter()
+            .any(|configured| configured == name)
+        {
+            self.try_order.retain(|existing| existing != name);
+        }
         self.servers.remove(name)
     }
 
@@ -113,6 +132,21 @@ mod tests {
             names(&registry().fallbacks_from("game")),
             ["lobby-a", "lobby-b"]
         );
+    }
+
+    #[test]
+    fn fallback_servers_join_the_try_order_until_they_leave() {
+        let mut registry = registry();
+        registry.register_fallback("lobby-c", "10.0.0.4:25565");
+        assert_eq!(
+            names(&registry.join_candidates()),
+            ["lobby-a", "lobby-b", "lobby-c"]
+        );
+        registry.unregister("lobby-c");
+        assert_eq!(names(&registry.join_candidates()), ["lobby-a", "lobby-b"]);
+        registry.unregister("lobby-a");
+        registry.register("lobby-a", "10.0.0.1:25565");
+        assert_eq!(names(&registry.join_candidates()), ["lobby-a", "lobby-b"]);
     }
 
     #[test]

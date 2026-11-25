@@ -13,12 +13,21 @@ use rspigot_protocol::login::{
     CustomQuery, CustomQueryAnswer, LoginAcknowledged, LoginCompression, LoginDisconnect,
     LoginFinished, ServerboundHello,
 };
+use rspigot_protocol::play::commands::{
+    CommandNode, CommandNodeKind, CommandSuggestions, Commands,
+};
 use rspigot_protocol::play::player::{PlayerInfoActions, PlayerInfoEntry, PlayerInfoUpdate};
 use rspigot_protocol::play::types::GameMode;
 use rspigot_protocol::status::{PingRequest, PongResponse, StatusRequest, StatusResponse};
 use rspigot_protocol::types::{GameProfile as WireProfile, JsonText};
 use rspigot_protocol::{Packet, split_packet_id, write_packet, write_packet_with_id};
-use rspigot_proxy_core::ServerRegistry;
+use std::future::Future;
+use std::sync::Mutex;
+
+use rspigot_proxy_core::{
+    ArgumentKind, CommandArgument, CommandSpec, ConnectCause, ConnectOutcome, Invocation,
+    Permissions, PlayerView, ProxyHooks, ServerRegistry, Verdict,
+};
 use rspigot_proxy_network::{ProxySettings, Shared, serve};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::{TcpListener, TcpStream};
@@ -110,6 +119,14 @@ async fn start_proxy(backend: String, secret: &[u8]) -> String {
 }
 
 async fn start_proxy_with(backends: &[String], secret: &[u8]) -> String {
+    start_hooked(backends, secret, Recorder::default()).await.0
+}
+
+async fn start_hooked(
+    backends: &[String],
+    secret: &[u8],
+    hooks: Recorder,
+) -> (String, Arc<Shared<Offline, Recorder>>) {
     let _ = tracing_subscriber::fmt()
         .with_env_filter("rspigot_proxy_network=debug")
         .with_test_writer()
@@ -123,9 +140,76 @@ async fn start_proxy_with(backends: &[String], secret: &[u8]) -> String {
         .zip(backends.iter().cloned())
         .collect();
     let registry = ServerRegistry::new(servers, names).unwrap();
-    let shared = Arc::new(Shared::new(settings(secret), registry, Offline).unwrap());
-    tokio::spawn(serve(listener, shared));
-    address
+    let shared = Arc::new(Shared::new(settings(secret), registry, Offline, hooks).unwrap());
+    tokio::spawn(serve(listener, Arc::clone(&shared)));
+    (address, shared)
+}
+
+#[derive(Default)]
+struct Recorder {
+    invocations: Mutex<Vec<Invocation>>,
+    connected: Mutex<Vec<(String, Option<String>)>>,
+    initial: Mutex<Option<Verdict>>,
+    pre_connect: Mutex<Option<Verdict>>,
+    kicked: Mutex<Option<Verdict>>,
+}
+
+impl ProxyHooks for Recorder {
+    fn command(&self, _player: &PlayerView, invocation: Invocation) {
+        self.invocations.lock().unwrap().push(invocation);
+    }
+
+    fn connected(&self, _player: &PlayerView, server: &str, previous: Option<&str>) {
+        self.connected
+            .lock()
+            .unwrap()
+            .push((server.to_owned(), previous.map(str::to_owned)));
+    }
+
+    fn initial_server(
+        &self,
+        _player: PlayerView,
+        _candidates: Vec<String>,
+    ) -> impl Future<Output = Verdict> + Send {
+        let verdict = self
+            .initial
+            .lock()
+            .unwrap()
+            .clone()
+            .unwrap_or(Verdict::Allow);
+        async move { verdict }
+    }
+
+    fn pre_connect(
+        &self,
+        _player: PlayerView,
+        _target: String,
+        _cause: ConnectCause,
+    ) -> impl Future<Output = Verdict> + Send {
+        let verdict = self
+            .pre_connect
+            .lock()
+            .unwrap()
+            .clone()
+            .unwrap_or(Verdict::Allow);
+        async move { verdict }
+    }
+
+    fn kicked(
+        &self,
+        _player: PlayerView,
+        _server: String,
+        _reason: String,
+        _fallbacks: Vec<String>,
+    ) -> impl Future<Output = Verdict> + Send {
+        let verdict = self
+            .kicked
+            .lock()
+            .unwrap()
+            .clone()
+            .unwrap_or(Verdict::Allow);
+        async move { verdict }
+    }
 }
 
 async fn listener() -> (TcpListener, String) {
@@ -574,6 +658,10 @@ async fn join_and_play(proxy: &str, first: &TcpListener) -> InPlay {
 }
 
 async fn expect_moved(game: &mut InPlay, second: &TcpListener) -> Peer {
+    expect_moved_with(game, second, true).await
+}
+
+async fn expect_moved_with(game: &mut InPlay, second: &TcpListener, notice: bool) -> Peer {
     let (mut next, forwarded) = backend_accepts_forwarded_player(second).await;
     next.send(&LoginFinished {
         profile: WireProfile {
@@ -585,9 +673,12 @@ async fn expect_moved(game: &mut InPlay, second: &TcpListener) -> Peer {
     })
     .await;
     let mut seen = Vec::new();
-    for _ in 0..4 {
+    for _ in 0..(3 + usize::from(notice)) {
         let packet = game.player.next().await;
         seen.push(id_of(&packet));
+    }
+    if !notice {
+        seen.insert(0, ids::play::clientbound::SYSTEM_CHAT);
     }
     assert_eq!(
         seen,
@@ -666,4 +757,242 @@ async fn a_kick_with_no_live_fallback_reaches_the_player() {
     game.backend.send_raw(&kick).await;
     assert_eq!(game.player.next().await, kick);
     expect_closed(&mut game.player).await;
+}
+
+fn spec(name: &str, permission: Option<&str>, arguments: Vec<CommandArgument>) -> CommandSpec {
+    CommandSpec {
+        name: name.to_owned(),
+        aliases: Vec::new(),
+        permission: permission.map(str::to_owned),
+        arguments,
+    }
+}
+
+fn steve() -> Uuid {
+    PlayerId::offline("Steve").0
+}
+
+fn tree_packet(literals: &[&str]) -> Vec<u8> {
+    let mut nodes = vec![CommandNode {
+        kind: CommandNodeKind::Root,
+        executable: false,
+        restricted: false,
+        children: (1..=literals.len() as i32).collect(),
+        redirect: None,
+    }];
+    for name in literals {
+        nodes.push(CommandNode {
+            kind: CommandNodeKind::Literal {
+                name: (*name).to_owned(),
+            },
+            executable: true,
+            restricted: false,
+            children: Vec::new(),
+            redirect: None,
+        });
+    }
+    let mut out = Vec::new();
+    write_packet(
+        &Commands {
+            nodes,
+            root_index: 0,
+        },
+        &mut out,
+    );
+    out
+}
+
+fn literals_of(packet: &[u8]) -> Vec<String> {
+    let (id, body) = split_packet_id(packet).unwrap();
+    assert_eq!(id, ids::play::clientbound::COMMANDS);
+    let tree: Commands = decode_exact(body).unwrap();
+    tree.nodes[tree.root_index as usize]
+        .children
+        .iter()
+        .filter_map(|child| match &tree.nodes[*child as usize].kind {
+            CommandNodeKind::Literal { name } => Some(name.clone()),
+            _ => None,
+        })
+        .collect()
+}
+
+#[tokio::test]
+async fn a_proxy_command_reaches_the_plugin_and_never_the_backend() {
+    let (first, first_address) = listener().await;
+    let (proxy, shared) = start_hooked(&[first_address], SECRET, Recorder::default()).await;
+    shared.register_command(1, spec("hub", None, Vec::new()));
+    let mut game = join_and_play(&proxy, &first).await;
+
+    game.player
+        .send_raw(&raw(
+            ids::play::serverbound::CHAT_COMMAND,
+            &string_body("hub"),
+        ))
+        .await;
+    let list = raw(ids::play::serverbound::CHAT_COMMAND, &string_body("list"));
+    game.player.send_raw(&list).await;
+    assert_eq!(game.backend.next().await, list);
+    let invocations = shared.hooks().invocations.lock().unwrap().clone();
+    assert_eq!(invocations.len(), 1);
+    assert_eq!(invocations[0].command, "hub");
+}
+
+#[tokio::test]
+async fn the_command_tree_shows_proxy_commands_the_player_may_use() {
+    let (first, first_address) = listener().await;
+    let (proxy, shared) = start_hooked(&[first_address], SECRET, Recorder::default()).await;
+    shared.register_command(1, spec("hub", None, Vec::new()));
+    shared.register_command(
+        1,
+        spec(
+            "server",
+            Some("proxy.command.server"),
+            vec![CommandArgument {
+                name: "server".to_owned(),
+                kind: ArgumentKind::Server,
+                optional: true,
+                choices: Vec::new(),
+            }],
+        ),
+    );
+    let mut game = join_and_play(&proxy, &first).await;
+
+    game.backend
+        .send_raw(&tree_packet(&["gamemode", "hub"]))
+        .await;
+    assert_eq!(literals_of(&game.player.next().await), ["gamemode", "hub"]);
+
+    shared.set_permissions(
+        steve(),
+        Permissions::new(["proxy.command.*".to_owned()], []),
+    );
+    assert_eq!(
+        literals_of(&game.player.next().await),
+        ["gamemode", "hub", "server"]
+    );
+
+    let mut request = Vec::new();
+    VarInt(3).encode(&mut request);
+    request.extend(string_body("/server se"));
+    game.player
+        .send_raw(&raw(ids::play::serverbound::COMMAND_SUGGESTION, &request))
+        .await;
+    let packet = game.player.next().await;
+    let (id, body) = split_packet_id(&packet).unwrap();
+    assert_eq!(id, ids::play::clientbound::COMMAND_SUGGESTIONS);
+    let suggestions: CommandSuggestions = decode_exact(body).unwrap();
+    assert_eq!(suggestions.id, 3);
+    assert_eq!(suggestions.start, 8);
+    let texts: Vec<&str> = suggestions
+        .suggestions
+        .iter()
+        .map(|s| s.text.as_str())
+        .collect();
+    assert_eq!(texts, ["server-0"]);
+}
+
+#[tokio::test]
+async fn a_plugin_can_move_a_player_and_learns_the_outcome() {
+    let (first, first_address) = listener().await;
+    let (second, second_address) = listener().await;
+    let (proxy, shared) = start_hooked(
+        &[first_address, second_address],
+        SECRET,
+        Recorder::default(),
+    )
+    .await;
+    let mut game = join_and_play(&proxy, &first).await;
+
+    assert_eq!(
+        shared.connect(steve(), "server-0").await,
+        ConnectOutcome::AlreadyThere
+    );
+    assert_eq!(
+        shared.connect(steve(), "nowhere").await,
+        ConnectOutcome::UnknownServer
+    );
+    let mover = Arc::clone(&shared);
+    let outcome = tokio::spawn(async move { mover.connect(steve(), "server-1").await });
+    let _next = expect_moved_with(&mut game, &second, false).await;
+    assert_eq!(outcome.await.unwrap(), ConnectOutcome::Connected);
+    let connected = shared.hooks().connected.lock().unwrap().clone();
+    assert_eq!(
+        connected,
+        [
+            ("server-0".to_owned(), None),
+            ("server-1".to_owned(), Some("server-0".to_owned()))
+        ]
+    );
+    assert_eq!(
+        shared.player("Steve").unwrap().server.as_deref(),
+        Some("server-1")
+    );
+}
+
+#[tokio::test]
+async fn plugins_send_messages_and_kick() {
+    let (first, first_address) = listener().await;
+    let (proxy, shared) = start_hooked(&[first_address], SECRET, Recorder::default()).await;
+    let mut game = join_and_play(&proxy, &first).await;
+
+    shared.send_message(None, &rspigot_proxy_network::text::legacy("§aHello"));
+    assert_eq!(
+        id_of(&game.player.next().await),
+        ids::play::clientbound::SYSTEM_CHAT
+    );
+    assert!(shared.kick(steve(), rspigot_proxy_network::text::legacy("§cBye")));
+    assert_eq!(
+        id_of(&game.player.next().await),
+        ids::play::clientbound::DISCONNECT
+    );
+    expect_closed(&mut game.player).await;
+}
+
+#[tokio::test]
+async fn a_pre_connect_deny_refuses_the_login_with_its_message() {
+    let (_first, first_address) = listener().await;
+    let hooks = Recorder::default();
+    *hooks.pre_connect.lock().unwrap() = Some(Verdict::Deny("§cMaintenance".to_owned()));
+    let (proxy, _shared) = start_hooked(&[first_address], SECRET, hooks).await;
+    let mut player = login(&proxy, "Steve").await;
+    let packet = player.next().await;
+    let (id, body) = split_packet_id(&packet).unwrap();
+    assert_eq!(id, ids::login::clientbound::LOGIN_DISCONNECT);
+    let LoginDisconnect { reason } = decode_exact(body).unwrap();
+    assert!(reason.0.contains("Maintenance"));
+}
+
+#[tokio::test]
+async fn the_initial_server_hook_picks_where_the_player_lands() {
+    let (_first, first_address) = listener().await;
+    let (second, second_address) = listener().await;
+    let hooks = Recorder::default();
+    *hooks.initial.lock().unwrap() = Some(Verdict::Redirect {
+        server: "server-1".to_owned(),
+        message: None,
+    });
+    let (proxy, _shared) = start_hooked(&[first_address, second_address], SECRET, hooks).await;
+    let mut player = login(&proxy, "Steve").await;
+    let (mut backend, forwarded) = backend_accepts_forwarded_player(&second).await;
+    finish_login(&mut player, &mut backend, forwarded.id).await;
+}
+
+#[tokio::test]
+async fn a_kicked_hook_can_refuse_the_fallback() {
+    let (first, first_address) = listener().await;
+    let (second, second_address) = listener().await;
+    let hooks = Recorder::default();
+    *hooks.kicked.lock().unwrap() = Some(Verdict::Deny("§cBanned".to_owned()));
+    let (proxy, _shared) = start_hooked(&[first_address, second_address], SECRET, hooks).await;
+    let mut game = join_and_play(&proxy, &first).await;
+    game.backend
+        .send_raw(&raw(ids::play::clientbound::DISCONNECT, &[8, 0, 1, b'x']))
+        .await;
+    assert_eq!(
+        id_of(&game.player.next().await),
+        ids::play::clientbound::DISCONNECT
+    );
+    expect_closed(&mut game.player).await;
+    let next = tokio::time::timeout(Duration::from_millis(300), second.accept()).await;
+    assert!(next.is_err(), "the proxy moved the player anyway");
 }
