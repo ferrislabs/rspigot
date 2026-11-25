@@ -22,7 +22,7 @@ use std::time::Duration;
 pub use cache::ChunkPacketCache;
 pub use link::NetLink;
 pub use listener::{run, serve};
-pub use proxy::{ProxyForwarding, hmac_sha256};
+pub use proxy::{Forwarded, ProxyForwarding, hmac_sha256, verify_velocity};
 pub use query::{QueryConfig, serve_query};
 
 #[derive(Debug, Clone)]
