@@ -53,6 +53,15 @@ pub(crate) enum Audience {
     },
 }
 
+macro_rules! pass {
+    ($server:ident, $method:ident $(, $arg:expr)*) => {{
+        let started = Instant::now();
+        let result = $server.$method($($arg),*);
+        $server.profile.record(stringify!($method), started.elapsed());
+        result
+    }};
+}
+
 pub struct World {
     pub dimension: Arc<Dimension>,
     pub chunks: ChunkManager,
@@ -151,6 +160,7 @@ pub struct Server<L> {
     pub(crate) timings_sink: Option<Sender<crate::timings::TimingsReport>>,
     pub(crate) restart_signal: Option<std::sync::Arc<std::sync::atomic::AtomicBool>>,
     pub(crate) heartbeat: Option<crate::heartbeat::Heartbeat>,
+    pub(crate) profile: crate::tick_profile::TickProfile,
     pub(crate) empty_ticks: u64,
     pub(crate) profiler: Option<(Instant, u64)>,
     pub(crate) command_source: Option<crate::commands::source::Source>,
@@ -272,6 +282,7 @@ impl<L: ClientLink> Server<L> {
             timings_sink: None,
             restart_signal: None,
             heartbeat: None,
+            profile: crate::tick_profile::TickProfile::default(),
             empty_ticks: 0,
             profiler: None,
             saving_enabled: true,
@@ -413,7 +424,7 @@ impl<L: ClientLink> Server<L> {
             let now = Instant::now();
             if now >= next_tick || self.tick_rate.is_sprinting() {
                 self.mark_phase(TickPhase::Inbox);
-                self.handle_waiting(inbound);
+                pass!(self, handle_waiting, inbound);
                 if !self.running {
                     break;
                 }
@@ -1126,18 +1137,19 @@ impl<L: ClientLink> Server<L> {
     }
 
     pub fn tick(&mut self) {
+        let started = Instant::now();
         self.activate_data();
         self.tick += 1;
         self.tps.record(self.tick);
-        self.broadcast_latency();
-        self.track_emptiness();
+        pass!(self, broadcast_latency);
+        pass!(self, track_emptiness);
         self.simulating = self.tick_rate.runs_simulation() && !self.paused_while_empty();
         if self.simulating {
-            self.tick_functions();
+            pass!(self, tick_functions);
         }
         self.tick_world(true);
         if self.simulating {
-            self.tick_scheduled_events();
+            pass!(self, tick_scheduled_events);
         }
         let mut keys: Vec<crate::world_state::DimensionKey> = self
             .dormant
@@ -1149,13 +1161,14 @@ impl<L: ClientLink> Server<L> {
         for key in keys {
             self.tick_dormant(&key);
         }
-        self.run_portal_queue();
-        self.run_nether_queue();
-        self.expire_pending_eyes();
-        self.expire_pending_queries();
-        self.sync_waypoints();
-        self.tick_chat_guard();
-        self.finish_perf_run();
+        pass!(self, run_portal_queue);
+        pass!(self, run_nether_queue);
+        pass!(self, expire_pending_eyes);
+        pass!(self, expire_pending_queries);
+        pass!(self, sync_waypoints);
+        pass!(self, tick_chat_guard);
+        pass!(self, finish_perf_run);
+        self.profile.end_tick(started.elapsed());
     }
 
     fn tick_dormant(&mut self, key: &crate::world_state::DimensionKey) {
@@ -1163,7 +1176,7 @@ impl<L: ClientLink> Server<L> {
             return;
         };
         self.swap_world(&mut state);
-        self.drain_world_results();
+        pass!(self, drain_world_results);
         self.tick_world(false);
         self.swap_world(&mut state);
         self.dormant.insert(key.clone(), state);
@@ -1180,7 +1193,7 @@ impl<L: ClientLink> Server<L> {
         let mut away = self.set_aside_players_outside(&home);
         self.tick_world_here(primary, &home, &mut away);
         self.players.extend(away);
-        self.deliver();
+        pass!(self, deliver);
     }
 
     fn set_aside_players_outside(
@@ -1211,84 +1224,86 @@ impl<L: ClientLink> Server<L> {
         for pos in self.world.chunks.tick() {
             self.ask_chunk_unload(pos);
         }
-        self.handle_chunk_events();
+        pass!(self, handle_chunk_events);
+        let streaming = Instant::now();
         for player in self.players.values_mut().filter(|player| !player.won_game) {
             player.streamer.tick(&self.world.chunks, &player.link);
         }
-        self.send_light_updates();
-        self.send_entity_changes();
-        self.tick_border();
-        self.tick_weather();
-        self.tick_idle_players();
-        self.tick_health();
-        self.tick_spin_attacks();
-        self.tick_enchantment_effects();
-        self.tick_fall_flying();
-        self.tick_player_movement();
-        self.tick_stat_clocks();
-        self.tick_scoreboard_criteria();
-        self.tick_advancements();
-        self.tick_sleeping();
-        self.tick_shoulders();
-        self.tick_eating();
-        self.tick_cooldowns();
-        self.tick_delayed_destroys();
-        self.tick_spawning();
-        self.tick_patrol_spawner();
-        self.tick_phantom_spawner();
-        self.tick_trader_spawner();
-        self.tick_cat_spawner();
-        self.tick_creaking_hearts();
-        self.tick_raids();
-        self.tick_dragon_fight();
-        self.tick_pending_eyes();
-        self.tick_pending_queries();
-        self.tick_entities();
-        self.tick_portals();
-        self.tick_nether_portals();
-        self.tick_gateways();
-        self.tick_gateway_travelers();
-        self.tick_ride_players();
-        self.tick_golem_chests();
-        self.collect_items();
-        self.collect_arrows();
-        self.collect_orbs();
-        self.tick_furnaces();
-        self.tick_brewing_stands();
-        self.tick_game_events();
-        self.tick_campfires();
-        self.tick_beehives();
-        self.tick_spawners();
-        self.tick_trial_spawners();
-        self.tick_vaults();
-        self.tick_inventories();
-        self.tick_maps();
+        self.profile.record("stream_chunks", streaming.elapsed());
+        pass!(self, send_light_updates);
+        pass!(self, send_entity_changes);
+        pass!(self, tick_border);
+        pass!(self, tick_weather);
+        pass!(self, tick_idle_players);
+        pass!(self, tick_health);
+        pass!(self, tick_spin_attacks);
+        pass!(self, tick_enchantment_effects);
+        pass!(self, tick_fall_flying);
+        pass!(self, tick_player_movement);
+        pass!(self, tick_stat_clocks);
+        pass!(self, tick_scoreboard_criteria);
+        pass!(self, tick_advancements);
+        pass!(self, tick_sleeping);
+        pass!(self, tick_shoulders);
+        pass!(self, tick_eating);
+        pass!(self, tick_cooldowns);
+        pass!(self, tick_delayed_destroys);
+        pass!(self, tick_spawning);
+        pass!(self, tick_patrol_spawner);
+        pass!(self, tick_phantom_spawner);
+        pass!(self, tick_trader_spawner);
+        pass!(self, tick_cat_spawner);
+        pass!(self, tick_creaking_hearts);
+        pass!(self, tick_raids);
+        pass!(self, tick_dragon_fight);
+        pass!(self, tick_pending_eyes);
+        pass!(self, tick_pending_queries);
+        pass!(self, tick_entities);
+        pass!(self, tick_portals);
+        pass!(self, tick_nether_portals);
+        pass!(self, tick_gateways);
+        pass!(self, tick_gateway_travelers);
+        pass!(self, tick_ride_players);
+        pass!(self, tick_golem_chests);
+        pass!(self, collect_items);
+        pass!(self, collect_arrows);
+        pass!(self, collect_orbs);
+        pass!(self, tick_furnaces);
+        pass!(self, tick_brewing_stands);
+        pass!(self, tick_game_events);
+        pass!(self, tick_campfires);
+        pass!(self, tick_beehives);
+        pass!(self, tick_spawners);
+        pass!(self, tick_trial_spawners);
+        pass!(self, tick_vaults);
+        pass!(self, tick_inventories);
+        pass!(self, tick_maps);
         if primary {
             self.players.extend(away.drain(..));
-            self.tick_plugins();
+            pass!(self, tick_plugins);
             *away = self.set_aside_players_outside(home);
         }
-        self.tick_open_menus();
-        self.tick_pressure_plates();
-        self.tick_hoppers();
-        self.tick_jukeboxes();
-        self.tick_rails();
-        self.tick_hopper_carts();
-        self.tick_bells();
-        self.tick_daylight_detectors();
-        self.tick_falling_blocks();
-        self.tick_block_events();
-        self.tick_thunder();
-        self.tick_random_blocks();
-        self.tick_fluids();
-        self.update_tracking();
-        self.update_npc_viewers();
-        self.tick_npc_walks();
-        self.tick_npc_gazes();
-        self.notify_poses();
-        self.sync_vitals();
+        pass!(self, tick_open_menus);
+        pass!(self, tick_pressure_plates);
+        pass!(self, tick_hoppers);
+        pass!(self, tick_jukeboxes);
+        pass!(self, tick_rails);
+        pass!(self, tick_hopper_carts);
+        pass!(self, tick_bells);
+        pass!(self, tick_daylight_detectors);
+        pass!(self, tick_falling_blocks);
+        pass!(self, tick_block_events);
+        pass!(self, tick_thunder);
+        pass!(self, tick_random_blocks);
+        pass!(self, tick_fluids);
+        pass!(self, update_tracking);
+        pass!(self, update_npc_viewers);
+        pass!(self, tick_npc_walks);
+        pass!(self, tick_npc_gazes);
+        pass!(self, notify_poses);
+        pass!(self, sync_vitals);
         if self.tick.is_multiple_of(20) {
-            self.sync_world_time();
+            pass!(self, sync_world_time);
         }
         let disconnected: Vec<PlayerId> = self
             .players
@@ -1563,6 +1578,10 @@ impl<L: ClientLink> Server<L> {
 
     pub fn players_online(&self) -> usize {
         self.players.len()
+    }
+
+    pub fn tick_profile(&self) -> crate::tick_profile::Snapshot {
+        self.profile.snapshot()
     }
 
     pub fn chunk_stats(&self) -> crate::chunks::ChunkManagerStats {

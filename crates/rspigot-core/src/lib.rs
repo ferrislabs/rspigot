@@ -236,6 +236,7 @@ mod throwing;
 mod thrown;
 mod thunder;
 mod tick_limits;
+pub mod tick_profile;
 pub mod timings;
 mod tnt;
 mod totem;
