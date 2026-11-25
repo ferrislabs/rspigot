@@ -628,9 +628,11 @@ impl<L: ClientLink> Server<L> {
     }
 
     pub fn deliver(&mut self) {
+        debug_assert!(self.viewers_consistent(), "entity viewers index drifted");
         let active = self.world.dimension.key.clone();
         crate::block_batches::batch_block_updates(&mut self.outbox);
-        for (audience, event) in self.outbox.drain(..) {
+        let mut outbox = std::mem::take(&mut self.outbox);
+        for (audience, event) in outbox.drain(..) {
             match audience {
                 Audience::One(id) => {
                     if let Some(player) = self.players.get(&id) {
@@ -638,40 +640,37 @@ impl<L: ClientLink> Server<L> {
                     }
                 }
                 Audience::All => {
+                    let event = Arc::new(event);
                     for player in self.players.values() {
-                        crate::chat_visibility::send(player, event.clone());
+                        crate::chat_visibility::send_shared(player, &event);
                     }
                 }
                 Audience::Dimension(key) => {
+                    let event = Arc::new(event);
                     for player in self.players.values().filter(|p| p.dim == key) {
-                        crate::chat_visibility::send(player, event.clone());
+                        crate::chat_visibility::send_shared(player, &event);
                     }
                 }
                 Audience::Trackers(entity) => {
-                    for player in self
-                        .players
-                        .values()
-                        .filter(|p| p.tracked.contains(&entity))
-                    {
-                        crate::chat_visibility::send(player, event.clone());
+                    let event = Arc::new(event);
+                    for player in self.viewers_of(entity, None) {
+                        crate::chat_visibility::send_shared(player, &event);
                     }
                 }
                 Audience::TrackersExcept(entity, excluded) => {
-                    for player in self
-                        .players
-                        .values()
-                        .filter(|p| p.id != excluded && p.tracked.contains(&entity))
-                    {
-                        crate::chat_visibility::send(player, event.clone());
+                    let event = Arc::new(event);
+                    for player in self.viewers_of(entity, Some(excluded)) {
+                        crate::chat_visibility::send_shared(player, &event);
                     }
                 }
                 Audience::ChunkViewers(pos) => {
+                    let event = Arc::new(event);
                     for player in self
                         .players
                         .values()
                         .filter(|p| p.dim == active && p.streamer.has_sent(pos))
                     {
-                        crate::chat_visibility::send(player, event.clone());
+                        crate::chat_visibility::send_shared(player, &event);
                     }
                 }
                 Audience::Nearby {
@@ -679,17 +678,58 @@ impl<L: ClientLink> Server<L> {
                     range,
                     except,
                 } => {
+                    let event = Arc::new(event);
                     for player in self.players.values().filter(|p| {
                         p.dim == active
                             && Some(p.id) != except
                             && except.is_none_or(|source| !self.visibility.hides(p.id, source))
                             && p.position.distance_squared(position) < range * range
                     }) {
-                        crate::chat_visibility::send(player, event.clone());
+                        crate::chat_visibility::send_shared(player, &event);
                     }
                 }
             }
         }
+        outbox.append(&mut self.outbox);
+        self.outbox = outbox;
+    }
+
+    fn viewers_consistent(&self) -> bool {
+        let here = &self.world.dimension.key;
+        let indexed = self
+            .players
+            .values()
+            .filter(|p| &p.dim == here)
+            .all(|player| {
+                player.tracked.iter().all(|entity| {
+                    self.entities
+                        .viewers
+                        .get(entity)
+                        .is_some_and(|viewers| viewers.contains(&player.id))
+                })
+            });
+        let tracked = self.entities.viewers.iter().all(|(entity, viewers)| {
+            viewers.iter().all(|id| {
+                self.players
+                    .get(id)
+                    .is_none_or(|player| player.tracked.contains(entity))
+            })
+        });
+        indexed && tracked
+    }
+
+    fn viewers_of(
+        &self,
+        entity: EntityId,
+        excluded: Option<PlayerId>,
+    ) -> impl Iterator<Item = &Player<L>> {
+        self.entities
+            .viewers
+            .get(&entity)
+            .into_iter()
+            .flat_map(|viewers| viewers.iter())
+            .filter(move |id| Some(**id) != excluded)
+            .filter_map(|id| self.players.get(id))
     }
 
     pub(crate) fn list_entry(player: &Player<L>) -> PlayerListEntry {
@@ -1108,6 +1148,12 @@ impl<L: ClientLink> Server<L> {
         self.extras.forget(id);
         self.persist_player(&player);
         player.streamer.release_all(&mut self.world.chunks);
+        for watched in &player.tracked {
+            if let Some(viewers) = self.entities.viewers.get_mut(watched) {
+                viewers.remove(&id);
+            }
+        }
+        self.entities.viewers.remove(&player.entity_id);
         for other in self.players.values_mut() {
             if other.tracked.remove(&player.entity_id) {
                 other
@@ -1497,6 +1543,7 @@ impl<L: ClientLink> Server<L> {
         let range = self.config.player_tracking_range * self.config.player_tracking_range;
         let visibility = &self.visibility;
         let rides = &self.entities.rides;
+        let watchers = &mut self.entities.viewers;
         for viewer in self.players.values_mut() {
             for target in &targets {
                 if target.id == viewer.id {
@@ -1515,6 +1562,7 @@ impl<L: ClientLink> Server<L> {
                 let tracking = viewer.tracked.contains(&target.entity);
                 if visible && !tracking {
                     viewer.tracked.insert(target.entity);
+                    watchers.entry(target.entity).or_default().insert(viewer.id);
                     viewer.link.send(ClientEvent::SpawnEntity {
                         entity: target.entity,
                         uuid: target.id.0,
@@ -1564,6 +1612,9 @@ impl<L: ClientLink> Server<L> {
                     }
                 } else if !visible && tracking {
                     viewer.tracked.remove(&target.entity);
+                    if let Some(watching) = watchers.get_mut(&target.entity) {
+                        watching.remove(&viewer.id);
+                    }
                     viewer
                         .link
                         .send(ClientEvent::RemoveEntities(vec![target.entity]));

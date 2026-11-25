@@ -417,8 +417,13 @@ impl<L: ClientLink> Server<L> {
             return;
         };
         player.streamer.release_all(&mut self.world.chunks);
-        player.tracked.clear();
+        for watched in player.tracked.drain() {
+            if let Some(watching) = self.entities.viewers.get_mut(&watched) {
+                watching.remove(&id);
+            }
+        }
         let entity = player.entity_id;
+        self.entities.viewers.remove(&entity);
         for other in self.players.values_mut() {
             if other.id != id && other.tracked.remove(&entity) {
                 other.link.send(ClientEvent::RemoveEntities(vec![entity]));

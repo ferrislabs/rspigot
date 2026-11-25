@@ -350,6 +350,9 @@ impl<L: ClientLink> Server<L> {
         }
         if let Some(player) = self.players.get_mut(&viewer) {
             if player.tracked.remove(&entity) {
+                if let Some(watching) = self.entities.viewers.get_mut(&entity) {
+                    watching.remove(&viewer);
+                }
                 player.link.send(ClientEvent::RemoveEntities(vec![entity]));
             }
             player

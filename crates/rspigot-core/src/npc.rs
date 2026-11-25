@@ -317,11 +317,15 @@ impl<L: ClientLink> Server<L> {
             let tracking = player.tracked.contains(&id);
             if visible && !tracking {
                 player.tracked.insert(id);
+                self.entities.viewers.entry(id).or_default().insert(viewer);
                 for event in npc.spawn_events() {
                     player.link.send(event);
                 }
             } else if !visible && tracking {
                 player.tracked.remove(&id);
+                if let Some(watching) = self.entities.viewers.get_mut(&id) {
+                    watching.remove(&viewer);
+                }
                 for event in npc.despawn_events() {
                     player.link.send(event);
                 }
@@ -572,6 +576,7 @@ impl<L: ClientLink> Server<L> {
         let Some(npc) = self.entities.npcs.remove(id) else {
             return;
         };
+        self.entities.viewers.remove(&id);
         for player in self.players.values_mut() {
             if player.tracked.remove(&id) {
                 for event in npc.despawn_events() {

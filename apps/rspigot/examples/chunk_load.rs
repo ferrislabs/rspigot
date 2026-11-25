@@ -1,28 +1,60 @@
+use std::net::IpAddr;
 use std::path::PathBuf;
 use std::sync::Arc;
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::{Duration, Instant};
 
 use anyhow::Context;
 use rspigot_anvil::{AnvilStore, DimensionLayout};
 use rspigot_core::config::{GameConfig, LevelData};
-use rspigot_core::events::ClientEvent;
+use rspigot_core::events::{ClientEvent, Inbound};
 use rspigot_core::ports::ClientLink;
 use rspigot_core::server::Server;
 use rspigot_core::status::StatusBoard;
+use rspigot_domain::player::{ClientSettings, GameProfile, PlayerId};
 use rspigot_domain::text::Component;
 use rspigot_worldgen::WorldGenerator;
 
-#[derive(Clone)]
-struct Mute;
+#[derive(Clone, Default)]
+struct Mute {
+    events: Arc<AtomicU64>,
+    shared: Arc<AtomicU64>,
+}
 
 impl ClientLink for Mute {
-    fn send(&self, _: ClientEvent) {}
+    fn send(&self, _: ClientEvent) {
+        self.events.fetch_add(1, Ordering::Relaxed);
+    }
+
+    fn send_shared(&self, _: Arc<ClientEvent>) {
+        self.shared.fetch_add(1, Ordering::Relaxed);
+    }
 
     fn disconnect(&self, _: Component) {}
 
     fn is_connected(&self) -> bool {
         true
     }
+}
+
+fn join_players(server: &mut Server<Mute>, count: usize) -> Mute {
+    let link = Mute::default();
+    for index in 0..count {
+        let name = format!("bot{index}");
+        server.handle(Inbound::Join {
+            profile: GameProfile {
+                id: PlayerId::offline(&name),
+                name,
+                properties: Vec::new(),
+            },
+            settings: ClientSettings::default(),
+            link: link.clone(),
+            address: IpAddr::from([127, 0, 0, 1]),
+            session: index as u64 + 1,
+        });
+        server.deliver();
+    }
+    link
 }
 
 struct Arguments {
@@ -96,6 +128,16 @@ fn main() -> anyhow::Result<()> {
     let loaded = server.start(Duration::from_secs(240));
     let load_time = started.elapsed();
     let after_load = rss_kib();
+    let players = std::env::var("RSPIGOT_PLAYERS")
+        .ok()
+        .and_then(|v| v.parse().ok())
+        .unwrap_or(0usize);
+    let link = join_players(&mut server, players);
+    for _ in 0..40 {
+        server.tick();
+    }
+    link.events.store(0, Ordering::Relaxed);
+    link.shared.store(0, Ordering::Relaxed);
     let profile_before = server.tick_profile();
     let mut samples = Vec::with_capacity(args.ticks);
     for _ in 0..args.ticks {
@@ -109,6 +151,18 @@ fn main() -> anyhow::Result<()> {
     let stats = server.chunk_stats();
     let total: Duration = samples.iter().sum();
     println!("chunks_loaded: {loaded}");
+    println!("players: {players}");
+    if !samples.is_empty() {
+        let ticks = samples.len() as f64;
+        println!(
+            "events_per_tick: {:.1}",
+            link.events.load(Ordering::Relaxed) as f64 / ticks
+        );
+        println!(
+            "shared_events_per_tick: {:.1}",
+            link.shared.load(Ordering::Relaxed) as f64 / ticks
+        );
+    }
     println!("chunks_pending: {}", stats.pending);
     println!("chunk_copies: {}", stats.copies);
     println!("stitch_queued_after_ticks: {}", stats.stitch_queued);

@@ -388,7 +388,11 @@ impl<L: ClientLink> Server<L> {
             return;
         };
         player.streamer.release_all(&mut self.world.chunks);
-        player.tracked.clear();
+        for watched in player.tracked.drain() {
+            if let Some(watching) = self.entities.viewers.get_mut(&watched) {
+                watching.remove(&id);
+            }
+        }
         player.loaded = false;
         let view = u8::try_from(player.streamer.view_distance()).unwrap_or(u8::MAX);
         player.streamer = ChunkStreamer::new(self.config.stream, player.position.chunk(), view);
