@@ -2106,6 +2106,7 @@ dependencies = [
  "anyhow",
  "base64 0.22.1",
  "rspigot-auth",
+ "rspigot-proxy-core",
  "rspigot-proxy-network",
  "serde",
  "tempfile",
@@ -2113,6 +2114,15 @@ dependencies = [
  "toml",
  "tracing",
  "tracing-subscriber",
+]
+
+[[package]]
+name = "rspigot-proxy-core"
+version = "0.1.1"
+dependencies = [
+ "rspigot-protocol",
+ "thiserror",
+ "uuid",
 ]
 
 [[package]]
@@ -2124,8 +2134,10 @@ dependencies = [
  "rspigot-core",
  "rspigot-data",
  "rspigot-domain",
+ "rspigot-nbt",
  "rspigot-network",
  "rspigot-protocol",
+ "rspigot-proxy-core",
  "serde_json",
  "sha2",
  "thiserror",
