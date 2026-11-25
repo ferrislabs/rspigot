@@ -26,6 +26,12 @@ pub(crate) fn send<L: ClientLink>(player: &Player<L>, event: ClientEvent) {
     }
 }
 
+pub(crate) fn send_shared<L: ClientLink>(player: &Player<L>, event: &std::sync::Arc<ClientEvent>) {
+    if delivers(&player.settings, event) {
+        player.link.send_shared(std::sync::Arc::clone(event));
+    }
+}
+
 impl<L: ClientLink> Server<L> {
     pub(crate) fn refuse_hidden_chat(&mut self, id: rspigot_domain::player::PlayerId) -> bool {
         let hidden = self

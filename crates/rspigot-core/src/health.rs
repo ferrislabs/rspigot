@@ -1010,6 +1010,7 @@ impl<L: ClientLink> Server<L> {
         player.loaded = false;
         player.rotation = rotation;
         let entity = player.entity_id;
+        self.entities.viewers.remove(&entity);
         for other in self.players.values_mut() {
             if other.tracked.remove(&entity) {
                 other.link.send(ClientEvent::RemoveEntities(vec![entity]));
@@ -1298,6 +1299,7 @@ impl<L: ClientLink> Server<L> {
             entity,
             status: EntityStatus::Poof,
         };
+        self.entities.viewers.remove(&entity);
         for viewer in self.players.values_mut() {
             if viewer.tracked.remove(&entity) {
                 viewer.link.send(poof.clone());

@@ -42,6 +42,7 @@ pub(crate) struct EntityWorld {
     pub store: Entities,
     pub rides: rspigot_domain::entity::riding::Rides,
     pub tracked: FxHashMap<EntityId, TrackedEntity>,
+    pub viewers: FxHashMap<EntityId, FxHashSet<rspigot_domain::player::PlayerId>>,
     pub npcs: crate::npc::Npcs,
     pub mobs: crate::mobs::MobTable,
     pub boss_bars: FxHashMap<EntityId, rspigot_domain::boss_event::ServerBossEvent>,
@@ -331,6 +332,7 @@ impl<L: ClientLink> Server<L> {
         self.entities.dragons.remove(&id);
         self.entities.mobs.entries.remove(&id);
         self.entities.mobs.initial_targets.remove(&id);
+        self.entities.viewers.remove(&id);
         for player in self.players.values_mut() {
             if player.tracked.remove(&id) {
                 player.link.send(ClientEvent::RemoveEntities(vec![id]));
@@ -400,6 +402,11 @@ impl<L: ClientLink> Server<L> {
             }
             if let Some(player) = self.players.get_mut(&player_id) {
                 player.tracked.insert(id);
+                self.entities
+                    .viewers
+                    .entry(id)
+                    .or_default()
+                    .insert(player_id);
                 for event in events {
                     player.link.send(event);
                 }
@@ -409,6 +416,9 @@ impl<L: ClientLink> Server<L> {
             && let Some(player) = self.players.get_mut(&player_id)
         {
             player.tracked.remove(&id);
+            if let Some(viewers) = self.entities.viewers.get_mut(&id) {
+                viewers.remove(&player_id);
+            }
             player.link.send(ClientEvent::RemoveEntities(vec![id]));
         }
     }

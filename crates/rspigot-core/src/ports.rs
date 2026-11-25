@@ -1,4 +1,5 @@
 use std::net::IpAddr;
+use std::sync::Arc;
 
 use rspigot_domain::chunk::ChunkColumn;
 use rspigot_domain::player::{GameProfile, PlayerId};
@@ -278,6 +279,9 @@ pub trait SessionVerifier: Send + Sync + 'static {
 
 pub trait ClientLink: Send + 'static {
     fn send(&self, event: ClientEvent);
+    fn send_shared(&self, event: Arc<ClientEvent>) {
+        self.send((*event).clone());
+    }
     fn disconnect(&self, reason: Component);
     fn is_connected(&self) -> bool;
 }
