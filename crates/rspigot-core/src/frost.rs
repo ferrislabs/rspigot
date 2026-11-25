@@ -68,7 +68,7 @@ fn mob_wears_immune(entity: &Entity) -> bool {
 
 impl<L: ClientLink> Server<L> {
     pub(crate) fn tick_freezing(&mut self) {
-        for id in self.entities.store.ids() {
+        for id in self.ticking_entities() {
             self.tick_mob_freezing(id);
         }
         let ids: Vec<PlayerId> = self.players.keys().copied().collect();

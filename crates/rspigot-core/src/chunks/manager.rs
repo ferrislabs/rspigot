@@ -118,6 +118,8 @@ pub struct ChunkManager {
     poi: PoiManager,
     forced: std::collections::BTreeSet<ChunkPos>,
     timed: std::collections::BTreeMap<ChunkPos, TimedTicket>,
+    simulated: std::collections::BTreeSet<ChunkPos>,
+    neighbours: FxHashMap<ChunkPos, u8>,
     block_entities: BlockEntityIndex,
 }
 
@@ -145,6 +147,8 @@ impl ChunkManager {
             poi,
             forced: std::collections::BTreeSet::new(),
             timed: std::collections::BTreeMap::new(),
+            simulated: std::collections::BTreeSet::new(),
+            neighbours: FxHashMap::default(),
             block_entities: BlockEntityIndex::default(),
         }
     }
@@ -213,6 +217,7 @@ impl ChunkManager {
             return false;
         }
         let tickets = self.loaded.remove(&pos).map_or(0, |loaded| {
+            self.count_neighbours(pos, false);
             self.block_entities.forget(pos);
             self.stitch_queued.remove(&pos);
             self.poi.unload_chunk(pos);
@@ -243,35 +248,48 @@ impl ChunkManager {
         }
         if forced {
             self.forced.insert(pos);
+            self.simulated.insert(pos);
             self.add_ticket(pos, Priority::URGENT, workers);
         } else {
             self.forced.remove(&pos);
+            if !self.timed.get(&pos).is_some_and(|ticket| ticket.simulates) {
+                self.simulated.remove(&pos);
+            }
             self.remove_ticket(pos);
         }
         true
     }
 
     pub fn simulates(&self, pos: ChunkPos) -> bool {
-        self.loaded.contains_key(&pos)
-            && (self.forced.contains(&pos) || self.timed.get(&pos).is_some_and(|t| t.simulates))
+        self.simulated.contains(&pos) && self.loaded.contains_key(&pos)
     }
 
     pub fn simulated_chunks(&self) -> Vec<ChunkPos> {
-        let mut found: Vec<ChunkPos> = self
-            .forced
+        self.simulated
             .iter()
-            .chain(
-                self.timed
-                    .iter()
-                    .filter(|(_, ticket)| ticket.simulates)
-                    .map(|(pos, _)| pos),
-            )
             .copied()
             .filter(|pos| self.loaded.contains_key(pos))
-            .collect();
-        found.sort_unstable();
-        found.dedup();
-        found
+            .collect()
+    }
+
+    pub fn neighbours_loaded(&self, pos: ChunkPos) -> bool {
+        self.neighbours.get(&pos).copied() == Some(9)
+    }
+
+    fn count_neighbours(&mut self, pos: ChunkPos, loaded: bool) {
+        for dx in -1..=1 {
+            for dz in -1..=1 {
+                let around = ChunkPos::new(pos.x + dx, pos.z + dz);
+                if loaded {
+                    *self.neighbours.entry(around).or_default() += 1;
+                } else if let Some(count) = self.neighbours.get_mut(&around) {
+                    *count -= 1;
+                    if *count == 0 {
+                        self.neighbours.remove(&around);
+                    }
+                }
+            }
+        }
     }
 
     pub fn hold_timed(
@@ -282,6 +300,9 @@ impl ChunkManager {
         workers: &ChunkWorkers,
     ) {
         let expires = self.now + ticks;
+        if simulates {
+            self.simulated.insert(pos);
+        }
         if let Some(ticket) = self.timed.get_mut(&pos) {
             ticket.expires = ticket.expires.max(expires);
             ticket.simulates |= simulates;
@@ -362,6 +383,7 @@ impl ChunkManager {
                     self.stitch.push_back(pos);
                 }
                 self.block_entities.refresh(pos, &chunk);
+                self.count_neighbours(pos, true);
                 self.loaded.insert(
                     pos,
                     Loaded {
@@ -402,6 +424,9 @@ impl ChunkManager {
             .collect();
         for pos in lapsed {
             self.timed.remove(&pos);
+            if !self.forced.contains(&pos) {
+                self.simulated.remove(&pos);
+            }
             self.remove_ticket(pos);
         }
         let mut expired: Vec<ChunkPos> = self
@@ -432,6 +457,7 @@ impl ChunkManager {
         let Some(mut loaded) = self.loaded.remove(&pos) else {
             return false;
         };
+        self.count_neighbours(pos, false);
         self.block_entities.forget(pos);
         self.stitch_queued.remove(&pos);
         if save && loaded.dirty {
@@ -1126,6 +1152,46 @@ mod tests {
         assert!(!manager.is_loaded(pos));
         assert_eq!(manager.stats().stitch_queued, 0);
         assert_eq!(manager.relight(), 0);
+        workers.shutdown();
+    }
+
+    #[test]
+    fn a_chunk_has_its_neighbours_loaded_only_when_all_nine_are() {
+        let (mut manager, workers, _) = setup();
+        let around: Vec<ChunkPos> = (-1..=1)
+            .flat_map(|x| (-1..=1).map(move |z| ChunkPos::new(x, z)))
+            .collect();
+        load(&mut manager, &workers, &around);
+        let center = ChunkPos::new(0, 0);
+        assert!(manager.neighbours_loaded(center));
+        assert!(!manager.neighbours_loaded(ChunkPos::new(1, 1)));
+        let corner = ChunkPos::new(1, 1);
+        manager.remove_ticket(corner);
+        for _ in 0..8 {
+            manager.tick();
+            manager.unload(corner, false, &workers);
+        }
+        assert!(!manager.is_loaded(corner));
+        assert!(!manager.neighbours_loaded(center));
+        assert!(!manager.neighbours_loaded(ChunkPos::new(-1, -1)));
+        workers.shutdown();
+    }
+
+    #[test]
+    fn simulated_chunks_follow_forced_and_timed_tickets() {
+        let (mut manager, workers, _) = setup();
+        let (a, b) = (ChunkPos::new(0, 0), ChunkPos::new(1, 0));
+        manager.set_forced(a, true, &workers);
+        manager.hold_timed(b, 2, true, &workers);
+        drain(&mut manager, &workers, 2);
+        assert_eq!(manager.simulated_chunks(), vec![a, b]);
+        assert!(manager.simulates(a) && manager.simulates(b));
+        manager.set_forced(a, false, &workers);
+        for _ in 0..3 {
+            manager.tick();
+        }
+        assert!(manager.simulated_chunks().is_empty());
+        assert!(!manager.simulates(b));
         workers.shutdown();
     }
 

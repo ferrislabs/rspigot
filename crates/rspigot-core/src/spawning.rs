@@ -433,22 +433,15 @@ impl<L: ClientLink> Server<L> {
             .into_iter()
             .filter(|chunk| self.chunk_ticking(*chunk))
             .collect();
-        for chunk in self.world.chunks.simulated_chunks() {
-            if !chunks.contains(&chunk) {
-                chunks.push(chunk);
-            }
-        }
+        let seen: FxHashSet<ChunkPos> = chunks.iter().copied().collect();
+        chunks.extend(
+            self.world
+                .chunks
+                .simulated_chunks()
+                .into_iter()
+                .filter(|chunk| !seen.contains(chunk)),
+        );
         chunks
-    }
-
-    fn chunk_ticking(&self, chunk: ChunkPos) -> bool {
-        (-1..=1).all(|dx| {
-            (-1..=1).all(|dz| {
-                self.world
-                    .chunks
-                    .is_loaded(ChunkPos::new(chunk.x + dx, chunk.z + dz))
-            })
-        })
     }
 
     fn spawn_players(&self) -> Vec<SpawnPlayer> {

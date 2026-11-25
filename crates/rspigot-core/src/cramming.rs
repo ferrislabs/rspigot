@@ -34,7 +34,7 @@ impl<L: ClientLink> Server<L> {
         if limit <= 0 {
             return;
         }
-        for id in self.entities.store.ids() {
+        for id in self.ticking_entities() {
             self.cram_mob(id, limit);
         }
         let ids: Vec<PlayerId> = self.players.keys().copied().collect();

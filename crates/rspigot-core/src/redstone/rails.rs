@@ -254,7 +254,10 @@ impl<L: ClientLink> Server<L> {
         let mut detectors: FxHashSet<BlockPos> = FxHashSet::default();
         let mut activated: Vec<EntityId> = Vec::new();
         let mut gated: Vec<(EntityId, bool)> = Vec::new();
-        for entity in self.entities.store.iter() {
+        for id in self.ticking_entities() {
+            let Some(entity) = self.entities.store.get(id) else {
+                continue;
+            };
             if entity.base.removal.is_some() || !matches!(entity.state, EntityState::Minecart(_)) {
                 continue;
             }

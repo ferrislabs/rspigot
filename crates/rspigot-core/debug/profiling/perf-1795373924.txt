@@ -1,0 +1,5 @@
+duration_seconds: 0.000
+ticks: 0
+tps_1m: 20.00
+tps_5m: 20.00
+tps_15m: 20.00

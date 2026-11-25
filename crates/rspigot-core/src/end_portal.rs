@@ -233,7 +233,7 @@ impl<L: ClientLink> Server<L> {
         for id in players {
             self.tick_player_portal(id, &key);
         }
-        for id in self.entities.store.ids() {
+        for id in self.ticking_entities() {
             self.tick_entity_portal(id, &key);
         }
     }
