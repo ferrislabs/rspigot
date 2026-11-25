@@ -1,0 +1,190 @@
+syntax = "proto3";
+package rspigot.proxy.v1;
+
+service ProxyHost { rpc Connect(stream FromPlugin) returns (stream ToPlugin); }
+
+message FromPlugin {
+  oneof body {
+    Hello hello = 1;
+    Decision decision = 2;
+    Order order = 3;
+    Question question = 4;
+  }
+  optional uint64 request = 15;
+}
+
+message ToPlugin {
+  oneof body {
+    Accepted accepted = 1;
+    Event event = 2;
+    Invocation invocation = 3;
+    Answer answer = 4;
+    Warning warning = 5;
+  }
+}
+
+message Hello {
+  uint32 protocol_version = 1;
+  string name = 2;
+  string version = 3;
+  string token = 4;
+  repeated Subscription subscriptions = 5;
+  repeated CommandSpec commands = 6;
+}
+
+enum Hook {
+  HOOK_UNSPECIFIED = 0;
+  HOOK_LOGIN = 1;
+  HOOK_DISCONNECT = 2;
+  HOOK_INITIAL_SERVER = 3;
+  HOOK_PRE_CONNECT = 4;
+  HOOK_CONNECTED = 5;
+  HOOK_KICKED = 6;
+}
+
+message Subscription { Hook hook = 1; bool decide = 2; }
+
+message CommandSpec {
+  string name = 1;
+  repeated string aliases = 2;
+  optional string permission = 3;
+  repeated CommandArgument arguments = 4;
+}
+
+enum ArgumentKind {
+  ARGUMENT_KIND_UNSPECIFIED = 0;
+  ARGUMENT_KIND_WORD = 1;
+  ARGUMENT_KIND_GREEDY_TEXT = 2;
+  ARGUMENT_KIND_PLAYER = 3;
+  ARGUMENT_KIND_SERVER = 4;
+  ARGUMENT_KIND_INTEGER = 5;
+  ARGUMENT_KIND_CHOICE = 6;
+}
+
+message CommandArgument { string name = 1; ArgumentKind kind = 2; bool optional = 3; repeated string choices = 4; }
+
+message Accepted {
+  string proxy_version = 1;
+  repeated Player players = 2;
+  repeated Server servers = 3;
+}
+
+message Player {
+  string id = 1;
+  string name = 2;
+  string address = 3;
+  optional string server = 4;
+  repeated Property properties = 5;
+}
+
+message Property { string name = 1; string value = 2; optional string signature = 3; }
+
+message Server { string name = 1; string address = 2; uint32 players = 3; }
+
+message Event {
+  uint64 id = 1;
+  bool decide = 2;
+  oneof body {
+    Login login = 10;
+    Disconnect disconnect = 11;
+    InitialServer initial_server = 12;
+    PreConnect pre_connect = 13;
+    Connected connected = 14;
+    Kicked kicked = 15;
+  }
+}
+
+message Login { Player player = 1; }
+message Disconnect { Player player = 1; }
+message InitialServer { Player player = 1; repeated string candidates = 2; }
+
+enum ConnectCause {
+  CONNECT_CAUSE_UNSPECIFIED = 0;
+  CONNECT_CAUSE_JOIN = 1;
+  CONNECT_CAUSE_PLUGIN = 2;
+  CONNECT_CAUSE_FALLBACK = 3;
+}
+
+message PreConnect { Player player = 1; string target = 2; ConnectCause cause = 3; }
+message Connected { Player player = 1; string server = 2; optional string previous = 3; }
+message Kicked { Player player = 1; string server = 2; string reason = 3; repeated string fallbacks = 4; }
+
+message Decision {
+  uint64 event = 1;
+  oneof verdict {
+    Allow allow = 2;
+    Deny deny = 3;
+    Redirect redirect = 4;
+  }
+}
+
+message Allow {}
+message Deny { string message = 1; }
+message Redirect { string server = 1; optional string message = 2; }
+
+message Order {
+  oneof body {
+    ConnectPlayer connect = 1;
+    SendMessage message = 2;
+    KickPlayer kick = 3;
+    RegisterServer register_server = 4;
+    string unregister_server = 5;
+    Permissions permissions = 6;
+    CommandSpec register_command = 7;
+    string unregister_command = 8;
+  }
+}
+
+message ConnectPlayer { string player = 1; string server = 2; }
+message SendMessage {
+  repeated string players = 1;
+  bool all = 2;
+  oneof content { string text = 3; RichMessage rich = 4; }
+}
+
+message RichClick { oneof action { string run_command = 1; string suggest_command = 2; string open_url = 3; string copy_to_clipboard = 4; } }
+message RichPart { string text = 1; optional string hover = 2; optional RichClick click = 3; }
+message RichMessage { repeated RichPart parts = 1; }
+message KickPlayer { string player = 1; string reason = 2; }
+message RegisterServer { string name = 1; string address = 2; bool fallback = 3; }
+message Permissions { string player = 1; repeated string granted = 2; repeated string denied = 3; }
+
+message Question {
+  oneof body {
+    Empty players = 1;
+    Empty servers = 2;
+    string player = 3;
+  }
+}
+
+message Empty {}
+
+message Answer {
+  uint64 request = 1;
+  oneof body {
+    PlayerList players = 2;
+    ServerList servers = 3;
+    Player player = 4;
+    ConnectResult connect = 5;
+    string error = 6;
+  }
+}
+
+message PlayerList { repeated Player players = 1; }
+message ServerList { repeated Server servers = 1; }
+
+enum ConnectOutcome {
+  CONNECT_OUTCOME_UNSPECIFIED = 0;
+  CONNECT_OUTCOME_CONNECTED = 1;
+  CONNECT_OUTCOME_ALREADY_THERE = 2;
+  CONNECT_OUTCOME_DENIED = 3;
+  CONNECT_OUTCOME_UNREACHABLE = 4;
+  CONNECT_OUTCOME_UNKNOWN_SERVER = 5;
+  CONNECT_OUTCOME_OFFLINE = 6;
+}
+
+message ConnectResult { ConnectOutcome outcome = 1; optional string message = 2; }
+
+message Invocation { string command = 1; string label = 2; Player player = 3; repeated string arguments = 4; string line = 5; }
+
+message Warning { string message = 1; }
