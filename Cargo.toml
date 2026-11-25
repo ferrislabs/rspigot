@@ -29,6 +29,7 @@ rspigot-plugin-macros = { path = "crates/rspigot-plugin-macros" }
 rspigot-plugins = { path = "crates/rspigot-plugins" }
 rspigot-proxy-core = { path = "crates/rspigot-proxy-core" }
 rspigot-proxy-network = { path = "crates/rspigot-proxy-network" }
+rspigot-proxy-plugins = { path = "crates/rspigot-proxy-plugins" }
 rspigot-management = { path = "crates/rspigot-management" }
 rspigot-rcon = { path = "crates/rspigot-rcon" }
 

@@ -5,8 +5,10 @@ use std::sync::Arc;
 
 use anyhow::Context;
 use rspigot_auth::MojangSessionVerifier;
-use rspigot_proxy_core::NoHooks;
+use std::time::Duration;
+
 use rspigot_proxy_network::{Shared, serve};
+use rspigot_proxy_plugins::PluginHub;
 use tokio::net::TcpListener;
 
 use crate::config::{DEFAULT, FILE, ProxyFile};
@@ -42,15 +44,42 @@ async fn main() -> anyhow::Result<()> {
         settings.online_mode,
         file.try_order.join(", ")
     );
+    let decide_timeout = file
+        .plugins
+        .as_ref()
+        .map_or(Duration::from_secs(1), config::PluginsFile::decide_timeout);
     let shared = Arc::new(Shared::new(
         settings,
         registry,
         MojangSessionVerifier::new(false),
-        NoHooks,
+        PluginHub::new(decide_timeout),
     )?);
+    if let Some(plugins) = &file.plugins {
+        let token = plugins.token(&root)?;
+        if token.is_none() && !plugin_bind_is_loopback(&plugins.bind) {
+            tracing::warn!(
+                "The plugin host listens on {} without a token; set plugins.token_file",
+                plugins.bind
+            );
+        }
+        let plugin_listener = TcpListener::bind(&plugins.bind)
+            .await
+            .with_context(|| format!("cannot listen for plugins on {}", plugins.bind))?;
+        let shared = Arc::clone(&shared);
+        tokio::spawn(async move {
+            if let Err(error) = rspigot_proxy_plugins::serve(plugin_listener, shared, token).await {
+                tracing::error!("The plugin host stopped: {error}");
+            }
+        });
+    }
     tokio::select! {
         result = serve(listener, shared) => result?,
         _ = tokio::signal::ctrl_c() => tracing::info!("Stopping"),
     }
     Ok(())
+}
+
+fn plugin_bind_is_loopback(bind: &str) -> bool {
+    bind.parse::<std::net::SocketAddr>()
+        .is_ok_and(|address| address.ip().is_loopback())
 }
