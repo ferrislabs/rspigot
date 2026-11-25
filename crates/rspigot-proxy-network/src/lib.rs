@@ -1,6 +1,7 @@
 mod backend;
 mod client;
 pub mod forwarding;
+pub mod metrics;
 mod session;
 mod shared;
 mod status;

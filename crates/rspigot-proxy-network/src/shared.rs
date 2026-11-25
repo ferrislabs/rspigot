@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use std::net::IpAddr;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Mutex, MutexGuard, PoisonError};
 
 use rspigot_protocol::crypto::ServerKey;
@@ -11,7 +12,8 @@ use rspigot_proxy_core::{
 use tokio::sync::{mpsc, oneshot};
 use uuid::Uuid;
 
-use crate::{ProxyError, ProxySettings};
+use crate::metrics::{Gauges, Metrics};
+use crate::{ProxyError, ProxySettings, text};
 
 pub(crate) enum Command {
     Connect {
@@ -69,6 +71,8 @@ pub struct Shared<V, H> {
     pub(crate) verifier: V,
     pub(crate) hooks: H,
     pub(crate) key: ServerKey,
+    pub(crate) metrics: Metrics,
+    shutting_down: AtomicBool,
     state: Mutex<State>,
 }
 
@@ -84,6 +88,8 @@ impl<V, H: ProxyHooks> Shared<V, H> {
             verifier,
             hooks,
             key: ServerKey::generate()?,
+            metrics: Metrics::default(),
+            shutting_down: AtomicBool::new(false),
             state: Mutex::new(State {
                 registry,
                 roster: Roster::default(),
@@ -100,6 +106,48 @@ impl<V, H: ProxyHooks> Shared<V, H> {
 
     pub fn hooks(&self) -> &H {
         &self.hooks
+    }
+
+    pub fn metrics(&self) -> &Metrics {
+        &self.metrics
+    }
+
+    pub fn render_metrics(&self) -> String {
+        let (online, per_server) = {
+            let state = self.state();
+            let per_server: Vec<(String, usize)> = state
+                .registry
+                .servers()
+                .map(|server| {
+                    let players = state.roster.on_server(&server.name);
+                    (server.name, players)
+                })
+                .collect();
+            (state.roster.online(), per_server)
+        };
+        self.metrics.render(&Gauges {
+            online,
+            per_server: &per_server,
+            shutting_down: self.is_shutting_down(),
+        })
+    }
+
+    pub fn is_shutting_down(&self) -> bool {
+        self.shutting_down.load(Ordering::Relaxed)
+    }
+
+    pub fn begin_shutdown(&self, message: &str) -> usize {
+        self.shutting_down.store(true, Ordering::Relaxed);
+        let reason = text::legacy(message);
+        let state = self.state();
+        for handle in state.sessions.values() {
+            let _ = handle.sender.send(Command::Kick(reason.clone()));
+        }
+        state.roster.online()
+    }
+
+    pub fn online(&self) -> usize {
+        self.state().roster.online()
     }
 
     pub fn players(&self) -> Vec<PlayerView> {

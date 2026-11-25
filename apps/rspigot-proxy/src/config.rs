@@ -20,6 +20,8 @@ compression_threshold = 256
 compression_level = 6
 login_timeout_secs = 30
 connect_timeout_secs = 5
+shutdown_message = "The proxy is restarting, come back in a moment."
+shutdown_timeout_secs = 10
 try = ["lobby"]
 
 [servers]
@@ -29,6 +31,9 @@ lobby = "127.0.0.1:25566"
 bind = "127.0.0.1:25579"
 token_file = ""
 decide_timeout_ms = 1000
+
+[metrics]
+bind = "127.0.0.1:9100"
 "#;
 
 #[derive(Debug, Deserialize)]
@@ -46,11 +51,31 @@ pub struct ProxyFile {
     pub login_timeout_secs: u64,
     #[serde(default = "default_connect_timeout")]
     pub connect_timeout_secs: u64,
+    #[serde(default = "default_shutdown_message")]
+    pub shutdown_message: String,
+    #[serde(default = "default_shutdown_timeout")]
+    pub shutdown_timeout_secs: u64,
     #[serde(rename = "try")]
     pub try_order: Vec<String>,
     pub servers: BTreeMap<String, String>,
     #[serde(default)]
     pub plugins: Option<PluginsFile>,
+    #[serde(default)]
+    pub metrics: Option<MetricsFile>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct MetricsFile {
+    pub bind: String,
+}
+
+fn default_shutdown_message() -> String {
+    "The proxy is restarting, come back in a moment.".to_owned()
+}
+
+const fn default_shutdown_timeout() -> u64 {
+    10
 }
 
 #[derive(Debug, Deserialize)]
@@ -187,6 +212,14 @@ mod tests {
         let text = DEFAULT.replace("token_file = \"\"", "token_file = \"plugins.token\"");
         let plugins = ProxyFile::parse(&text).unwrap().plugins.unwrap();
         assert_eq!(plugins.token(dir.path()).unwrap().as_deref(), Some("abc"));
+    }
+
+    #[test]
+    fn the_default_file_serves_metrics_and_drains_for_ten_seconds() {
+        let file = ProxyFile::parse(DEFAULT).unwrap();
+        assert_eq!(file.metrics.unwrap().bind, "127.0.0.1:9100");
+        assert_eq!(file.shutdown_timeout_secs, 10);
+        assert!(file.shutdown_message.contains("restarting"));
     }
 
     #[test]

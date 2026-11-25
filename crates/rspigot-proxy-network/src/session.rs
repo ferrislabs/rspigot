@@ -16,6 +16,7 @@ use tokio::time::timeout;
 
 use crate::backend::{self, BackendLink};
 use crate::forwarding::ForwardedPlayer;
+use crate::metrics::{add, bump};
 use crate::shared::Command;
 use crate::wire::{Reader, Writer};
 use crate::{ProxyError, Shared, status, text};
@@ -190,10 +191,13 @@ impl<'a, V, H: ProxyHooks> Session<'a, V, H> {
     }
 
     async fn client_packets(&mut self, first: Vec<u8>) -> Result<Flow, ProxyError> {
+        let mut count = 1;
         self.client_packet(first).await?;
         while let Some(packet) = self.client_reader.ready()? {
+            count += 1;
             self.client_packet(packet).await?;
         }
+        add(&self.shared.metrics.packets_to_backend, count);
         self.client_writer.flush().await?;
         match self.link.writer.flush().await {
             Ok(()) => Ok(Flow::Continue),
@@ -243,6 +247,7 @@ impl<'a, V, H: ProxyHooks> Session<'a, V, H> {
                 let Some(invocation) = found else {
                     return Ok(false);
                 };
+                bump(&self.shared.metrics.proxy_commands);
                 tracing::info!(
                     "{} issued proxy command: /{}",
                     self.player.name,
@@ -317,6 +322,7 @@ impl<'a, V, H: ProxyHooks> Session<'a, V, H> {
     async fn backend_packets(&mut self, first: Vec<u8>) -> Result<Flow, ProxyError> {
         let mut packet = Some(first);
         while let Some(current) = packet.take() {
+            bump(&self.shared.metrics.packets_to_client);
             if let Some(reason) = self.kick_reason(&current) {
                 self.client_writer.flush().await?;
                 return self.kicked(current, reason).await;
@@ -382,6 +388,7 @@ impl<'a, V, H: ProxyHooks> Session<'a, V, H> {
 
     async fn kicked(&mut self, packet: Vec<u8>, reason: Text) -> Result<Flow, ProxyError> {
         let from = self.link.server.name.clone();
+        bump(&self.shared.metrics.kicks);
         tracing::info!("{} was kicked from {from}", self.player.name);
         if self.phase != Phase::Play {
             return self.forward_kick(&packet).await;
@@ -435,6 +442,7 @@ impl<'a, V, H: ProxyHooks> Session<'a, V, H> {
     }
 
     async fn backend_lost(&mut self) -> Result<Flow, ProxyError> {
+        bump(&self.shared.metrics.backends_lost);
         if self.phase == Phase::Play
             && self
                 .switch_to_fallback(Some(status::nbt_text(
@@ -473,6 +481,7 @@ impl<'a, V, H: ProxyHooks> Session<'a, V, H> {
                 return Ok(true);
             }
         }
+        bump(&self.shared.metrics.switch_failures);
         Ok(false)
     }
 
@@ -492,6 +501,7 @@ impl<'a, V, H: ProxyHooks> Session<'a, V, H> {
         match attempt {
             Ok(link) => Some(link),
             Err(error) => {
+                bump(&self.shared.metrics.backend_unreachable);
                 tracing::info!(
                     "{} cannot move to {}: {error}",
                     self.player.name,
@@ -558,6 +568,7 @@ impl<'a, V, H: ProxyHooks> Session<'a, V, H> {
             .state()
             .roster
             .connected(self.player.id, &self.link.server.name);
+        bump(&self.shared.metrics.switches);
         tracing::info!("{} moved to {}", self.player.name, self.link.server.name);
         let server = self.link.server.name.clone();
         self.shared
