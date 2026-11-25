@@ -59,7 +59,7 @@ Each generator takes `--check`, which fails when the committed output is stale.
 
 ## License
 
-Unless you explicitly state otherwise, any contribution you intentionally submit for inclusion in rspigot, as defined in the Apache-2.0 license, is dual licensed under the [MIT](LICENSE-MIT) and [Apache-2.0](LICENSE-APACHE) licenses, without any additional terms or conditions.
+Unless you explicitly state otherwise, any contribution you intentionally submit for inclusion in rspigot, as defined in the Apache-2.0 license, is licensed under the [Apache License, Version 2.0](LICENSE), without any additional terms or conditions.
 
 ## Code of Conduct
 
