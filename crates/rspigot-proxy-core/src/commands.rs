@@ -46,6 +46,7 @@ impl CommandSpec {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Invocation {
+    pub owner: u64,
     pub command: String,
     pub label: String,
     pub arguments: Vec<String>,
@@ -86,22 +87,20 @@ impl CommandRegistry {
         self.commands.is_empty()
     }
 
-    pub fn parse(&self, line: &str, allows: impl Fn(&str) -> bool) -> Option<(u64, Invocation)> {
+    pub fn parse(&self, line: &str, allows: impl Fn(&str) -> bool) -> Option<Invocation> {
         let line = line.strip_prefix('/').unwrap_or(line);
         let (label, rest) = line.split_once(' ').unwrap_or((line, ""));
         let (owner, spec) = self.find(label)?;
         if !spec.allowed(&allows) {
             return None;
         }
-        Some((
+        Some(Invocation {
             owner,
-            Invocation {
-                command: spec.name.clone(),
-                label: label.to_owned(),
-                arguments: split_arguments(rest, &spec.arguments),
-                line: line.to_owned(),
-            },
-        ))
+            command: spec.name.clone(),
+            label: label.to_owned(),
+            arguments: split_arguments(rest, &spec.arguments),
+            line: line.to_owned(),
+        })
     }
 
     pub fn inject(&self, tree: &mut Commands, allows: impl Fn(&str) -> bool) {
@@ -370,16 +369,16 @@ mod tests {
 
     #[test]
     fn a_command_line_resolves_to_its_owner_and_arguments() {
-        let (owner, invocation) = registry().parse("/lobby", everyone).unwrap();
-        assert_eq!(owner, 1);
+        let invocation = registry().parse("/lobby", everyone).unwrap();
+        assert_eq!(invocation.owner, 1);
         assert_eq!(invocation.command, "hub");
         assert_eq!(invocation.label, "lobby");
         assert!(invocation.arguments.is_empty());
 
-        let (owner, invocation) = registry()
+        let invocation = registry()
             .parse("msg Steve hello there  friend", everyone)
             .unwrap();
-        assert_eq!(owner, 2);
+        assert_eq!(invocation.owner, 2);
         assert_eq!(invocation.arguments, ["Steve", "hello there  friend"]);
         assert_eq!(invocation.line, "msg Steve hello there  friend");
     }
@@ -388,7 +387,7 @@ mod tests {
     fn unknown_or_forbidden_commands_go_to_the_backend() {
         assert!(registry().parse("gamemode 1", staff).is_none());
         assert!(registry().parse("server lobby", everyone).is_none());
-        let (_, invocation) = registry().parse("SERVER lobby", staff).unwrap();
+        let invocation = registry().parse("SERVER lobby", staff).unwrap();
         assert_eq!(invocation.arguments, ["lobby"]);
     }
 

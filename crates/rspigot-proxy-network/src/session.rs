@@ -240,7 +240,7 @@ impl<'a, V, H: ProxyHooks> Session<'a, V, H> {
                         .commands
                         .parse(&command, |node| state.allows(self.player.id, node))
                 };
-                let Some((_, invocation)) = found else {
+                let Some(invocation) = found else {
                     return Ok(false);
                 };
                 tracing::info!(
