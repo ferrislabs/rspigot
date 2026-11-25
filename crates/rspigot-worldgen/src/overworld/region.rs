@@ -179,7 +179,7 @@ pub(crate) struct Region<'a> {
     resources: &'a Resources,
     dimension: &'a Dimension,
     center: ChunkPos,
-    slots: [Option<Box<Slot>>; 9],
+    slots: [Option<Arc<Slot>>; 9],
     fixed_biome: u8,
     random: Xoroshiro,
     pub(crate) block_entities: Vec<((i32, i32, i32), serde_json::Value)>,
@@ -356,7 +356,7 @@ impl<'a> Region<'a> {
             }
             y + 1
         });
-        self.slots[index] = Some(Box::new(Slot {
+        self.slots[index] = Some(Arc::new(Slot {
             buffer,
             biomes: ChunkBiomes::new(height),
             tops,
@@ -380,10 +380,14 @@ impl<'a> Region<'a> {
         let pos = ChunkPos::new(self.center.x + dx, self.center.z + dz);
         let terrain = match &mut self.provider {
             Provider::Overworld(overworld, scratch) => {
-                (*overworld.terrain_cached(self.resources, self.dimension, pos, scratch)).clone()
+                overworld.terrain_cached(self.resources, self.dimension, pos, scratch)
             }
-            Provider::Nether(nether) => nether.terrain_cached(self.resources, self.dimension, pos),
-            Provider::End(end) => end.terrain_for_region(self.resources, self.dimension, pos),
+            Provider::Nether(nether) => {
+                Arc::new(nether.terrain_cached(self.resources, self.dimension, pos))
+            }
+            Provider::End(end) => {
+                Arc::new(end.terrain_for_region(self.resources, self.dimension, pos))
+            }
             Provider::Flat(flat) => {
                 let height = self.dimension.height;
                 let mut buffer = ChunkBuffer::new(height);
@@ -392,16 +396,16 @@ impl<'a> Region<'a> {
                         buffer.fill_layer(height.min_y + offset as i32, BlockStateId(*state));
                     }
                 }
-                TerrainChunk::new(
+                Arc::new(TerrainChunk::new(
                     buffer,
                     ChunkBiomes::new(height),
                     [height.max_y() + 1; 256],
                     height,
-                )
+                ))
             }
             Provider::Fixture => return,
         };
-        self.slots[index] = Some(Box::new(terrain));
+        self.slots[index] = Some(terrain);
     }
 
     pub(crate) fn get(&mut self, x: i32, y: i32, z: i32) -> BlockStateId {
@@ -425,10 +429,12 @@ impl<'a> Region<'a> {
         let Some(slot) = self.slots[index].as_mut() else {
             return false;
         };
-        #[cfg(test)]
-        if slot.buffer.get(lx, y, lz) != state {
-            self.changed.push((x, z));
+        if slot.buffer.get(lx, y, lz) == state {
+            return true;
         }
+        #[cfg(test)]
+        self.changed.push((x, z));
+        let slot = Arc::make_mut(slot);
         slot.buffer.set(lx, y, lz, state);
         let top = &mut slot.tops[(lz << 4) | lx];
         if state.is_air() {
@@ -474,7 +480,7 @@ impl<'a> Region<'a> {
         let (dx, dz) = ((index % 3) as i32 - 1, (index / 3) as i32 - 1);
         let pos = ChunkPos::new(self.center.x + dx, self.center.z + dz);
         let fixed = self.fixed_biome;
-        let Some(slot) = self.slots[index].as_mut() else {
+        let Some(slot) = self.slots[index].as_ref() else {
             return fixed;
         };
         match &mut self.provider {
@@ -499,6 +505,7 @@ impl<'a> Region<'a> {
         let Some(slot) = self.slots[index].take() else {
             return (ChunkBuffer::new(self.dimension.height), Vec::new());
         };
+        let slot = Arc::try_unwrap(slot).unwrap_or_else(|shared| (*shared).clone());
         let indices = match &mut self.provider {
             Provider::Overworld(overworld, scratch) => {
                 slot.biomes.complete(&overworld.source, scratch, center)

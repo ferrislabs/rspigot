@@ -54,6 +54,9 @@ fn rss_kib() -> Option<u64> {
     String::from_utf8(output.stdout).ok()?.trim().parse().ok()
 }
 
+#[global_allocator]
+static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
+
 fn percentile(sorted: &[Duration], fraction: f64) -> Duration {
     let index = ((sorted.len() - 1) as f64 * fraction).round() as usize;
     sorted[index]
@@ -76,10 +79,16 @@ fn main() -> anyhow::Result<()> {
         eprintln!("datapack problem in {issue}");
     }
     let generator = Arc::new(WorldGenerator::from_level_type("default", level.seed, ""));
-    let config = GameConfig {
+    let mut config = GameConfig {
         spawn_chunk_radius: args.radius,
         ..GameConfig::default()
     };
+    if let Some(workers) = std::env::var("RSPIGOT_WORKERS")
+        .ok()
+        .and_then(|v| v.parse().ok())
+    {
+        config.chunk_workers = workers;
+    }
     let before = rss_kib();
     let started = Instant::now();
     let mut server: Server<Mute> =

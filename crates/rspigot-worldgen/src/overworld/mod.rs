@@ -6,7 +6,7 @@ pub(crate) mod surface_rules;
 
 use rspigot_domain::chunk::{ChunkColumn, HeightmapKind};
 use std::collections::{HashMap, VecDeque};
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex, OnceLock};
 
 use rspigot_domain::world::Dimension;
 use rspigot_domain::{BiomeId, BlockPos, ChunkPos, Vec3};
@@ -32,9 +32,11 @@ const CACHE_CAPACITY: usize = 192;
 
 pub(crate) type TerrainKey = (i32, i32, i32, u32, i32);
 
+type TerrainCell = Arc<OnceLock<Arc<TerrainChunk>>>;
+
 #[derive(Debug)]
 pub(crate) struct TerrainCache {
-    map: HashMap<TerrainKey, Arc<TerrainChunk>>,
+    map: HashMap<TerrainKey, TerrainCell>,
     order: VecDeque<TerrainKey>,
     capacity: usize,
 }
@@ -49,18 +51,27 @@ impl TerrainCache {
     }
 
     pub(crate) fn get(&self, key: &TerrainKey) -> Option<Arc<TerrainChunk>> {
-        self.map.get(key).cloned()
+        self.map.get(key).and_then(|cell| cell.get().cloned())
+    }
+
+    fn cell(&mut self, key: TerrainKey) -> TerrainCell {
+        if let Some(cell) = self.map.get(&key) {
+            return Arc::clone(cell);
+        }
+        let cell = TerrainCell::default();
+        self.map.insert(key, Arc::clone(&cell));
+        self.order.push_back(key);
+        while self.order.len() > self.capacity.max(1) {
+            if let Some(old) = self.order.pop_front() {
+                self.map.remove(&old);
+            }
+        }
+        cell
     }
 
     pub(crate) fn insert(&mut self, key: TerrainKey, chunk: Arc<TerrainChunk>) {
-        if self.map.insert(key, chunk).is_none() {
-            self.order.push_back(key);
-            while self.order.len() > self.capacity.max(1) {
-                if let Some(old) = self.order.pop_front() {
-                    self.map.remove(&old);
-                }
-            }
-        }
+        let cell = self.cell(key);
+        let _ = cell.set(chunk);
     }
 }
 
@@ -283,17 +294,20 @@ impl Overworld {
             dimension.height.height,
             dimension.sea_level,
         );
-        if let Some(found) = self.cache.lock().map_or(None, |cache| cache.get(&key)) {
-            return found;
+        let cell = match self.cache.lock() {
+            Ok(mut cache) => Some(cache.cell(key)),
+            Err(_) => None,
+        };
+        let mut compute = || {
+            let mut biomes = ChunkBiomes::new(dimension.height);
+            let buffer = self.terrain(resources, dimension, pos, &mut biomes, scratch);
+            let hint: [i32; 256] = [dimension.height.max_y() + 1; 256];
+            Arc::new(TerrainChunk::new(buffer, biomes, hint, dimension.height))
+        };
+        match cell {
+            Some(cell) => Arc::clone(cell.get_or_init(compute)),
+            None => compute(),
         }
-        let mut biomes = ChunkBiomes::new(dimension.height);
-        let buffer = self.terrain(resources, dimension, pos, &mut biomes, scratch);
-        let hint: [i32; 256] = [dimension.height.max_y() + 1; 256];
-        let chunk = Arc::new(TerrainChunk::new(buffer, biomes, hint, dimension.height));
-        if let Ok(mut cache) = self.cache.lock() {
-            cache.insert(key, chunk.clone());
-        }
-        chunk
     }
 
     pub(crate) fn terrain(
