@@ -2114,6 +2114,7 @@ name = "rspigot-proxy"
 version = "0.1.1"
 dependencies = [
  "anyhow",
+ "axum",
  "base64 0.22.1",
  "rspigot-auth",
  "rspigot-proxy-core",

@@ -1,4 +1,5 @@
 mod config;
+mod http;
 
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -72,9 +73,23 @@ async fn main() -> anyhow::Result<()> {
             }
         });
     }
+    if let Some(metrics) = &file.metrics {
+        let metrics_listener = TcpListener::bind(&metrics.bind)
+            .await
+            .with_context(|| format!("cannot serve metrics on {}", metrics.bind))?;
+        tracing::info!("Metrics and health on http://{}", metrics.bind);
+        let shared = Arc::clone(&shared);
+        tokio::spawn(async move {
+            if let Err(error) = http::serve(metrics_listener, shared).await {
+                tracing::error!("The metrics server stopped: {error}");
+            }
+        });
+    }
     tokio::select! {
-        result = serve(listener, shared) => result?,
-        _ = tokio::signal::ctrl_c() => tracing::info!("Stopping"),
+        result = serve(listener, Arc::clone(&shared)) => result?,
+        () = stop_signal() => {
+            drain(&shared, &file.shutdown_message, Duration::from_secs(file.shutdown_timeout_secs)).await;
+        }
     }
     Ok(())
 }
@@ -82,4 +97,43 @@ async fn main() -> anyhow::Result<()> {
 fn plugin_bind_is_loopback(bind: &str) -> bool {
     bind.parse::<std::net::SocketAddr>()
         .is_ok_and(|address| address.ip().is_loopback())
+}
+
+async fn stop_signal() {
+    #[cfg(unix)]
+    {
+        let mut terminate =
+            tokio::signal::unix::signal(tokio::signal::unix::SignalKind::terminate())
+                .expect("cannot listen for SIGTERM");
+        tokio::select! {
+            _ = tokio::signal::ctrl_c() => {}
+            _ = terminate.recv() => {}
+        }
+    }
+    #[cfg(not(unix))]
+    {
+        let _ = tokio::signal::ctrl_c().await;
+    }
+}
+
+async fn drain<V: Send + Sync + 'static>(
+    shared: &Shared<V, PluginHub>,
+    message: &str,
+    timeout: Duration,
+) {
+    let players = shared.begin_shutdown(message);
+    tracing::info!(
+        "Stopping: telling {players} players and waiting up to {} s",
+        timeout.as_secs()
+    );
+    let deadline = tokio::time::Instant::now() + timeout;
+    while shared.online() > 0 && tokio::time::Instant::now() < deadline {
+        tokio::time::sleep(Duration::from_millis(100)).await;
+    }
+    let left = shared.online();
+    if left > 0 {
+        tracing::warn!("Stopped with {left} players still connected");
+    } else {
+        tracing::info!("Every player left, stopped");
+    }
 }

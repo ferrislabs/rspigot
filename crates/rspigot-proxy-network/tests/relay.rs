@@ -996,3 +996,63 @@ async fn a_kicked_hook_can_refuse_the_fallback() {
     let next = tokio::time::timeout(Duration::from_millis(300), second.accept()).await;
     assert!(next.is_err(), "the proxy moved the player anyway");
 }
+
+#[tokio::test]
+async fn the_metrics_count_logins_kicks_and_switches() {
+    let (first, first_address) = listener().await;
+    let (second, second_address) = listener().await;
+    let (proxy, shared) = start_hooked(
+        &[first_address, second_address],
+        SECRET,
+        Recorder::default(),
+    )
+    .await;
+    let mut game = join_and_play(&proxy, &first).await;
+    game.backend
+        .send_raw(&raw(ids::play::clientbound::DISCONNECT, &[8, 0, 1, b'x']))
+        .await;
+    let _next = expect_moved(&mut game, &second).await;
+
+    let text = shared.render_metrics();
+    assert!(text.contains("rspigot_proxy_logins_total 1\n"), "{text}");
+    assert!(text.contains("rspigot_proxy_kicks_total 1\n"), "{text}");
+    assert!(text.contains("rspigot_proxy_switches_total 1\n"), "{text}");
+    assert!(text.contains("rspigot_proxy_players 1\n"), "{text}");
+    assert!(
+        text.contains("rspigot_proxy_server_players{server=\"server-1\"} 1\n"),
+        "{text}"
+    );
+}
+
+#[tokio::test]
+async fn a_shutdown_warns_the_players_and_refuses_new_logins() {
+    let (first, first_address) = listener().await;
+    let (proxy, shared) = start_hooked(&[first_address], SECRET, Recorder::default()).await;
+    let mut game = join_and_play(&proxy, &first).await;
+
+    assert_eq!(shared.begin_shutdown("§eRestarting"), 1);
+    assert_eq!(
+        id_of(&game.player.next().await),
+        ids::play::clientbound::DISCONNECT
+    );
+    expect_closed(&mut game.player).await;
+    for _ in 0..100 {
+        if shared.online() == 0 {
+            break;
+        }
+        tokio::time::sleep(Duration::from_millis(20)).await;
+    }
+    assert_eq!(shared.online(), 0);
+
+    let mut late = login(&proxy, "Alex").await;
+    let packet = late.next().await;
+    let (id, body) = split_packet_id(&packet).unwrap();
+    assert_eq!(id, ids::login::clientbound::LOGIN_DISCONNECT);
+    let LoginDisconnect { reason } = decode_exact(body).unwrap();
+    assert!(reason.0.contains("restarting"));
+    assert!(
+        shared
+            .render_metrics()
+            .contains("rspigot_proxy_shutting_down 1\n")
+    );
+}

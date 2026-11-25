@@ -24,6 +24,8 @@ The first start writes a default `proxy.toml` in the directory. Put the forwardi
 | `login_timeout_secs` | Time a client has to finish the handshake and login. |
 | `connect_timeout_secs` | Time the proxy waits for a backend before trying the next `try` server. Default 5. |
 | `try` | Servers tried in order when a player joins. |
+| `shutdown_message` | Shown to every player when the proxy stops (SIGTERM or Ctrl-C). |
+| `shutdown_timeout_secs` | How long the proxy waits for players to leave before it exits. Default 10. |
 | `[servers]` | Backend names and their `host:port`. |
 | `[plugins]` | Optional. Starts the gRPC host for proxy plugins (`rspigot.proxy.v1`). |
 | `plugins.bind` | Address of the plugin host. Keep it on loopback or a private network. |
@@ -31,3 +33,13 @@ The first start writes a default `proxy.toml` in the directory. Put the forwardi
 | `plugins.decide_timeout_ms` | How long the proxy waits for a plugin to decide on a hook before it goes on with the default. |
 
 A joining player goes to the first `try` server that answers. A backend refusal (ban, whitelist, full) is shown to the player and the next server is not tried. If the backend goes down, the player gets a disconnect message; moving them to another server comes with milestone M3. The same account cannot join twice.
+
+## Metrics and health
+
+With a `[metrics]` section, the proxy serves on `metrics.bind`:
+
+- `/metrics` in the Prometheus text format: logins, refusals, switches, kicks, lost backends, unreachable backends, proxy commands, relayed packets, players in total and per server, connected plugins, and whether the proxy is draining.
+- `/health/live`, which is always 200.
+- `/health/ready`, which is 200 until the proxy starts stopping, then 503 so a load balancer stops sending players.
+
+On SIGTERM or Ctrl-C the proxy stops accepting logins, sends `shutdown_message` to every player and waits up to `shutdown_timeout_secs` for them to leave.

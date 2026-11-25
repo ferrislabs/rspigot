@@ -19,6 +19,7 @@ use tokio::time::timeout;
 
 use crate::backend;
 use crate::forwarding::ForwardedPlayer;
+use crate::metrics::bump;
 use crate::session::{Link, Session};
 use crate::shared::Handle;
 use crate::status;
@@ -183,8 +184,17 @@ async fn join<V, H: ProxyHooks>(
     shared: &Shared<V, H>,
     player: ForwardedPlayer,
 ) -> Result<(), ProxyError> {
+    if shared.is_shutting_down() {
+        bump(&shared.metrics.logins_refused);
+        return disconnect(
+            &mut client_writer,
+            &status::text("The proxy is restarting, try again in a moment."),
+        )
+        .await;
+    }
     let login = shared.state().roster.login(player.id, &player.name);
     if let Err(error) = login {
+        bump(&shared.metrics.logins_refused);
         tracing::info!("Refusing {}: {error}", player.name);
         return disconnect(
             &mut client_writer,
@@ -236,7 +246,10 @@ async fn play<V, H: ProxyHooks>(
         .collect();
     match shared.hooks.initial_server(view.clone(), names).await {
         Verdict::Allow => {}
-        Verdict::Deny(message) => return disconnect(client_writer, &status::text(&message)).await,
+        Verdict::Deny(message) => {
+            bump(&shared.metrics.logins_refused);
+            return disconnect(client_writer, &status::text(&message)).await;
+        }
         Verdict::Redirect { server, .. } => {
             let chosen = shared.state().registry.get(&server);
             if let Some(chosen) = chosen {
@@ -254,6 +267,7 @@ async fn play<V, H: ProxyHooks>(
         let server = match verdict {
             Verdict::Allow => candidate,
             Verdict::Deny(message) => {
+                bump(&shared.metrics.logins_refused);
                 return disconnect(client_writer, &status::text(&message)).await;
             }
             Verdict::Redirect { server, .. } => {
@@ -281,6 +295,7 @@ async fn play<V, H: ProxyHooks>(
                 break;
             }
             Err(ProxyError::BackendRefused(reason)) => {
+                bump(&shared.metrics.logins_refused);
                 tracing::info!(
                     "{} was refused by {}: {}",
                     player.name,
@@ -290,11 +305,13 @@ async fn play<V, H: ProxyHooks>(
                 return disconnect(client_writer, &reason).await;
             }
             Err(error) => {
+                bump(&shared.metrics.backend_unreachable);
                 tracing::warn!("{} could not reach {}: {error}", player.name, server.name);
             }
         }
     }
     let Some((server, link)) = reached else {
+        bump(&shared.metrics.logins_refused);
         return disconnect(
             client_writer,
             &status::text("Could not connect to a default or fallback server."),
@@ -340,6 +357,7 @@ async fn play<V, H: ProxyHooks>(
             },
         );
     }
+    bump(&shared.metrics.logins);
     tracing::info!("{} ({}) joined {}", player.name, player.id, server.name);
     let mut connected = view.clone();
     connected.server = Some(server.name.clone());
