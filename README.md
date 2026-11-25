@@ -2,9 +2,7 @@
 
 # rspigot
 
-**A Minecraft Java Edition server and proxy, written in Rust.**
-
-Spigot-compatible configuration and worlds, out-of-process plugins over gRPC, and a Velocity-style proxy that never restarts to ship plugin changes.
+A Minecraft Java Edition server and proxy, written in Rust.
 
 [![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 [![Minecraft 26.3](https://img.shields.io/badge/Minecraft-26.3%20(protocol%20777)-62B47A.svg)](#compatibility)
@@ -20,14 +18,13 @@ Spigot-compatible configuration and worlds, out-of-process plugins over gRPC, an
 
 ---
 
-## Why rspigot
+rspigot speaks the 26.3 protocol and reads a Spigot server's files as they are: `server.properties`, `spigot.yml`, `bukkit.yml`, `ops.json`, the ban and whitelist lists, and Anvil worlds in Spigot's layout. You can point it at an existing setup and start it.
 
-- **Drop-in for Spigot setups.** It reads and writes `server.properties`, `spigot.yml`, `bukkit.yml`, `ops.json`, the ban and whitelist files, and Anvil worlds in Spigot's layout.
-- **Plugins never take the server down.** A plugin is a separate process that talks to the server over gRPC. It can crash, restart or be redeployed while players keep playing.
-- **Every Bukkit event, typed.** The Rust SDK covers every Bukkit event except the deprecated and JVM-only ones, with compile-time checked items, blocks, sounds and particles.
-- **Vanilla behaviour first.** Commands, loot tables, recipes, advancements, structures and worldgen follow the 26.3 data. Plugin orders run through the same code as the matching vanilla command.
-- **A proxy in the same family.** `rspigot-proxy` replaces Velocity in front of rspigot servers. It moves players between servers without a disconnect, and its plugins use the same gRPC model.
-- **Small and fast.** In our load test at 50 clients, the proxy used about 10 times less memory and 6 times less CPU than Velocity, and delivered chunks 40 to 70 % faster. The numbers and their limits are in [#453](https://github.com/ferrislabs/rspigot/issues/453).
+Plugins are where it differs most from Spigot. A plugin is its own process and talks to the server over gRPC, so a plugin that crashes or gets redeployed doesn't take the players with it. The Rust SDK has a type for every Bukkit event, except the deprecated and JVM-only ones. Items, blocks, sounds and particles are enums, so a typo in `Material::DiamondSword` is a compile error instead of a bug report.
+
+We try to behave like vanilla before anything else. Commands, loot tables, recipes, advancements, structures and worldgen come from the 26.3 data, and when a plugin teleports a player it goes through the same code as `/tp`.
+
+The repository also has `rspigot-proxy`, which does Velocity's job in front of rspigot servers. Its plugins work the same way, so you can ship a proxy plugin change without restarting the proxy. In a local load test with 50 clients it used about a tenth of Velocity's memory and a sixth of its CPU. That test ran on one machine, and its limits are written up in [#453](https://github.com/ferrislabs/rspigot/issues/453).
 
 ## Quick start
 
@@ -38,12 +35,12 @@ cargo build --release -p rspigot
 ./target/release/rspigot
 ```
 
-On first start the server creates its configuration files in the working directory, then listens on port `25565`. For local testing, run it from `example/server`, which git ignores.
+On first start the server writes its configuration files to the working directory and listens on port `25565`. For local testing, run it from `example/server`, which git ignores.
 
 > [!NOTE]
-> Like vanilla 26.3, `white-list` defaults to `true`. Run `whitelist add <name>` in the console, or set `white-list=false`, before you join. Operators from `ops.json` always get in, and `online-mode=false` skips Mojang authentication.
+> As in vanilla 26.3, `white-list` defaults to `true`. Run `whitelist add <name>` in the console, or set `white-list=false`, before you join. Operators from `ops.json` always get in, and `online-mode=false` skips Mojang authentication.
 
-Options: `--port <n>`, `--world-dir <dir>`, `--online-mode <true|false>`. Type `help` in the console for commands. `stop` or Ctrl-C saves the world and exits.
+The binary takes `--port <n>`, `--world-dir <dir>` and `--online-mode <true|false>`. Type `help` in the console to list the commands. `stop` or Ctrl-C saves the world and exits.
 
 ### With Docker
 
@@ -51,11 +48,11 @@ Options: `--port <n>`, `--world-dir <dir>`, `--online-mode <true|false>`. Type `
 docker run -it -p 25565:25565 -v rspigot:/data ghcr.io/ferrislabs/rspigot:latest
 ```
 
-The configuration and the world live in `/data`, and `docker stop` saves the world. Pushing a tag `x.y.z` publishes `ghcr.io/ferrislabs/rspigot` for amd64 and arm64, tagged `x.y.z`, `x.y`, `x` and `latest`. Plugins in other containers need `host: 0.0.0.0` and a `token` in `plugins.yml`.
+The configuration and the world live in `/data`, and `docker stop` saves the world. Each `x.y.z` tag publishes `ghcr.io/ferrislabs/rspigot` for amd64 and arm64, tagged `x.y.z`, `x.y`, `x` and `latest`. If your plugins run in other containers, set `host: 0.0.0.0` and a `token` in `plugins.yml`.
 
 ## Plugins
 
-A plugin is a Rust program built on the [`rspigot-plugin`](crates/rspigot-plugin) crate. It connects to the server's plugin port (`25580` by default) and declares the events it listens to and the commands it adds.
+A plugin is a Rust program built on the [`rspigot-plugin`](crates/rspigot-plugin) crate. It connects to the server's plugin port, `25580` by default, and tells the server which events it listens to and which commands it adds.
 
 ```rust
 use rspigot_plugin::prelude::*;
@@ -77,34 +74,30 @@ async fn main() -> Result<(), Error> {
 }
 ```
 
-- [`crates/rspigot-plugin/GUIDE.md`](crates/rspigot-plugin/GUIDE.md): the full guide (plugin port, events, handles, items, menus, permissions, commands, modules, config).
-- [`crates/rspigot-plugin/EVENTS.md`](crates/rspigot-plugin/EVENTS.md): every event, its setters, and whether the server fires it today.
-- [`example/plugins`](example/plugins): complete plugins, from a one-file welcome message to a three-level factions plugin.
+The [plugin guide](crates/rspigot-plugin/GUIDE.md) covers the rest: the plugin port settings, events, handles, items, menus, permissions, commands, modules and config files. [EVENTS.md](crates/rspigot-plugin/EVENTS.md) lists every event with its setters and says whether the server fires it yet. For working code, [`example/plugins`](example/plugins) goes from a one-file welcome message up to a factions plugin split into three levels of modules.
 
 ## Proxy
 
-`rspigot-proxy` sits in front of rspigot servers, like Velocity. Players join it once and move between servers without reconnecting.
+`rspigot-proxy` sits in front of your rspigot servers. Players join it once and move between servers without reconnecting.
 
 ```sh
 cargo run --release -p rspigot-proxy -- <directory>
 ```
 
-- **Modern forwarding.** Backends get the real UUID, name, skin and IP, signed with a shared secret.
-- **Server switches without a disconnect.** The proxy clears what the old server showed (tab list, boss bars, scoreboard, titles) and keeps signed chat working.
-- **Fallbacks.** A kicked player, or one whose server goes down, is moved to the next server of the `try` list.
-- **Plugins over gRPC** with [`rspigot-proxy-plugin`](crates/rspigot-proxy-plugin): hooks on login, server choice, connection and kicks, proxy commands with tab completion, permissions, and orders to move, message or kick players. Redeploying a plugin never disconnects anyone.
-- **Ready for production.** Prometheus metrics, `/health/live` and `/health/ready`, and a drain on SIGTERM.
+It forwards each player's real UUID, name, skin and IP to the backends with Velocity's modern forwarding, signed with a shared secret. When a player changes server, the proxy clears what the old one left on screen (tab list, boss bars, scoreboard, titles) and keeps signed chat working. A kicked player, or one whose server goes down, lands on the next server in the `try` list.
 
-Configuration and operations: [`apps/rspigot-proxy/README.md`](apps/rspigot-proxy/README.md). Example plugin: [`example/proxy-plugins/network`](example/proxy-plugins/network).
+Proxy plugins use [`rspigot-proxy-plugin`](crates/rspigot-proxy-plugin). They can step in at login, when the proxy picks a server, before a connection and after a kick. They can also add commands with tab completion, set permissions and move, message or kick players. For production there are Prometheus metrics, `/health/live` and `/health/ready`, and the proxy drains its players on SIGTERM.
+
+Configuration and operations are in [`apps/rspigot-proxy/README.md`](apps/rspigot-proxy/README.md), and [`example/proxy-plugins/network`](example/proxy-plugins/network) is a small plugin with `/hub`, `/server` and `/find`.
 
 ## Compatibility
 
 | | |
 |---|---|
 | Minecraft | Java Edition 26.3, protocol 777, world version 5023 |
-| Clients | Unmodified 26.3 clients. Other versions are refused with a clear message. |
-| Worlds | Anvil worlds from Spigot 26.3, and worldgen datapacks ([guide](datapacks/README.md)) |
-| Java plugins | Not supported. Plugins are Rust programs over gRPC. |
+| Clients | Unmodified 26.3 clients. Other versions get a message telling them which one to use. |
+| Worlds | Anvil worlds from Spigot 26.3, plus worldgen datapacks ([guide](datapacks/README.md)) |
+| Java plugins | Not supported. Plugins are Rust programs that talk gRPC. |
 
 ## Project layout
 
@@ -121,18 +114,16 @@ Configuration and operations: [`apps/rspigot-proxy/README.md`](apps/rspigot-prox
 | `crates/rspigot-auth` | Mojang session verification |
 | `crates/rspigot-plugins`, `rspigot-plugin`, `rspigot-plugin-protocol` | Plugin host, plugin SDK and the gRPC contract |
 | `crates/rspigot-proxy-*` | Proxy core, network, plugin host and plugin SDK |
-| `apps/rspigot` | The server binary |
-| `apps/rspigot-proxy` | The proxy binary |
-| `apps/rspigot-probe` | A test client that measures chunk delivery ([README](apps/rspigot-probe/README.md)) |
+| `apps/rspigot` | The server |
+| `apps/rspigot-proxy` | The proxy |
+| `apps/rspigot-probe` | A headless client that measures chunk delivery ([README](apps/rspigot-probe/README.md)) |
 
 ## Contributing
 
-Contributions are welcome. [CONTRIBUTING.md](CONTRIBUTING.md) explains how to build, test and open a pull request, and the project follows its [Code of Conduct](CODE_OF_CONDUCT.md). Report security issues privately, as described in [SECURITY.md](SECURITY.md).
+Pull requests are welcome. [CONTRIBUTING.md](CONTRIBUTING.md) explains how to build, test and send one. Please follow the [Code of Conduct](CODE_OF_CONDUCT.md), and report security issues privately as described in [SECURITY.md](SECURITY.md).
 
 ## License
 
-rspigot is licensed under the [Apache License, Version 2.0](LICENSE).
-
-Unless you explicitly state otherwise, any contribution intentionally submitted for inclusion in the work by you, as defined in the Apache-2.0 license, shall be licensed as above, without any additional terms or conditions.
+rspigot is licensed under the [Apache License, Version 2.0](LICENSE). Unless you say otherwise, anything you submit for inclusion is licensed the same way, with no extra terms.
 
 rspigot is not affiliated with Mojang Studios or Microsoft. Minecraft is a trademark of Mojang Studios.

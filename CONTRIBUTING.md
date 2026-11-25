@@ -1,27 +1,29 @@
 # Contributing to rspigot
 
-Thanks for your interest in rspigot! Bug reports, fixes, features and documentation are all welcome.
+Thanks for taking the time. Bug reports, fixes, new features and doc changes all help.
 
 ## Before you start
 
-- **Bugs:** open an issue with the bug template. Say what you did, what you expected and what happened, with the server log and the client version.
-- **Features:** open an issue first for anything bigger than a small fix, so we can agree on the design before you write code. Big pieces of work are tracked in EPIC issues, each with its own spec.
-- **Security problems:** see [SECURITY.md](SECURITY.md), and never use a public issue.
+If something is broken, open an issue with the bug template. Tell us what you did, what you expected and what you got, and attach the server log and your client version. A comparison with vanilla or Spigot 26.3 helps a lot.
 
-## Development setup
+For anything bigger than a small fix, open an issue first so we can agree on the design before you write the code. Large pieces of work have an EPIC issue with their own spec, so look there before starting something big.
 
-The toolchain is pinned in [`rust-toolchain.toml`](rust-toolchain.toml). `rustup` installs it on first build.
+Security problems go through [SECURITY.md](SECURITY.md), never through a public issue.
+
+## Setting up
+
+The toolchain is pinned in [`rust-toolchain.toml`](rust-toolchain.toml), and `rustup` installs it the first time you build.
 
 ```sh
 cargo build --release -p rspigot
 cd example/server && cargo run --release -p rspigot
 ```
 
-`example/server` is ignored by git, so the server writes its files there. Join with a 26.3 client on `localhost:25565`, or run [`rspigot-probe`](apps/rspigot-probe/README.md) for a headless client.
+Git ignores `example/server`, so the server can write its files there. Join with a 26.3 client on `localhost:25565`, or use [`rspigot-probe`](apps/rspigot-probe/README.md) if you want a client without a screen.
 
 ## Before you open a pull request
 
-Run the same checks as CI:
+Run these three and make sure they pass:
 
 ```sh
 cargo fmt --check
@@ -29,7 +31,7 @@ cargo clippy --workspace --all-targets -- -D warnings
 cargo test --workspace
 ```
 
-Some files are generated. Do not edit them by hand: regenerate them and commit the result.
+Some files are generated. Don't edit them by hand. Run the generator and commit what it writes.
 
 | What | Command |
 |---|---|
@@ -40,27 +42,28 @@ Some files are generated. Do not edit them by hand: regenerate them and commit t
 | Plugin SDK keys | `python3 -I tools/gen_plugin_keys.py` |
 | Plugin events | `python3 -I tools/gen_plugin_events.py`, then the protocol generator |
 
-Each generator takes `--check`, which fails when the committed output is stale.
+Every generator accepts `--check`, which fails if the committed output is out of date.
 
-## Code style
+## How the code is written
 
-- **Layers.** The workspace is hexagonal. Domain crates do no I/O, `rspigot-core` owns the ports, and adapters (`rspigot-network`, `rspigot-plugins`, `rspigot-anvil` and the others) implement them. Dependencies point inwards.
-- **Dispatch.** Prefer static dispatch: generics first, then enums, `dyn` only when needed. No `async-trait` in our own code.
-- **Errors.** One `thiserror` enum per crate. `anyhow` only in the binaries.
-- **Comments.** None in the code. Names, types and tests carry the meaning. Explain the why in the pull request.
-- **Tests.** Every change comes with tests. Protocol changes get byte-level tests against the vanilla layout. Behaviour changes get a test that fails without the change.
+The workspace is hexagonal. Domain crates don't do I/O, `rspigot-core` owns the ports, and the adapters (`rspigot-network`, `rspigot-plugins`, `rspigot-anvil` and so on) implement them. Dependencies point inwards.
+
+We reach for generics first, then enums, and `dyn` only when nothing else fits. We don't use `async-trait` in our own code. Each crate has one `thiserror` error enum, and `anyhow` stays in the binaries.
+
+There are no comments in the code. If something needs explaining, a better name or a type usually does it, and the reasoning belongs in the pull request.
+
+Changes come with tests. For protocol work that means byte-level tests against the vanilla layout. For a behaviour change, add a test that fails without your change.
 
 ## Pull requests
 
-- Keep a pull request to one crate when you can. A change that spans several crates goes as stacked pull requests, in dependency order.
-- Use [Conventional Commits](https://www.conventionalcommits.org/) for titles: `feat(proxy): …`, `fix(core): …`, `perf(network): …`, `docs: …`.
-- Say in the description what changed, why, and how you tested it, by hand included.
-- Pull requests are squash-merged.
+Try to keep a pull request to a single crate. When a change spans several crates, send stacked pull requests in dependency order.
+
+Titles follow [Conventional Commits](https://www.conventionalcommits.org/), for example `feat(proxy): …`, `fix(core): …` or `docs: …`. In the description, say what changed, why, and how you tested it, including anything you checked by hand in a client. We squash-merge.
 
 ## License
 
-Unless you explicitly state otherwise, any contribution you intentionally submit for inclusion in rspigot, as defined in the Apache-2.0 license, is licensed under the [Apache License, Version 2.0](LICENSE), without any additional terms or conditions.
+Unless you say otherwise, anything you submit for inclusion in rspigot is licensed under the [Apache License, Version 2.0](LICENSE), with no extra terms.
 
 ## Code of Conduct
 
-This project follows the [Contributor Covenant](CODE_OF_CONDUCT.md). By taking part you agree to follow it.
+The project follows the [Contributor Covenant](CODE_OF_CONDUCT.md). Taking part means you agree to it.
