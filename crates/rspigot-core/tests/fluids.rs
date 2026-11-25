@@ -127,6 +127,17 @@ impl ChunkGenerator for Terrain {
             at(&mut chunk, 24, 64, 8, lava);
             at(&mut chunk, 26, 64, 8, lava);
         }
+        if pos == ChunkPos::new(2, 0) {
+            for x in 32..48 {
+                for z in 0..16 {
+                    for y in 59..=63 {
+                        chunk.set_block(BlockPos::new(x, y, z), BlockStateId::AIR);
+                    }
+                }
+            }
+            at(&mut chunk, 40, -63, 8, BlockKind::Water.default_state());
+            at(&mut chunk, 41, -64, 8, Stone::DEFAULT_STATE);
+        }
         chunk
     }
 
@@ -431,4 +442,33 @@ fn the_lava_source_conversion_rule_allows_the_third_lava_source() {
     };
     assert_ne!(middle(false), Some("0".to_owned()));
     assert_eq!(middle(true), Some("0".to_owned()));
+}
+
+#[test]
+fn water_reaching_the_bottom_of_the_world_falls_into_the_void() {
+    let mut server = server();
+    let (alice, link) = creative(&mut server);
+    trigger(
+        &mut server,
+        alice,
+        Vec3::new(41.5, -62.0, 8.5),
+        BlockPos::new(41, -64, 8),
+    );
+    let started = std::time::Instant::now();
+    let events = settled(&mut server, &link, 120);
+    let took = started.elapsed();
+    assert_eq!(
+        level_at(&events, BlockPos::new(40, -64, 8)),
+        Some("8".to_owned())
+    );
+    let spread_on_the_floor = events
+        .iter()
+        .filter(|e| {
+            matches!(e, ClientEvent::BlockUpdate { pos, state }
+            if pos.y == -64
+                && state.kind() == Some(BlockKind::Water)
+                && state.property(LEVEL) != Some("8"))
+        })
+        .count();
+    assert_eq!(spread_on_the_floor, 0, "took {took:?}");
 }
