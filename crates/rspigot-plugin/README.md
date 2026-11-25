@@ -2,6 +2,8 @@
 
 The SDK for plugins that run beside the server and talk to it over gRPC. `example/plugins/welcome` is a complete plugin that uses it.
 
+The full guide, with the plugin port settings, events, handles, items, menus, permissions, commands and modules, is [GUIDE.md](GUIDE.md). Every event is listed in [EVENTS.md](EVENTS.md).
+
 ## The API in four rules
 
 - **Domains.** A handle groups what it does in domains named by a noun: `player.inventory`, `player.title`, `player.message`, `player.connection`, `player.permissions`, `player.location`, `world.sound`, `entity.attributes`.

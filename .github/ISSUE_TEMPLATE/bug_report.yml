@@ -1,0 +1,55 @@
+name: Bug report
+description: Something does not work the way vanilla or Spigot does
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: Thanks for the report! Please do not report security problems here, see SECURITY.md.
+  - type: dropdown
+    id: component
+    attributes:
+      label: Component
+      options:
+        - Server (rspigot)
+        - Plugin SDK or plugin host
+        - Proxy (rspigot-proxy)
+        - Proxy plugin SDK or plugin host
+        - Datapacks or worldgen
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you did, what you expected, and what happened instead. Compare with vanilla or Spigot 26.3 when you can.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Start the server with ...
+        2. Join and ...
+        3. See ...
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      description: The server or proxy log around the problem.
+      render: text
+  - type: input
+    id: version
+    attributes:
+      label: Version or commit
+      placeholder: 0.1.1 or a commit SHA
+    validations:
+      required: true
+  - type: input
+    id: platform
+    attributes:
+      label: Platform
+      placeholder: Linux x86_64, Docker, macOS arm64…
