@@ -264,9 +264,13 @@ impl<L: ClientLink> Server<L> {
         );
     }
 
-    fn matching_corners(&self, origin: BlockPos, name: &str) -> Vec<BlockPos> {
+    fn matching_corners(&mut self, origin: BlockPos, name: &str) -> Vec<BlockPos> {
         let mut found = Vec::new();
-        for chunk_pos in self.world.chunks.loaded_positions() {
+        for chunk_pos in self
+            .world
+            .chunks
+            .chunks_with_block_entities(|kind| kind.as_str() == "minecraft:structure_block")
+        {
             let Some(chunk) = self.world.chunks.get(chunk_pos) else {
                 continue;
             };

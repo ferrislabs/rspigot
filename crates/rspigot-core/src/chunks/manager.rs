@@ -6,10 +6,11 @@ use rspigot_domain::chunk::{BlockMeta, ChunkColumn, ChunkLight};
 use rspigot_domain::meta::{MetaError, MetaValue};
 use rspigot_domain::poi::PoiManager;
 use rspigot_domain::world::Dimension;
-use rspigot_domain::{BlockPos, BlockStateId, ChunkPos};
+use rspigot_domain::{BlockPos, BlockStateId, ChunkPos, Identifier};
 use rspigot_nbt::Compound;
 use rustc_hash::{FxHashMap, FxHashSet};
 
+use super::block_entity_index::BlockEntityIndex;
 use super::queue::Priority;
 use super::workers::{ChunkJob, ChunkResult, ChunkSource, ChunkWorkers};
 use crate::lighting::Touched;
@@ -90,6 +91,7 @@ pub struct ChunkManager {
     poi: PoiManager,
     forced: std::collections::BTreeSet<ChunkPos>,
     timed: std::collections::BTreeMap<ChunkPos, TimedTicket>,
+    block_entities: BlockEntityIndex,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -115,6 +117,7 @@ impl ChunkManager {
             poi,
             forced: std::collections::BTreeSet::new(),
             timed: std::collections::BTreeMap::new(),
+            block_entities: BlockEntityIndex::default(),
         }
     }
 
@@ -182,6 +185,7 @@ impl ChunkManager {
             return false;
         }
         let tickets = self.loaded.remove(&pos).map_or(0, |loaded| {
+            self.block_entities.forget(pos);
             self.poi.unload_chunk(pos);
             loaded.tickets
         });
@@ -326,6 +330,7 @@ impl ChunkManager {
                 let mut chunk = chunk;
                 chunk.block_meta.drop_volatile();
                 self.stitch.insert(pos);
+                self.block_entities.refresh(pos, &chunk);
                 self.loaded.insert(
                     pos,
                     Loaded {
@@ -395,6 +400,7 @@ impl ChunkManager {
         let Some(loaded) = self.loaded.remove(&pos) else {
             return false;
         };
+        self.block_entities.forget(pos);
         if save && loaded.dirty {
             self.submit_save(loaded.chunk, workers);
         }
@@ -489,7 +495,21 @@ impl ChunkManager {
     pub fn chunk_mut(&mut self, pos: ChunkPos) -> Option<&mut ChunkColumn> {
         let loaded = self.loaded.get_mut(&pos)?;
         loaded.dirty = true;
+        self.block_entities.mark(pos);
         Some(Arc::make_mut(&mut loaded.chunk))
+    }
+
+    pub fn chunks_with_block_entities(
+        &mut self,
+        matches: impl Fn(&Identifier) -> bool,
+    ) -> Vec<ChunkPos> {
+        for pos in self.block_entities.take_dirty() {
+            match self.loaded.get(&pos) {
+                Some(loaded) => self.block_entities.refresh(pos, &loaded.chunk),
+                None => self.block_entities.forget(pos),
+            }
+        }
+        self.block_entities.chunks_matching(matches)
     }
 
     pub fn block(&self, pos: BlockPos) -> Option<BlockStateId> {
@@ -505,6 +525,7 @@ impl ChunkManager {
     fn meta_chunk_mut(&mut self, pos: BlockPos, volatile: bool) -> Option<&mut ChunkColumn> {
         if volatile {
             let loaded = self.loaded.get_mut(&pos.chunk())?;
+            self.block_entities.mark(pos.chunk());
             Some(Arc::make_mut(&mut loaded.chunk))
         } else {
             self.chunk_mut(pos.chunk())
@@ -760,8 +781,9 @@ mod tests {
     use std::time::Instant;
 
     use rspigot_blocks::Block;
+    use rspigot_domain::chunk::BlockEntity;
     use rspigot_domain::chunk::ChunkColumn;
-    use rspigot_domain::{BiomeId, Identifier, Vec3};
+    use rspigot_domain::{BiomeId, Vec3};
 
     use super::*;
     use crate::ports::{ChunkGenerator, ChunkStore, StoreError};
@@ -878,6 +900,99 @@ mod tests {
                 }
             }
         }
+    }
+
+    fn furnace(pos: BlockPos) -> BlockEntity {
+        BlockEntity {
+            pos,
+            kind: Identifier::minecraft("furnace"),
+            data: Compound::default(),
+        }
+    }
+
+    fn furnace_chunks(manager: &mut ChunkManager) -> Vec<ChunkPos> {
+        manager.chunks_with_block_entities(|kind| kind.as_str() == "minecraft:furnace")
+    }
+
+    fn load(manager: &mut ChunkManager, workers: &ChunkWorkers, positions: &[ChunkPos]) {
+        for pos in positions {
+            manager.add_ticket(*pos, Priority(1), workers);
+        }
+        drain(manager, workers, positions.len());
+    }
+
+    #[test]
+    fn the_index_returns_exactly_the_chunks_a_full_scan_returns() {
+        let (mut manager, workers, _) = setup();
+        let positions = [
+            ChunkPos::new(2, 0),
+            ChunkPos::new(0, 0),
+            ChunkPos::new(1, 0),
+        ];
+        load(&mut manager, &workers, &positions);
+        for pos in [ChunkPos::new(0, 0), ChunkPos::new(2, 0)] {
+            let at = BlockPos::new(pos.min_block_x(), 64, pos.min_block_z());
+            manager
+                .chunk_mut(pos)
+                .expect("loaded")
+                .set_block_entity(furnace(at));
+        }
+        let mut scanned: Vec<ChunkPos> = manager
+            .loaded
+            .iter()
+            .filter(|(_, loaded)| {
+                loaded
+                    .chunk
+                    .block_entities
+                    .iter()
+                    .any(|e| e.kind.as_str() == "minecraft:furnace")
+            })
+            .map(|(pos, _)| *pos)
+            .collect();
+        scanned.sort_unstable();
+        assert_eq!(furnace_chunks(&mut manager), scanned);
+        assert_eq!(scanned, vec![ChunkPos::new(0, 0), ChunkPos::new(2, 0)]);
+        workers.shutdown();
+    }
+
+    #[test]
+    fn index_follows_a_mutation_through_chunk_mut() {
+        let (mut manager, workers, _) = setup();
+        let pos = ChunkPos::new(0, 0);
+        load(&mut manager, &workers, &[pos]);
+        assert!(furnace_chunks(&mut manager).is_empty());
+        let at = BlockPos::new(1, 64, 1);
+        manager
+            .chunk_mut(pos)
+            .expect("loaded")
+            .set_block_entity(furnace(at));
+        assert_eq!(furnace_chunks(&mut manager), vec![pos]);
+        manager
+            .chunk_mut(pos)
+            .expect("loaded")
+            .remove_block_entity(at);
+        assert!(furnace_chunks(&mut manager).is_empty());
+        workers.shutdown();
+    }
+
+    #[test]
+    fn index_forgets_an_unloaded_chunk() {
+        let (mut manager, workers, _) = setup();
+        let pos = ChunkPos::new(0, 0);
+        load(&mut manager, &workers, &[pos]);
+        manager
+            .chunk_mut(pos)
+            .expect("loaded")
+            .set_block_entity(furnace(BlockPos::new(1, 64, 1)));
+        assert_eq!(furnace_chunks(&mut manager), vec![pos]);
+        manager.remove_ticket(pos);
+        for _ in 0..8 {
+            manager.tick();
+            manager.unload(pos, false, &workers);
+        }
+        assert!(!manager.is_loaded(pos));
+        assert!(furnace_chunks(&mut manager).is_empty());
+        workers.shutdown();
     }
 
     fn two_loaded_chunks() -> (ChunkManager, ChunkWorkers) {

@@ -1,3 +1,4 @@
+mod block_entity_index;
 mod manager;
 mod queue;
 mod workers;

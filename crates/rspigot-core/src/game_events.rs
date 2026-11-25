@@ -482,7 +482,14 @@ impl<L: ClientLink> Server<L> {
             }
         }
         let mut listeners = Vec::new();
-        for chunk_pos in self.world.chunks.loaded_positions().collect::<Vec<_>>() {
+        for chunk_pos in self.world.chunks.chunks_with_block_entities(|kind| {
+            matches!(
+                kind.as_str(),
+                "minecraft:sculk_sensor"
+                    | "minecraft:calibrated_sculk_sensor"
+                    | "minecraft:sculk_shrieker"
+            )
+        }) {
             if let Some(chunk) = self.world.chunks.get(chunk_pos) {
                 listeners.extend(chunk.block_entities.iter().filter_map(block_listener));
             }

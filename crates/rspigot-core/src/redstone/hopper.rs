@@ -216,7 +216,11 @@ impl<L: ClientLink> Server<L> {
 
     pub(crate) fn tick_hoppers(&mut self) {
         let mut found: Vec<BlockPos> = Vec::new();
-        for chunk_pos in self.world.chunks.loaded_positions() {
+        for chunk_pos in self
+            .world
+            .chunks
+            .chunks_with_block_entities(|kind| kind.as_str() == "minecraft:hopper")
+        {
             let Some(chunk) = self.world.chunks.get(chunk_pos) else {
                 continue;
             };
