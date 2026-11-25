@@ -7,6 +7,7 @@ rust-version.workspace = true
 
 [dependencies]
 rspigot-auth = { workspace = true }
+rspigot-proxy-core = { workspace = true }
 rspigot-proxy-network = { workspace = true }
 anyhow = "1"
 base64 = "0.22"

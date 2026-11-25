@@ -1,4 +1,5 @@
-use rspigot_protocol::types::JsonText;
+use rspigot_nbt::Tag;
+use rspigot_protocol::types::{JsonText, Text};
 use serde_json::json;
 
 use crate::ProxySettings;
@@ -27,6 +28,10 @@ pub fn text(message: &str) -> JsonText {
     JsonText(json!({ "text": message }).to_string())
 }
 
+pub fn nbt_text(message: &str) -> Text {
+    Text(Tag::String(message.to_owned()))
+}
+
 pub fn translatable(key: &str) -> JsonText {
     JsonText(json!({ "translate": key }).to_string())
 }
@@ -49,7 +54,7 @@ mod tests {
     #[test]
     fn the_status_shows_the_motd_version_and_player_count() {
         let value: serde_json::Value =
-            serde_json::from_str(&response_json(&settings("lobby:25565"), 3)).unwrap();
+            serde_json::from_str(&response_json(&settings(), 3)).unwrap();
         assert_eq!(value["version"]["protocol"], rspigot_data::PROTOCOL_VERSION);
         assert_eq!(value["version"]["name"], rspigot_data::VERSION_NAME);
         assert_eq!(value["players"]["online"], 3);

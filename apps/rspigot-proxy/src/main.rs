@@ -31,16 +31,21 @@ async fn main() -> anyhow::Result<()> {
         .with_context(|| format!("cannot read {}", path.display()))?;
     let file = ProxyFile::parse(&text)?;
     let settings = file.settings(&root)?;
+    let registry = file.registry()?;
     let listener = TcpListener::bind(&file.bind)
         .await
         .with_context(|| format!("cannot listen on {}", file.bind))?;
     tracing::info!(
-        "rspigot-proxy listening on {} (online mode: {}, server: {})",
+        "rspigot-proxy listening on {} (online mode: {}, try: {})",
         file.bind,
         settings.online_mode,
-        settings.backend
+        file.try_order.join(", ")
     );
-    let shared = Arc::new(Shared::new(settings, MojangSessionVerifier::new(false))?);
+    let shared = Arc::new(Shared::new(
+        settings,
+        registry,
+        MojangSessionVerifier::new(false),
+    )?);
     tokio::select! {
         result = serve(listener, shared) => result?,
         _ = tokio::signal::ctrl_c() => tracing::info!("Stopping"),

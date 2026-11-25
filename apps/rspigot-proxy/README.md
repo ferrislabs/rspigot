@@ -22,7 +22,8 @@ The first start writes a default `proxy.toml` in the directory. Put the forwardi
 | `compression_threshold` | Packet size above which the client connection is compressed. `-1` turns it off. |
 | `compression_level` | zlib level, 0 to 9. |
 | `login_timeout_secs` | Time a client has to finish the handshake and login. |
+| `connect_timeout_secs` | Time the proxy waits for a backend before trying the next `try` server. Default 5. |
 | `try` | Servers tried in order when a player joins. |
 | `[servers]` | Backend names and their `host:port`. |
 
-Today the proxy sends every player to the first server of `try`. Moving between servers comes with milestone M3.
+A joining player goes to the first `try` server that answers. A backend refusal (ban, whitelist, full) is shown to the player and the next server is not tried. If the backend goes down, the player gets a disconnect message; moving them to another server comes with milestone M3. The same account cannot join twice.
