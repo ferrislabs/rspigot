@@ -2,22 +2,25 @@ use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, AtomicI64, Ordering};
 use std::time::{Duration, Instant};
 
+use bytes::Bytes;
 use rspigot_core::events::{ClientEvent, Inbound, PlayerInput};
 use rspigot_core::plugins::events::ResourcePackStatus;
 use rspigot_core::ports::{ClientLink, SessionVerifier};
 use rspigot_domain::player::{GameProfile, PlayerId};
 use rspigot_domain::text::Component;
 use rspigot_protocol::common::KeepAlive;
+use rspigot_protocol::frame::{Compression, FrameEncoder};
 use rspigot_protocol::ids;
 use rspigot_protocol::play::ServerboundPlay;
 use rspigot_protocol::split_packet_id;
+use rspigot_protocol::write_packet_with_id;
 use tokio::sync::mpsc::{Receiver, channel};
 
 use crate::connection::{
     Configured, ConnectionError, PacketReader, PacketWriter, Raw, Session, reconfigure,
 };
 use crate::decode::{Decoded, decode};
-use crate::encode::Encoder;
+use crate::encode::{Encoder, PacketSink};
 use crate::link::{NetLink, Outgoing};
 use crate::listener::Shared;
 
@@ -274,6 +277,26 @@ fn handle<V: SessionVerifier>(
             )?;
             Ok(Step::Continue)
         }
+        Outgoing::Shared(event) => {
+            if let ClientEvent::Disconnect(reason) = &*event {
+                return Ok(Step::Disconnect(reason.clone()));
+            }
+            let threshold = shared.config.compression_threshold;
+            let level = shared.config.compression_level;
+            if Encoder::shareable(&event) {
+                let frame = shared.frames.get_or_build(&event, Instant::now(), || {
+                    let mut sink = FrameBuilder::new(
+                        threshold.map(|threshold| Compression { threshold, level }),
+                    );
+                    encoder.encode(&event, &mut sink, &shared.chunks, threshold, level)?;
+                    Ok::<Bytes, ConnectionError>(sink.finish())
+                })?;
+                writer.queue_prebuilt(&frame);
+            } else {
+                encoder.encode(&event, writer, &shared.chunks, threshold, level)?;
+            }
+            Ok(Step::Continue)
+        }
         Outgoing::Pong(payload) => {
             writer.queue(
                 ids::play::clientbound::PONG_RESPONSE,
@@ -288,6 +311,45 @@ enum Step {
     Continue,
     Disconnect(Component),
     Close,
+}
+
+struct FrameBuilder {
+    encoder: FrameEncoder,
+    body: Vec<u8>,
+    out: Vec<u8>,
+}
+
+impl FrameBuilder {
+    fn new(compression: Option<Compression>) -> Self {
+        let mut encoder = FrameEncoder::new();
+        encoder.set_compression(compression);
+        Self {
+            encoder,
+            body: Vec::with_capacity(256),
+            out: Vec::with_capacity(256),
+        }
+    }
+
+    fn finish(self) -> Bytes {
+        Bytes::from(self.out)
+    }
+}
+
+impl PacketSink for FrameBuilder {
+    fn queue<P: rspigot_protocol::codec::Encode + ?Sized>(
+        &mut self,
+        id: i32,
+        packet: &P,
+    ) -> Result<(), ConnectionError> {
+        self.body.clear();
+        write_packet_with_id(id, packet, &mut self.body);
+        self.encoder.encode_packet(&self.body, &mut self.out)?;
+        Ok(())
+    }
+
+    fn queue_prebuilt(&mut self, frame: &[u8]) {
+        self.out.extend_from_slice(frame);
+    }
 }
 
 fn report_pack<V: SessionVerifier>(

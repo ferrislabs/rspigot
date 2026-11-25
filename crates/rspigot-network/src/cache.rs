@@ -1,8 +1,9 @@
-use std::collections::HashMap;
-use std::sync::{Mutex, MutexGuard, PoisonError};
+use std::collections::{HashMap, VecDeque};
+use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
 use std::time::{Duration, Instant};
 
 use bytes::Bytes;
+use rspigot_core::events::ClientEvent;
 use rspigot_domain::{ChunkPos, Identifier};
 
 pub type ChunkKey = (Identifier, ChunkPos);
@@ -308,5 +309,191 @@ mod tests {
         assert_eq!(bytes.len(), 100);
         assert!(cache.is_empty());
         assert_eq!(cache.bytes(), 0);
+    }
+}
+
+struct SharedFrame {
+    frame: Bytes,
+    keep: Arc<ClientEvent>,
+    last_used: Instant,
+}
+
+struct SharedState {
+    entries: HashMap<usize, SharedFrame>,
+    order: VecDeque<usize>,
+    bytes: u64,
+    last_sweep: Option<Instant>,
+}
+
+pub struct SharedFrameCache {
+    state: Mutex<SharedState>,
+    max_bytes: u64,
+    idle: Duration,
+}
+
+impl SharedFrameCache {
+    pub fn new(max_bytes: u64, idle: Duration) -> Self {
+        Self {
+            state: Mutex::new(SharedState {
+                entries: HashMap::new(),
+                order: VecDeque::new(),
+                bytes: 0,
+                last_sweep: None,
+            }),
+            max_bytes,
+            idle,
+        }
+    }
+
+    fn lock(&self) -> MutexGuard<'_, SharedState> {
+        self.state.lock().unwrap_or_else(PoisonError::into_inner)
+    }
+
+    pub fn get_or_build<E>(
+        &self,
+        event: &Arc<ClientEvent>,
+        now: Instant,
+        build: impl FnOnce() -> Result<Bytes, E>,
+    ) -> Result<Bytes, E> {
+        let key = Arc::as_ptr(event) as usize;
+        let hit = {
+            let mut state = self.lock();
+            let hit = state.entries.get_mut(&key).map(|entry| {
+                entry.last_used = now;
+                entry.frame.clone()
+            });
+            state.sweep(now, self.idle);
+            hit
+        };
+        if let Some(frame) = hit {
+            return Ok(frame);
+        }
+        let frame = build()?;
+        self.lock().insert(
+            key,
+            SharedFrame {
+                frame: frame.clone(),
+                keep: Arc::clone(event),
+                last_used: now,
+            },
+            self.max_bytes,
+        );
+        Ok(frame)
+    }
+
+    pub fn len(&self) -> usize {
+        self.lock().entries.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+
+    pub fn bytes(&self) -> u64 {
+        self.lock().bytes
+    }
+}
+
+impl SharedState {
+    fn insert(&mut self, key: usize, frame: SharedFrame, max_bytes: u64) {
+        let weight = frame.frame.len() as u64 + FRAME_OVERHEAD;
+        if let Some(previous) = self.entries.insert(key, frame) {
+            self.bytes -= previous.frame.len() as u64 + FRAME_OVERHEAD;
+        } else {
+            self.order.push_back(key);
+        }
+        self.bytes += weight;
+        while self.bytes > max_bytes {
+            let Some(oldest) = self.order.pop_front() else {
+                break;
+            };
+            if let Some(removed) = self.entries.remove(&oldest) {
+                self.bytes -= removed.frame.len() as u64 + FRAME_OVERHEAD;
+                drop(removed.keep);
+            }
+        }
+    }
+
+    fn sweep(&mut self, now: Instant, idle: Duration) {
+        if self
+            .last_sweep
+            .is_some_and(|last| now.duration_since(last) < SWEEP_INTERVAL)
+        {
+            return;
+        }
+        self.last_sweep = Some(now);
+        let mut kept = VecDeque::with_capacity(self.order.len());
+        for key in self.order.drain(..) {
+            let expired = self
+                .entries
+                .get(&key)
+                .is_some_and(|entry| now.duration_since(entry.last_used) > idle);
+            if expired {
+                if let Some(removed) = self.entries.remove(&key) {
+                    self.bytes -= removed.frame.len() as u64 + FRAME_OVERHEAD;
+                }
+            } else if self.entries.contains_key(&key) {
+                kept.push_back(key);
+            }
+        }
+        self.order = kept;
+    }
+}
+
+#[cfg(test)]
+mod shared_tests {
+    use super::*;
+
+    fn frame(size: usize) -> Bytes {
+        Bytes::from(vec![1u8; size])
+    }
+
+    #[test]
+    fn the_same_event_is_built_once_for_every_session() {
+        let cache = SharedFrameCache::new(1024, Duration::from_secs(1));
+        let event = Arc::new(ClientEvent::TickingStep(1));
+        let now = Instant::now();
+        let mut builds = 0;
+        for _ in 0..3 {
+            let got: Result<Bytes, ()> = cache.get_or_build(&event, now, || {
+                builds += 1;
+                Ok(frame(10))
+            });
+            assert_eq!(got.expect("built").len(), 10);
+        }
+        assert_eq!(builds, 1);
+        assert_eq!(cache.len(), 1);
+    }
+
+    #[test]
+    fn the_oldest_frames_leave_when_the_cache_is_full() {
+        let cache = SharedFrameCache::new(300, Duration::from_secs(60));
+        let now = Instant::now();
+        let events: Vec<Arc<ClientEvent>> = (0..4)
+            .map(|step| Arc::new(ClientEvent::TickingStep(step)))
+            .collect();
+        for event in &events {
+            let _: Result<Bytes, ()> = cache.get_or_build(event, now, || Ok(frame(50)));
+        }
+        assert!(cache.bytes() <= 300);
+        assert_eq!(cache.len(), 2);
+        let mut rebuilt = false;
+        let _: Result<Bytes, ()> = cache.get_or_build(&events[0], now, || {
+            rebuilt = true;
+            Ok(frame(50))
+        });
+        assert!(rebuilt);
+    }
+
+    #[test]
+    fn idle_frames_are_swept() {
+        let cache = SharedFrameCache::new(1 << 20, Duration::from_millis(10));
+        let start = Instant::now();
+        let event = Arc::new(ClientEvent::TickingStep(1));
+        let _: Result<Bytes, ()> = cache.get_or_build(&event, start, || Ok(frame(8)));
+        let later = start + SWEEP_INTERVAL + Duration::from_millis(50);
+        let other = Arc::new(ClientEvent::TickingStep(2));
+        let _: Result<Bytes, ()> = cache.get_or_build(&other, later, || Ok(frame(8)));
+        assert_eq!(cache.len(), 1);
     }
 }

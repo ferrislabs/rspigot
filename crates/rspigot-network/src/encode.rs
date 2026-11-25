@@ -1204,6 +1204,20 @@ impl Encoder {
         Ok(())
     }
 
+    pub fn shareable(event: &ClientEvent) -> bool {
+        !matches!(
+            event,
+            ClientEvent::Chunk { .. }
+                | ClientEvent::Join(_)
+                | ClientEvent::ChatMessage { .. }
+                | ClientEvent::PlayerChat { .. }
+                | ClientEvent::SignedChat(_)
+                | ClientEvent::DeleteChat { .. }
+                | ClientEvent::Reconfigure
+                | ClientEvent::Disconnect(_)
+        )
+    }
+
     pub fn encode<W: PacketSink>(
         &mut self,
         event: &ClientEvent,

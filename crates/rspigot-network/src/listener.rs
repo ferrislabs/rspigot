@@ -16,7 +16,10 @@ use tokio::sync::watch;
 use uuid::Uuid;
 
 use crate::NetworkConfig;
-use crate::cache::ChunkPacketCache;
+
+const SHARED_FRAMES_BYTES: u64 = 16 * 1024 * 1024;
+const SHARED_FRAMES_IDLE: std::time::Duration = std::time::Duration::from_secs(2);
+use crate::cache::{ChunkPacketCache, SharedFrameCache};
 use crate::connection;
 use crate::link::NetLink;
 
@@ -28,6 +31,7 @@ pub struct Shared<V> {
     pub key: ServerKey,
     pub session_id: Uuid,
     pub chunks: ChunkPacketCache,
+    pub frames: SharedFrameCache,
     throttle: Mutex<FxHashMap<IpAddr, Instant>>,
     sessions: AtomicU64,
 }
@@ -78,6 +82,7 @@ pub async fn serve<V: SessionVerifier>(
     }
     let shared = Arc::new(Shared {
         chunks: ChunkPacketCache::new(config.chunk_cache_bytes, config.chunk_cache_idle),
+        frames: SharedFrameCache::new(SHARED_FRAMES_BYTES, SHARED_FRAMES_IDLE),
         config,
         verifier,
         status,
