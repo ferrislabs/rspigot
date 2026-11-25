@@ -11,7 +11,7 @@ use rspigot_protocol::common::KeepAlive;
 use rspigot_protocol::ids;
 use rspigot_protocol::play::ServerboundPlay;
 use rspigot_protocol::split_packet_id;
-use tokio::sync::mpsc::{UnboundedReceiver, unbounded_channel};
+use tokio::sync::mpsc::{Receiver, channel};
 
 use crate::connection::{
     Configured, ConnectionError, PacketReader, PacketWriter, Raw, Session, reconfigure,
@@ -39,7 +39,7 @@ pub async fn run<V: SessionVerifier>(
         packs,
         inputs,
     } = configured;
-    let (sender, receiver) = unbounded_channel();
+    let (sender, receiver) = channel(shared.config.outbound_queue.max(1));
     let connected = Arc::new(AtomicBool::new(true));
     let link = NetLink::new(sender, Arc::clone(&connected));
     let reader_link = link.clone();
@@ -190,7 +190,7 @@ async fn read_loop<V: SessionVerifier>(
 async fn write_loop<V: SessionVerifier>(
     shared: &Shared<V>,
     mut writer: PacketWriter,
-    mut receiver: UnboundedReceiver<Outgoing>,
+    mut receiver: Receiver<Outgoing>,
     keep_alive: &KeepAliveState,
     suspension: &AtomicBool,
 ) -> Result<String, ConnectionError> {

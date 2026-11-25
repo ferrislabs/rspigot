@@ -63,6 +63,8 @@ pub enum ConnectionError {
     Closed,
     #[error("read timed out")]
     TimedOut,
+    #[error("write timed out")]
+    WriteTimedOut,
     #[error("{0}")]
     Rejected(String),
 }
@@ -96,6 +98,7 @@ pub struct PacketWriter {
     pub encoder: FrameEncoder,
     body: Vec<u8>,
     pub pending: Vec<u8>,
+    write_timeout: Duration,
 }
 
 impl PacketWriter {
@@ -116,7 +119,12 @@ impl PacketWriter {
 
     pub async fn flush(&mut self) -> Result<(), ConnectionError> {
         if !self.pending.is_empty() {
-            self.stream.write_all(&self.pending).await?;
+            match tokio::time::timeout(self.write_timeout, self.stream.write_all(&self.pending))
+                .await
+            {
+                Ok(written) => written?,
+                Err(_) => return Err(ConnectionError::WriteTimedOut),
+            }
             self.pending.clear();
         }
         Ok(())
@@ -178,6 +186,7 @@ pub async fn handle<V: SessionVerifier>(
             encoder: FrameEncoder::new(),
             body: Vec::with_capacity(256),
             pending: Vec::with_capacity(16 * 1024),
+            write_timeout: shared.config.write_timeout,
         },
         addr,
     };
@@ -985,6 +994,31 @@ async fn send_registries<W: ConfigWire>(wire: &mut W) -> Result<(), ConnectionEr
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[tokio::test]
+    async fn a_flush_toward_a_client_that_never_reads_times_out() {
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0")
+            .await
+            .expect("a free port");
+        let address = listener.local_addr().expect("bound");
+        let client = tokio::net::TcpStream::connect(address)
+            .await
+            .expect("connected");
+        let (stream, _) = listener.accept().await.expect("accepted");
+        let (_, write) = stream.into_split();
+        let mut writer = PacketWriter {
+            stream: write,
+            encoder: FrameEncoder::new(),
+            body: Vec::new(),
+            pending: vec![0u8; 64 * 1024 * 1024],
+            write_timeout: Duration::from_millis(200),
+        };
+        let started = std::time::Instant::now();
+        let result = writer.flush().await;
+        assert!(matches!(result, Err(ConnectionError::WriteTimedOut)));
+        assert!(started.elapsed() < Duration::from_secs(5));
+        drop(client);
+    }
 
     struct Script {
         incoming: std::collections::VecDeque<Vec<u8>>,
