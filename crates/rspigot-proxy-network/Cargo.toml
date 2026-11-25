@@ -9,7 +9,9 @@ rust-version.workspace = true
 rspigot-core = { workspace = true }
 rspigot-data = { workspace = true }
 rspigot-domain = { workspace = true }
+rspigot-nbt = { workspace = true }
 rspigot-protocol = { workspace = true }
+rspigot-proxy-core = { workspace = true }
 hmac = "0.12"
 rand = "0.9"
 serde_json = "1"

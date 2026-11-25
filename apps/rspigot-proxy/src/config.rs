@@ -4,6 +4,7 @@ use std::time::Duration;
 
 use anyhow::{Context, bail};
 use base64::Engine;
+use rspigot_proxy_core::ServerRegistry;
 use rspigot_proxy_network::ProxySettings;
 use serde::Deserialize;
 
@@ -18,6 +19,7 @@ forwarding_secret_file = "forwarding.secret"
 compression_threshold = 256
 compression_level = 6
 login_timeout_secs = 30
+connect_timeout_secs = 5
 try = ["lobby"]
 
 [servers]
@@ -37,24 +39,21 @@ pub struct ProxyFile {
     pub compression_threshold: i64,
     pub compression_level: u32,
     pub login_timeout_secs: u64,
+    #[serde(default = "default_connect_timeout")]
+    pub connect_timeout_secs: u64,
     #[serde(rename = "try")]
     pub try_order: Vec<String>,
     pub servers: BTreeMap<String, String>,
 }
 
+const fn default_connect_timeout() -> u64 {
+    5
+}
+
 impl ProxyFile {
     pub fn parse(text: &str) -> anyhow::Result<Self> {
         let file: Self = toml::from_str(text).context("proxy.toml is invalid")?;
-        if file.try_order.is_empty() {
-            bail!("`try` must name at least one server");
-        }
-        if let Some(missing) = file
-            .try_order
-            .iter()
-            .find(|name| !file.servers.contains_key(*name))
-        {
-            bail!("`try` names `{missing}`, which is not in [servers]");
-        }
+        file.registry()?;
         if file.compression_level > 9 {
             bail!("compression_level must be between 0 and 9");
         }
@@ -73,7 +72,6 @@ impl ProxyFile {
         if secret.is_empty() {
             bail!("the forwarding secret {} is empty", secret_path.display());
         }
-        let backend = self.servers[&self.try_order[0]].clone();
         Ok(ProxySettings {
             online_mode: self.online_mode,
             motd: self.motd.clone(),
@@ -82,9 +80,16 @@ impl ProxyFile {
             compression_threshold: usize::try_from(self.compression_threshold).ok(),
             compression_level: self.compression_level,
             forwarding_secret: secret.as_bytes().to_vec(),
-            backend,
             login_timeout: Duration::from_secs(self.login_timeout_secs),
+            connect_timeout: Duration::from_secs(self.connect_timeout_secs),
         })
+    }
+
+    pub fn registry(&self) -> anyhow::Result<ServerRegistry> {
+        Ok(ServerRegistry::new(
+            self.servers.clone(),
+            self.try_order.clone(),
+        )?)
     }
 
     fn favicon(&self, root: &Path) -> anyhow::Result<Option<String>> {
@@ -113,7 +118,9 @@ mod tests {
         std::fs::write(dir.path().join("forwarding.secret"), "s3cret\n").unwrap();
         let file = ProxyFile::parse(DEFAULT).unwrap();
         let settings = file.settings(dir.path()).unwrap();
-        assert_eq!(settings.backend, "127.0.0.1:25566");
+        let candidates = file.registry().unwrap().join_candidates();
+        assert_eq!(candidates[0].address, "127.0.0.1:25566");
+        assert_eq!(settings.connect_timeout, Duration::from_secs(5));
         assert_eq!(settings.forwarding_secret, b"s3cret");
         assert_eq!(settings.compression_threshold, Some(256));
         assert!(settings.online_mode);

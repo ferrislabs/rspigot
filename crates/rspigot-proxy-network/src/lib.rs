@@ -5,7 +5,7 @@ mod status;
 mod wire;
 
 use std::sync::Arc;
-use std::sync::atomic::AtomicU32;
+use std::sync::{Mutex, MutexGuard};
 use std::time::Duration;
 
 use rspigot_core::ports::SessionVerifier;
@@ -13,6 +13,7 @@ use rspigot_protocol::codec::DecodeError;
 use rspigot_protocol::crypto::{CryptoError, ServerKey};
 use rspigot_protocol::frame::FrameError;
 use rspigot_protocol::types::JsonText;
+use rspigot_proxy_core::{Roster, ServerRegistry};
 use tokio::net::TcpListener;
 
 #[derive(Debug, thiserror::Error)]
@@ -27,6 +28,8 @@ pub enum ProxyError {
     Crypto(#[from] CryptoError),
     #[error("connection closed")]
     Closed,
+    #[error("the connection to the backend was lost")]
+    BackendLost,
     #[error("timed out")]
     Timeout,
     #[error("{0}")]
@@ -44,29 +47,43 @@ pub struct ProxySettings {
     pub compression_threshold: Option<usize>,
     pub compression_level: u32,
     pub forwarding_secret: Vec<u8>,
-    pub backend: String,
     pub login_timeout: Duration,
+    pub connect_timeout: Duration,
+}
+
+pub struct State {
+    pub registry: ServerRegistry,
+    pub roster: Roster,
 }
 
 pub struct Shared<V> {
     settings: ProxySettings,
     verifier: V,
     key: ServerKey,
-    online: AtomicU32,
+    state: Mutex<State>,
 }
 
 impl<V> Shared<V> {
-    pub fn new(settings: ProxySettings, verifier: V) -> Result<Self, ProxyError> {
+    pub fn new(
+        settings: ProxySettings,
+        registry: ServerRegistry,
+        verifier: V,
+    ) -> Result<Self, ProxyError> {
         Ok(Self {
             settings,
             verifier,
             key: ServerKey::generate()?,
-            online: AtomicU32::new(0),
+            state: Mutex::new(State {
+                registry,
+                roster: Roster::default(),
+            }),
         })
     }
 
-    pub fn online(&self) -> u32 {
-        self.online.load(std::sync::atomic::Ordering::Relaxed)
+    pub fn state(&self) -> MutexGuard<'_, State> {
+        self.state
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
     }
 }
 
@@ -89,7 +106,7 @@ pub async fn serve<V: SessionVerifier>(
 mod tests {
     use super::*;
 
-    pub fn settings(backend: &str) -> ProxySettings {
+    pub fn settings() -> ProxySettings {
         ProxySettings {
             online_mode: false,
             motd: "A proxy".to_owned(),
@@ -98,8 +115,8 @@ mod tests {
             compression_threshold: Some(64),
             compression_level: 6,
             forwarding_secret: b"secret".to_vec(),
-            backend: backend.to_owned(),
             login_timeout: Duration::from_secs(5),
+            connect_timeout: Duration::from_secs(5),
         }
     }
 }

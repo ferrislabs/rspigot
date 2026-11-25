@@ -1,6 +1,6 @@
 use std::net::SocketAddr;
 use std::sync::Arc;
-use std::sync::atomic::Ordering;
+use std::sync::atomic::{AtomicU8, Ordering};
 
 use rspigot_core::ports::SessionVerifier;
 use rspigot_domain::player::PlayerId;
@@ -13,13 +13,14 @@ use rspigot_protocol::login::{
 use rspigot_protocol::split_packet_id;
 use rspigot_protocol::status::{PongResponse, ServerboundStatus, StatusResponse};
 use rspigot_protocol::types::{JsonText, ProfileProperty};
+use rspigot_proxy_core::Phase;
 use tokio::net::TcpStream;
 use tokio::time::timeout;
 
 use crate::backend;
 use crate::forwarding::ForwardedPlayer;
 use crate::status;
-use crate::wire::{self, Reader, Writer};
+use crate::wire::{self, Ended, Reader, Writer};
 use crate::{ProxyError, Shared};
 
 pub async fn handle<V: SessionVerifier>(
@@ -72,7 +73,7 @@ async fn answer_status<V>(
         let (id, body) = split_packet_id(&packet)?;
         match ServerboundStatus::decode(id, body)? {
             ServerboundStatus::StatusRequest(_) => {
-                let online = shared.online.load(Ordering::Relaxed);
+                let online = u32::try_from(shared.state().roster.online()).unwrap_or(u32::MAX);
                 writer
                     .send(&StatusResponse {
                         json: status::response_json(&shared.settings, online),
@@ -180,31 +181,70 @@ async fn join<V>(
     shared: &Shared<V>,
     player: ForwardedPlayer,
 ) -> Result<(), ProxyError> {
+    let login = shared.state().roster.login(player.id, &player.name);
+    if let Err(error) = login {
+        tracing::info!("Refusing {}: {error}", player.name);
+        return disconnect(
+            &mut client_writer,
+            &status::text("You are already connected to this proxy!"),
+        )
+        .await;
+    }
+    let result = play(&mut client_reader, &mut client_writer, shared, &player).await;
+    shared.state().roster.logout(player.id);
+    tracing::info!("{} left the proxy", player.name);
+    match result {
+        Err(ProxyError::Closed) => Ok(()),
+        other => other,
+    }
+}
+
+async fn play<V>(
+    client_reader: &mut Reader,
+    client_writer: &mut Writer,
+    shared: &Shared<V>,
+    player: &ForwardedPlayer,
+) -> Result<(), ProxyError> {
     let settings = &shared.settings;
-    let link = match backend::login(
-        &settings.backend,
-        &player,
-        &settings.forwarding_secret,
-        settings.compression_level,
-    )
-    .await
-    {
-        Ok(link) => link,
-        Err(ProxyError::BackendRefused(reason)) => {
-            return disconnect(&mut client_writer, &reason).await;
+    let candidates = shared.state().registry.join_candidates();
+    let mut reached = None;
+    for server in candidates {
+        let attempt = timeout(
+            settings.connect_timeout,
+            backend::login(
+                &server.address,
+                player,
+                &settings.forwarding_secret,
+                settings.compression_level,
+            ),
+        )
+        .await
+        .unwrap_or(Err(ProxyError::Timeout));
+        match attempt {
+            Ok(link) => {
+                reached = Some((server, link));
+                break;
+            }
+            Err(ProxyError::BackendRefused(reason)) => {
+                tracing::info!(
+                    "{} was refused by {}: {}",
+                    player.name,
+                    server.name,
+                    reason.0
+                );
+                return disconnect(client_writer, &reason).await;
+            }
+            Err(error) => {
+                tracing::warn!("{} could not reach {}: {error}", player.name, server.name);
+            }
         }
-        Err(error) => {
-            tracing::warn!(
-                "{} could not reach {}: {error}",
-                player.name,
-                settings.backend
-            );
-            return disconnect(
-                &mut client_writer,
-                &status::text("Could not connect to the server."),
-            )
-            .await;
-        }
+    }
+    let Some((server, link)) = reached else {
+        return disconnect(
+            client_writer,
+            &status::text("Could not connect to a default or fallback server."),
+        )
+        .await;
     };
     let backend::BackendLink {
         reader: mut backend_reader,
@@ -225,24 +265,37 @@ async fn join<V>(
     }
     client_writer.send(&finished).await?;
     loop {
-        match next_login(&mut client_reader).await? {
+        match next_login(client_reader).await? {
             ServerboundLogin::LoginAcknowledged(_) => break,
             ServerboundLogin::CustomQueryAnswer(_) | ServerboundLogin::CookieResponse(_) => {}
             _ => return Err(ProxyError::Rejected("unexpected login packet".to_owned())),
         }
     }
     backend_writer.send(&LoginAcknowledged).await?;
-    tracing::info!("{} joined through the proxy ({})", player.name, player.id);
-    shared.online.fetch_add(1, Ordering::Relaxed);
-    let result = tokio::select! {
-        result = wire::pump(&mut client_reader, &mut backend_writer) => result,
-        result = wire::pump(&mut backend_reader, &mut client_writer) => result,
+    shared.state().roster.connected(player.id, &server.name);
+    tracing::info!("{} ({}) joined {}", player.name, player.id, server.name);
+    let phase = AtomicU8::new(Phase::Configuration.as_u8());
+    let ended = tokio::select! {
+        result = wire::pump_serverbound(client_reader, &mut backend_writer, &phase) => result,
+        result = wire::pump_clientbound(&mut backend_reader, client_writer, &phase) => result,
     };
-    shared.online.fetch_sub(1, Ordering::Relaxed);
-    tracing::info!("{} left the proxy", player.name);
-    match result {
-        Err(ProxyError::Closed) => Ok(()),
-        other => other,
+    match ended {
+        Ok(Ended::Client) => Ok(()),
+        Ok(Ended::Kicked) => {
+            tracing::info!("{} was kicked from {}", player.name, server.name);
+            Ok(())
+        }
+        Err(ProxyError::BackendLost) => {
+            tracing::info!("{} lost {}", player.name, server.name);
+            let phase = Phase::from_u8(phase.load(Ordering::Relaxed));
+            client_writer
+                .send_disconnect(
+                    phase,
+                    &status::nbt_text("The server you were on went down."),
+                )
+                .await
+        }
+        Err(error) => Err(error),
     }
 }
 
