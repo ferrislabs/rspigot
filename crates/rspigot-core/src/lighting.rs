@@ -576,6 +576,7 @@ pub fn relight<W: LightWorld>(
             touched: &mut touched,
             darken: VecDeque::new(),
             brighten: VecDeque::new(),
+            lowered: VecDeque::new(),
         };
         if sky {
             pass.seed_sky(edits);
@@ -615,6 +616,7 @@ struct Relight<'w, W> {
     touched: &'w mut Touched,
     darken: VecDeque<(BlockPos, u8)>,
     brighten: VecDeque<BlockPos>,
+    lowered: VecDeque<(BlockPos, u8)>,
 }
 
 impl<W: LightWorld> Relight<'_, W> {
@@ -656,6 +658,7 @@ impl<W: LightWorld> Relight<'_, W> {
         let mut columns: Vec<(i32, i32)> = edits.keys().map(|pos| (pos.x, pos.z)).collect();
         columns.sort_unstable();
         columns.dedup();
+        let mut plan = Vec::with_capacity(columns.len());
         for (x, z) in columns {
             let Some((height, old, new)) = self
                 .world
@@ -675,12 +678,81 @@ impl<W: LightWorld> Relight<'_, W> {
                 continue;
             };
             self.columns.insert((x, z), new.clone());
+            plan.push((x, z, height, old, new));
+        }
+        let mut deferred = Vec::new();
+        for (x, z, height, old, new) in &plan {
             for (offset, (&was, &now)) in old.iter().zip(new.iter()).enumerate() {
-                let pos = BlockPos::new(x, height.min_y + offset as i32, z);
-                if edits.contains_key(&pos) || now < was {
-                    self.dim(pos);
+                let pos = BlockPos::new(*x, height.min_y + offset as i32, *z);
+                if edits.contains_key(&pos) {
+                    deferred.push((pos, None));
+                } else if now < was {
+                    self.lower(pos, was);
                 } else if now > was {
-                    self.raise(pos, now);
+                    deferred.push((pos, Some(now)));
+                }
+            }
+        }
+        self.decrease();
+        for (pos, raise) in deferred {
+            match raise {
+                Some(level) => self.raise(pos, level),
+                None => self.dim(pos),
+            }
+        }
+    }
+
+    fn lower(&mut self, pos: BlockPos, was: u8) {
+        if self.level(pos) != was {
+            return;
+        }
+        let level = self.supported(pos);
+        if level < was {
+            self.set(pos, level);
+            self.lowered.push_back((pos, was));
+        }
+    }
+
+    fn supported(&mut self, pos: BlockPos) -> u8 {
+        let Some(state) = self.state(pos) else {
+            return 0;
+        };
+        let mut level = self.source(pos, state);
+        for (direction, (dx, dy, dz)) in DIRECTIONS.iter().enumerate() {
+            let next = pos.offset(*dx, *dy, *dz);
+            let Some(from) = self.state(next) else {
+                continue;
+            };
+            let Some(cost) = step_cost(Some(from), Some(state), direction ^ 1) else {
+                continue;
+            };
+            level = level.max(self.level(next).saturating_sub(cost));
+        }
+        level
+    }
+
+    fn decrease(&mut self) {
+        while let Some((pos, old)) = self.lowered.pop_front() {
+            let from = self.state(pos);
+            for (direction, (dx, dy, dz)) in DIRECTIONS.iter().enumerate() {
+                let next = pos.offset(*dx, *dy, *dz);
+                let Some(to) = self.state(next) else {
+                    continue;
+                };
+                let current = self.level(next);
+                if current == 0 {
+                    continue;
+                }
+                let Some(cost) = step_cost(from, Some(to), direction) else {
+                    continue;
+                };
+                if current != old.saturating_sub(cost) {
+                    continue;
+                }
+                let level = self.supported(next);
+                if level < current {
+                    self.set(next, level);
+                    self.lowered.push_back((next, current));
                 }
             }
         }
@@ -1154,6 +1226,40 @@ mod tests {
         assert_eq!(mismatch(&world, &expected, true), None);
         assert_eq!(touched.len(), 1);
         assert_eq!(level(&world, BlockPos::new(20, 10, 20), true), 14);
+    }
+
+    #[test]
+    fn a_falling_water_column_dims_the_room_it_lights() {
+        let mut room = Vec::new();
+        for y in 5..20 {
+            for z in 18..23 {
+                room.push((22, y, z, 1));
+                room.push((26, y, z, 1));
+            }
+            for x in 23..26 {
+                room.push((x, y, 18, 1));
+                room.push((x, y, 22, 1));
+            }
+        }
+        for x in 22..27 {
+            for z in 18..23 {
+                room.push((x, 20, z, 1));
+            }
+        }
+        for y in 5..20 {
+            room.push((22, y, 20, 0));
+        }
+        let mut world = settled(terrain(&room), true);
+        assert_eq!(level(&world, BlockPos::new(24, 10, 20), true), 12);
+        let water = [(21, 25, 20, 2), (21, 24, 20, 2)];
+        let changes = edit(&mut world, &water);
+        relight(&mut world, &changes, true);
+        let mut all = room.clone();
+        all.extend(water);
+        let expected = settled(terrain(&all), true);
+        assert_eq!(mismatch(&world, &expected, true), None);
+        assert_eq!(level(&world, BlockPos::new(21, 10, 20), true), 14);
+        assert_eq!(level(&world, BlockPos::new(24, 10, 20), true), 11);
     }
 
     #[test]
