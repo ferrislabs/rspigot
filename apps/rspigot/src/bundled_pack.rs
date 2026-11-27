@@ -102,9 +102,10 @@ mod tests {
 
     #[test]
     fn the_readme_does_not_ask_the_user_to_copy_the_pack() {
-        let readme =
-            std::fs::read_to_string(Path::new(env!("CARGO_MANIFEST_DIR")).join("../../README.md"))
-                .unwrap();
+        let readme = std::fs::read_to_string(
+            Path::new(env!("CARGO_MANIFEST_DIR")).join("../../datapacks/README.md"),
+        )
+        .unwrap();
         assert!(!readme.contains("copy that folder"));
         assert!(readme.contains("embedded in the server binary"));
         assert!(readme.contains("nothing has to be copied"));

@@ -51,6 +51,16 @@ fn shaped_kinds() -> &'static [bool] {
 }
 
 pub(crate) fn uses_shape(state: BlockStateId) -> bool {
+    static STATES: OnceLock<Box<[bool]>> = OnceLock::new();
+    let states = STATES.get_or_init(|| {
+        (0..rspigot_blocks::STATE_COUNT)
+            .map(|id| shape_matters(BlockStateId(id as u16)))
+            .collect()
+    });
+    states.get(usize::from(state.0)).copied().unwrap_or(false)
+}
+
+fn shape_matters(state: BlockStateId) -> bool {
     let Some(kind) = state.kind() else {
         return false;
     };
